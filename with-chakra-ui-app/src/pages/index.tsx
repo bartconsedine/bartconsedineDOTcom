@@ -1,26 +1,19 @@
-import {
-  Link as ChakraLink,
-  Text,
-  Code,
-  List,
-  ListIcon,
-  ListItem,
-} from '@chakra-ui/react'
-import { CheckCircleIcon, LinkIcon } from '@chakra-ui/icons'
-
-import { Hero } from '../components/Hero'
 import { Container } from '../components/Container'
-import { Main } from '../components/Main'
-import { DarkModeSwitch } from '../components/DarkModeSwitch'
-import { CTA } from '../components/CTA'
-import { Footer } from '../components/Footer'
+import {
+  Flex,
+  Heading,
+  Image
+} from '@chakra-ui/react'
+
 import HeroMain from '../components/hero/HeroMain'
 import BioMain from '../components/bio/BioMain'
+import WorkExperience from '../components/workExperience/WorkExperience'
 
 const Index = () => (
   <Container width="100vw" overflowX={"hidden"}>
     <HeroMain></HeroMain>
     <BioMain></BioMain>
+    <WorkExperience></WorkExperience>
   </Container>
 )
 
