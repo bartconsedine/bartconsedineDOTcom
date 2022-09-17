@@ -19,6 +19,7 @@ const Index = () => (
     overflowX={"hidden"}
     color="#fff"
     backgroundColor="#1a202b"
+    fontSize={"1.25em"}
   >
     <HeroMain />
     <BioMain />
