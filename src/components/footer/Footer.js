@@ -14,6 +14,7 @@ const Footer = () => {
             margin={["0", null, "1em"]}
             borderTop="1px solid white"
             fontSize={"2xl"}
+            marginBottom="10em"
         >
             <Box>
                 <a href="https://linkedin.com/in/bartconsedine" target={"_blank"}>
