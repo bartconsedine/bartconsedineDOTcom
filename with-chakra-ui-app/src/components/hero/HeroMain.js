@@ -1,7 +1,8 @@
 import {
     Flex,
     Heading,
-    Image
+    Image,
+    Box
 } from '@chakra-ui/react'
 
 import { Fade } from "react-awesome-reveal"
@@ -25,19 +26,35 @@ const HeroMain = () => {
             minH="100vh"
             overflow="none"
             direction={["column", null, "row"]}
-            paddingLeft="20em"
+            paddingLeft={["1em",null,"20em"]}
         >
-            <Flex {...boxStyles} direction="column" justifyContent={'center'} align="left">
-                <Fade cascade damping={0.7}>
-                    <Heading size={"4xl"} marginBottom=".5em">Bart Consedine</Heading>
+            <Flex zIndex={3} {...boxStyles} direction="column" justifyContent={'center'} align="left">
+                <Heading size={"4xl"} marginBottom=".5em">Bart Consedine</Heading>
+                <Fade cascade damping={1}>
+                    <Box topMargin="-5em"></Box>
                     <Heading {...bulletStyles}>Software Engineer</Heading>
                     <Heading {...bulletStyles}>Digital Marketing Expert</Heading>
                     <Heading {...bulletStyles}>Entrepreneur</Heading>
+                    <Image borderRadius='50%'  ></Image>
                 </Fade>
             </Flex>
             <Flex {...boxStyles}>
-                <Image borderRadius='full' src='https://bartconsedine.com/images/person_1.jpg'></Image>
+                <Image borderRadius='full' zIndex={2} src='images/headshot.jpeg'></Image>
+
             </Flex>
+            {/* <Box position="absolute" borderRadius='0 0 0 70vh' top="0" right="0"zIndex={1} width="70vh" height="70vh" backgroundColor="#ade3b8"></Box> */}
+            <Box
+                position="absolute"
+                top="0"
+                right="0"
+                borderLeft="70vh solid transparent"
+                // borderRight="70vh solid transparent"
+                borderTop='70vh solid #ade3b8'
+                zIndex={1}
+                opacity={[.8,null,1]}
+            >
+
+            </Box>
         </Flex>
     )
 }

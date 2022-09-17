@@ -6,14 +6,15 @@ import {
 
 const Positions = ({content}) => {
 
-    const pad = "1em"
+    const pads = ".75em 0"
+    const border = "1px solid white"
 
     return (
 
-        <Flex width="40vw" align="left" direction="column" marginRight="5em" >
-            <Heading size="2xl">{content.company}</Heading>
-            <Box paddingTop={pad} fontStyle="italic">{content.title}</Box>
-            <Box paddingTop={pad}>{content.description}</Box>
+        <Flex marginTop={["1em", null, 0]} width={["85vw",null,"40vw" ]}align="left" direction="column" marginRight="5em" >
+            <Heading size="2xl" marginBottom=".2em">{content.company}</Heading>
+            <Heading size="md" borderTop={border} borderBottom={border} padding={pads} fontStyle="italic">{content.title}</Heading>
+            <Box paddingTop="1em">{content.description}</Box>
         </Flex>
     )
 
