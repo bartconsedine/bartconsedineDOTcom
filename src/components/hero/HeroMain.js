@@ -41,7 +41,12 @@ const HeroMain = () => {
                 </Box>
             </Flex>
             <Flex {...boxStyles}>
-                <Image marginLeft={["2em", null, "0"]} borderRadius='full' zIndex={2} src='images/headshot.jpeg'></Image>
+                <Image
+                    marginLeft={["2em", null, "0"]}
+                    borderRadius='full'
+                    zIndex={2}
+                    src='images/headshot.jpeg'
+                />
 
             </Flex>
             {/* <Box position="absolute" borderRadius='0 0 0 70vh' top="0" right="0"zIndex={1} width="70vh" height="70vh" backgroundColor="#ade3b8"></Box> */}
