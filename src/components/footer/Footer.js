@@ -9,12 +9,13 @@ const Footer = () => {
         <Flex
             width={["100vw", null, "80vw"]}
             direction="row"
+            align-items="center"
             justify={"space-around"}
-            padding={["2em", null, "2em 2em"]}
+            padding={["2em", null, "2em"]}
             margin={["0", null, "1em"]}
             borderTop="1px solid white"
             fontSize={"2xl"}
-            marginBottom="10em"
+            marginBottom={["2em",null,"5em"]}
         >
             <Box>
                 <a href="https://linkedin.com/in/bartconsedine" target={"_blank"}>

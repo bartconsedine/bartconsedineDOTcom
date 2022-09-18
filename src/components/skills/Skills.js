@@ -8,6 +8,8 @@ import {
 
 import { Zoom, Fade } from "react-awesome-reveal"
 
+import Headings from '../misc/Headings'
+
 const Skills = () => {
 
     const softwareSkills = [
@@ -73,13 +75,13 @@ const Skills = () => {
         <>
             <Zoom>
                 <Box width='100vw' paddingLeft={["2em", null,"5em"]}>
-                    <Heading color="#ade3b8" size="4xl">Skills</Heading>
+                    <Headings title="skills"/>
                 </Box>
             </Zoom>
 
-            <Flex align-content="left" direction={["column",null,"row"]} width="100vw" padding={["2em",null,"2em 7em"]} justify="space-between">
+            <Flex marginBottom="5em" align-content="left" direction={["column",null,"row"]} width="100vw" padding={["2em",null,"0 5em"]} justify="space-between">
                 <Fade cascade damping={.2}>
-                    <Flex {...columnStyles} >
+                    <Flex {...columnStyles} marginTop={["1em",null,"5em",null ]}>
                         <Heading {...headingStyles}>Software</Heading>
                         <UnorderedList>{showSkills(softwareSkills)}</UnorderedList>
                     </Flex>

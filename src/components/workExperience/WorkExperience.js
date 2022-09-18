@@ -4,40 +4,36 @@ import {
     Image,
     Box
 } from '@chakra-ui/react'
+import { Zoom } from "react-awesome-reveal"
 
+import Headings from '../misc/Headings'
 
 import Content from './Content.js'
-
 import Positions from './Positions'
 
-import { Zoom } from "react-awesome-reveal"
+
 
 const WorkExperience = () => {
 
     const boxes = {
         direction: ["column", null, "row"],
-        justify: ["flex-start",null,"space-between"],
-        
+        justify: ["flex-start", null, "space-between"],
     }
 
     return (
-        <Flex marginTop={["5em", null, 0]} padding={["2em",null,"5em 5em 0 5em" ]}direction="column" width="100vw" minH="100vh">
+        <Flex marginTop={["5em", null, 0]} padding={["2em", null, "5em 5em 0 5em"]} direction="column" width="100vw" minH="100vh">
             <Zoom>
-                <Heading color="#ade3b8" size="4xl" marginBottom='1em'>work experience</Heading>
+                <Headings title="work experience" />
             </Zoom>
-            <Flex marginTop={[".25em",null,"5em"]} direction="column" >
-                <Zoom>
-                    <Flex {...boxes} >
-                        <Positions content={Content.SpringServe}></Positions>
-                        <Positions content={Content.QuiBids}></Positions>
-
-                    </Flex>
-                    <Flex {...boxes} marginTop={["0", null,"5em"]} marginBottom="10em">
-                        <Positions content={Content.Parsec}></Positions>
-                        <Positions content={Content.SociaFly}></Positions>
-                    </Flex>
-                </Zoom>
-
+            <Flex marginTop={[".25em", null, "5em"]} direction="column" >
+                <Flex {...boxes} >
+                    <Positions content={Content.SpringServe}></Positions>
+                    <Positions content={Content.QuiBids}></Positions>
+                </Flex>
+                <Flex {...boxes} marginTop={["0", null, "5em"]} marginBottom="10em">
+                    <Positions content={Content.Parsec}></Positions>
+                    <Positions content={Content.SociaFly}></Positions>
+                </Flex>
             </Flex>
 
 

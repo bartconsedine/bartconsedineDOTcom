@@ -35,11 +35,11 @@ const HeroMain = () => {
                     <Heading {...bulletStyles}>Software Engineer</Heading>
                     <Heading {...bulletStyles}>Digital Marketing Expert</Heading>
                     <Heading {...bulletStyles}>Entrepreneur</Heading>
-                    <Image borderRadius='50%'  ></Image>
+                    {/* <Image borderRadius='50%'  ></Image> */}
                 </Fade>
             </Flex>
             <Flex {...boxStyles}>
-                <Image borderRadius='full' zIndex={2} src='images/headshot.jpeg'></Image>
+                <Image marginLeft={["2em", null, "0"]} borderRadius='full' zIndex={2} src='images/headshot.jpeg'></Image>
 
             </Flex>
             {/* <Box position="absolute" borderRadius='0 0 0 70vh' top="0" right="0"zIndex={1} width="70vh" height="70vh" backgroundColor="#ade3b8"></Box> */}
