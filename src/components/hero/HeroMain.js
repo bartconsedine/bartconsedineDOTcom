@@ -26,7 +26,7 @@ const HeroMain = () => {
             minH="100vh"
             overflow="none"
             direction={["column", null, "row"]}
-            paddingLeft={["1em", null, "10em"]}
+            paddingLeft={["1em", null, "9em"]}
         >
             <Flex zIndex={3} {...boxStyles} direction="column" justifyContent={'center'} align="left">
                 <Heading size={"4xl"} marginBottom=".5em">Bart Consedine</Heading>
