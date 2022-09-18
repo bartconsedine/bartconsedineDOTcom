@@ -68,7 +68,7 @@ const Skills = () => {
     }
 
     const showSkills = (i) => {
-        return i.map(item => { return (<ListItem fontSize="2xl">{item}</ListItem>) })
+        return i.map(item => { return (<ListItem fontSize="xl">{item}</ListItem>) })
     }
 
     return (
