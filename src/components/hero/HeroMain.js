@@ -26,17 +26,19 @@ const HeroMain = () => {
             minH="100vh"
             overflow="none"
             direction={["column", null, "row"]}
-            paddingLeft={["1em",null,"20em"]}
+            paddingLeft={["1em", null, "20em"]}
         >
             <Flex zIndex={3} {...boxStyles} direction="column" justifyContent={'center'} align="left">
                 <Heading size={"4xl"} marginBottom=".5em">Bart Consedine</Heading>
-                <Fade cascade damping={1}>
-                    <Box topMargin="-5em"></Box>
-                    <Heading {...bulletStyles}>Software Engineer</Heading>
-                    <Heading {...bulletStyles}>Digital Marketing Expert</Heading>
-                    <Heading {...bulletStyles}>Entrepreneur</Heading>
-                    {/* <Image borderRadius='50%'  ></Image> */}
-                </Fade>
+                <Box marginLeft={[".25em", null, "-.25em"]} topMargin="-5em">
+                    <Fade cascade damping={1}>
+
+                        <Heading {...bulletStyles}>Software Engineer</Heading>
+                        <Heading {...bulletStyles}>Digital Marketing Expert</Heading>
+                        <Heading {...bulletStyles}>Entrepreneur</Heading>
+                        {/* <Image borderRadius='50%'  ></Image> */}
+                    </Fade>
+                </Box>
             </Flex>
             <Flex {...boxStyles}>
                 <Image marginLeft={["2em", null, "0"]} borderRadius='full' zIndex={2} src='images/headshot.jpeg'></Image>
@@ -51,7 +53,7 @@ const HeroMain = () => {
                 // borderRight="70vh solid transparent"
                 borderTop='70vh solid #ade3b8'
                 zIndex={1}
-                opacity={[.8,null,1]}
+                opacity={[.8, null, 1]}
             >
 
             </Box>
