@@ -16,7 +16,7 @@ const BioMain = () => {
             margin={["5em 0 0 0 ", null,"0 0"]}
             >
             <Zoom>
-                <Headings title="about me"/>
+                <Headings title="career bio"/>
                 <Flex 
                     fontSize={["1em", null,"1.5em" ]}
                     marginTop={["1em",null,"2em"]} 
