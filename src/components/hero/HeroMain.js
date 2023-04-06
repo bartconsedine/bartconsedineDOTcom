@@ -31,7 +31,7 @@ const HeroMain = () => {
             <Flex zIndex={3} {...boxStyles} direction="column" justifyContent={'center'} align="left">
                 <Heading size={"4xl"} marginBottom=".5em">Bart Consedine</Heading>
                 <Box marginLeft={[".25em", null, "-.25em"]} topMargin="-5em">
-                    <Fade cascade damping={1}>
+                    <Fade triggerOnce cascade damping={1}>
 
                         <Heading {...bulletStyles}>Software Engineer</Heading>
                         <Heading {...bulletStyles}>Digital Marketing Expert</Heading>

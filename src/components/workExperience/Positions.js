@@ -12,7 +12,7 @@ const Positions = ({ content }) => {
     const border = "1px solid white"
 
     return (
-        <Zoom>
+        <Zoom triggerOnce>
             <Flex marginTop={["4em", null, 0]} width={["85vw", null, "40vw"]} align="left" direction="column" marginRight="5em" >
                 <Heading size="2xl" marginBottom=".2em">{content.company}</Heading>
                 <Heading size="md" borderTop={border} borderBottom={border} padding={pads} fontStyle="italic">{content.title}</Heading>

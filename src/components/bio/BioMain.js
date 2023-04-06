@@ -15,7 +15,7 @@ const BioMain = () => {
             direction="column" 
             margin={["5em 0 0 0 ", null,"0 0"]}
             >
-            <Zoom>
+            <Zoom triggerOnce>
                 <Headings title="career bio"/>
                 <Flex 
                     fontSize={[".85em",null,"1.1em"]}

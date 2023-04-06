@@ -22,7 +22,7 @@ const WorkExperience = () => {
 
     return (
         <Flex marginTop={["5em", null, 0]} padding={["2em", null, "5em 5em 0 5em"]} direction="column" width="100vw" minH="100vh">
-            <Zoom>
+            <Zoom triggerOnce>
                 <Headings title="work experience" />
             </Zoom>
             <Flex marginTop={[".25em", null, "5em"]} direction="column" >

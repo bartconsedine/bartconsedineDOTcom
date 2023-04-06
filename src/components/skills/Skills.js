@@ -73,14 +73,14 @@ const Skills = () => {
 
     return (
         <>
-            <Zoom>
+            <Zoom triggerOnce>
                 <Box width='100vw' paddingLeft={["2em", null,"5em"]}>
                     <Headings title="skills"/>
                 </Box>
             </Zoom>
 
             <Flex marginBottom="5em" align-content="left" direction={["column",null,"row"]} width="100vw" padding={["2em",null,"0 5em"]} justify="space-between">
-                <Fade cascade damping={.2}>
+                <Fade triggerOnce cascade damping={.2}>
                     <Flex {...columnStyles} marginTop={["1em",null,"5em",null ]}>
                         <Heading {...headingStyles}>Software</Heading>
                         <UnorderedList>{showSkills(softwareSkills)}</UnorderedList>
