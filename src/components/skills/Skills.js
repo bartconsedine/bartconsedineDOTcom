@@ -15,6 +15,9 @@ const Skills = () => {
     const softwareSkills = [
         "Javascript",
         "React JS",
+        "Python",
+        "ML / AI",
+        "SciKit Learn",
         "Ruby on Rails",
         "Ruby",
         "Angular JS",
