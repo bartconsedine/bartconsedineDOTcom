@@ -19,11 +19,11 @@ async function database(legacyOwner = false) {
     insert into auth.users values ('${bart}', 'bartconsedine@gmail.com', now(), false), ('${wife}', 'mjshah8@gmail.com', now(), false), ('${stranger}', 'other@example.com', now(), false);
     insert into auth.identities select id, 'google', jsonb_build_object('email',email,'email_verified',true) from auth.users;
   `);
-  const folder = new URL('../supabase/migrations/', import.meta.url);
-  const files = (await readdir(folder)).filter(file => file.endsWith('.sql')).sort();
-  await db.exec(await readFile(new URL(files[0], folder), 'utf8'));
+  const folder = new URL('../prisma/migrations/', import.meta.url);
+  const files = (await readdir(folder)).filter(file => file !== 'migration_lock.toml').sort();
+  await db.exec(await readFile(new URL(`${files[0]}/migration.sql`, folder), 'utf8'));
   if (legacyOwner) await db.exec(`insert into private.site_owner(user_id,email) values('${bart}','bartconsedine@gmail.com'); insert into public.app_data(owner_id,app_slug,key) values('${bart}','test-app','legacy');`);
-  for (const file of files.slice(1)) await db.exec(await readFile(new URL(file, folder), 'utf8'));
+  for (const file of files.slice(1)) await db.exec(await readFile(new URL(`${file}/migration.sql`, folder), 'utf8'));
   return db;
 }
 const login = (db, id) => db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${id}',false);`);

@@ -19,9 +19,9 @@ The public site works without credentials. `/admin`, `/admin/apps/<slug>`, `/api
 
 ## Deployment and live auth setup
 
-Follow the [two-admin setup checklist](docs/SUPABASE_SETUP_CHECKLIST.md) for the exact project, migration order, Google identity verification, administrative enrollment SQL, environment variables, and pending live checks. The approved accounts are `bartconsedine@gmail.com` and `mjshah8@gmail.com`. No hosted changes or deployment are part of this code change.
+Follow the [two-admin setup checklist](docs/SUPABASE_SETUP_CHECKLIST.md) for the exact project, migration order, Google identity verification, administrative enrollment SQL, environment variables, and pending live checks. The approved accounts are `bartconsedine@gmail.com` and `mjshah8@gmail.com`. The code task has made no hosted writes; coordinate the authorized release and remaining setup with the parent task.
 
-Fresh databases apply both migrations in filename order. Membership starts empty; Google sign-in can create an Auth identity but cannot enroll an admin. An administrator reviews both real Auth UUIDs and runs the separate [enrollment SQL](supabase/admin/enroll_two_admins.sql). `OWNER_USER_ID` and `OWNER_EMAIL` are no longer required. The old production code and new database schema must not be mixed; coordinate migration and release with the original setup task.
+All migrations now run through [Prisma Migrate with a pre-migration backup](docs/DATABASE_MIGRATIONS_AND_BACKUPS.md). The hosted base already exists and must be verified/baselined, never replayed. Fresh local databases run both Prisma migrations in order. Membership starts empty; Google sign-in can create an Auth identity but cannot enroll an admin. An administrator reviews both real Auth UUIDs and runs the separate [enrollment SQL](supabase/admin/enroll_two_admins.sql). `OWNER_USER_ID` and `OWNER_EMAIL` are no longer required. The old production code and new database schema must not be mixed; coordinate migration and release with the original setup task.
 
 ## Security boundaries
 

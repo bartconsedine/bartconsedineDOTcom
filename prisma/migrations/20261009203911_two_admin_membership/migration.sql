@@ -60,4 +60,15 @@ with check ((select private.is_site_admin()) and owner_id = (select auth.uid()))
 drop function public.is_site_owner();
 drop table private.site_owner;
 
+-- Prisma creates its ledger before running SQL. It is never a public API table.
+-- The conditional supports SQL-only policy tests without a Prisma runner.
+do $$
+begin
+  if to_regclass('private._prisma_migrations') is not null then
+    alter table private._prisma_migrations enable row level security;
+    revoke all on private._prisma_migrations from public, anon, authenticated;
+  end if;
+end;
+$$;
+
 commit;

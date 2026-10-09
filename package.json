@@ -7,7 +7,16 @@
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start --hostname 127.0.0.1",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "db:validate": "prisma validate",
+    "db:migration:new": "node scripts/new-migration.mjs",
+    "db:baseline:check": "node scripts/database.mjs baseline-check",
+    "db:baseline": "node scripts/database.mjs baseline",
+    "db:deploy": "node scripts/database.mjs deploy",
+    "db:status": "node scripts/database.mjs status",
+    "db:backup": "node scripts/database.mjs backup",
+    "db:restore:local": "node scripts/database.mjs restore-local",
+    "db:verify:local": "node scripts/verify-database.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
@@ -18,9 +27,15 @@
     "server-only": "0.0.1"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "0.5.8"
+    "@electric-sql/pglite": "0.5.8",
+    "pg": "8.16.3",
+    "prisma": "7.10.0"
   },
   "engines": {
     "node": "22.x"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2",
+    "mysql2": "3.24.5"
   }
 }

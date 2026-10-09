@@ -52,8 +52,4 @@ with check ((select public.is_site_owner()) and owner_id = (select auth.uid()));
 
 commit;
 
--- AFTER the owner signs in via Google once, verify that identity in the dashboard.
--- Provision the verified UUID separately; use the same value for OWNER_USER_ID:
--- insert into private.site_owner (user_id, email)
--- values ('VERIFIED_OWNER_UUID', 'bartconsedine@gmail.com');
--- No owner row means all application data remains inaccessible.
+-- Historical base only. Admin enrollment follows the reviewed two-admin migration.

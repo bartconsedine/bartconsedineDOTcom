@@ -1,3 +1,18 @@
+# Prisma adoption and backup verification — 9 October 2026
+
+This section supersedes migration-path and no-dependency-change statements in the prior two-admin verification below.
+
+- Read-only hosted inspection confirmed PostgreSQL 17.11, Pro organization, only the original `private_workspace` migration, and matching base tables/security. Captured `prisma/baseline-state.json` from real catalog data. No hosted writes were made by this code task.
+- Pinned stable Prisma 7.10.0 (npm `latest` was an 8.0 release candidate). Added migration-only tooling; no Prisma runtime client or elevated database access in the website. Patched CLI transitive dependencies with exact overrides (`deepmerge-ts` 8.0.2, `mysql2` 3.24.5); `npm audit` reports zero vulnerabilities.
+- `npm test`: 22 tests pass. `npm run db:validate`: passes. Production build: passes. Existing authorization/RLS tests now consume the sole Prisma migration history.
+- Real local PostgreSQL 17 recovery drill passed: exact hosted baseline comparison, intentional RLS-drift rejection, baseline-only Prisma resolve, incremental deploy, fresh deploy, status checks, three logical snapshots, corrupt-manifest rejection, occupied-target rejection, and isolated restore. Restored migration history, both admins' individual rows, membership RPC and private-table denial were checked. No production data was used.
+- Prisma ledger is forced into `private._prisma_migrations`, with explicit RLS and revoked client privileges in the pending migration. Branch deployment remains disabled; no hosted schema/app release occurs from this review branch.
+- Hosted connection credentials, a protected production backup destination, and completed Supabase backup inventory remain unavailable. Pro's documented seven-day daily-backup entitlement is not evidence of a completed snapshot. Hosted baseline/deploy and hosted recovery are still unexecuted and unverified.
+
+See [migration and recovery runbook](DATABASE_MIGRATIONS_AND_BACKUPS.md) for exact commands and restrictions.
+
+---
+
 # Two-admin code verification — 9 October 2026
 
 This section supersedes the historical single-owner notes below. Based on deployed commit `1a19e22`, implemented in an isolated worktree on `codex/two-admin-access` without modifying the original checkout.

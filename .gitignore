@@ -129,3 +129,11 @@ dist
 
 .DS_Store
 .qa/
+
+# Database connection files and logical backups
+.env.database*
+*.dump
+*.dump.json
+*.dump.partial
+backups/
+.pgpass
