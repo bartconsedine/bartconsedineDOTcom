@@ -2,10 +2,10 @@ import './globals.css';
 
 export const metadata = {
   metadataBase: new URL('https://bartconsedine.com'),
-  title: { default: 'Barton Consedine | AI, Engineering & Strategy', template: '%s · Barton Consedine' },
-  description: 'Barton leads AI for Engineering at Magnite. His work connects AI, software engineering, and business strategy.',
+  title: { default: 'Bart Consedine | AI, Engineering & Strategy', template: '%s · Bart Consedine' },
+  description: 'Bart leads AI for Engineering at Magnite. His work connects AI, software engineering, and business strategy.',
   icons: { icon: '/icon.svg' },
-  openGraph: { title: 'Barton Consedine', description: 'AI, engineering, and strategy. Making AI useful in practice.', images: ['/images/headshot.jpeg'], type: 'website' },
+  openGraph: { title: 'Bart Consedine', description: 'AI, engineering, and strategy. Making AI useful in practice.', images: ['/images/headshot.jpeg'], type: 'website' },
 };
 
 export default function RootLayout({ children }) {

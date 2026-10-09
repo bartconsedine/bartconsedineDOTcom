@@ -33,6 +33,15 @@ Google OAuth against a real Supabase project and live database RLS have not been
 
 ## Screenshot delivery
 
+Latest copy correction: visible names, accessibility names, page title and metadata use “Bart.” The hero role is exactly “Leading AI Engineering at Magnite” with no subtitle beneath it. The approved biography is otherwise unchanged. Desktop and 390px mobile screenshots were inspected again, with no overflow and no remaining “Barton” in rendered homepage text. All nine tests and the production build passed again. Supabase sign-in remains unapproved and was not attempted.
+
+Latest hero screenshots (new Library items, version 0):
+
+| Image | Library ID |
+|---|---|
+| Bart desktop hero | `libfile_8f57b821cc308191b6a2cf05ffb87a0e` |
+| Bart mobile hero | `libfile_021ec7eaaa4c8191b1d537701ce673fa` |
+
 Files were saved to ChatGPT Library using the Library skill:
 
 | Image | Library ID |
