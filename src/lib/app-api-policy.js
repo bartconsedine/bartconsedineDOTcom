@@ -1,10 +1,10 @@
 // No credentials or registry entries live here. Production wiring is server-only.
-export function createAppApi({ checkOwner, getApp, siteOrigin }) {
+export function createAppApi({ checkAdmin, getApp, siteOrigin }) {
   const json = (body, status) => Response.json(body, { status });
   return async function handle(request, { params }) {
     let response;
     try {
-      const access = await checkOwner();
+      const access = await checkAdmin();
       if (!access.ok) response = json({ error: access.reason }, access.status);
       else if (!['GET', 'POST'].includes(request.method)) response = json({ error: 'method_not_allowed' }, 405);
       else if (request.method === 'POST' && (!siteOrigin() || request.headers.get('origin') !== siteOrigin() || request.headers.get('sec-fetch-site') === 'cross-site')) response = json({ error: 'invalid_origin' }, 403);

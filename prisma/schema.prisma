@@ -1,0 +1,31 @@
+// Prisma Migrate is the only migration runner. No Prisma Client is used at runtime.
+// Reviewed migration.sql files are authoritative for RLS, grants, functions,
+// constraints, and Auth foreign keys. Supabase owns auth/storage schemas.
+// Do not use db push or schema-generated migration diffs on the hosted project.
+datasource db {
+  provider = "postgresql"
+  schemas  = ["public", "private"]
+}
+
+// These models document application columns; cross-schema Auth FKs and security
+// features live in SQL. Use `npm run db:migration:new -- name` for SQL migrations.
+model AppData {
+  owner_id   String   @default(dbgenerated("auth.uid()")) @db.Uuid
+  app_slug   String
+  key        String
+  value      Json     @default("{}")
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@id([owner_id, app_slug, key])
+  @@map("app_data")
+  @@schema("public")
+}
+
+model SiteAdmin {
+  user_id     String   @id @db.Uuid
+  email       String   @unique
+  enrolled_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("site_admin")
+  @@schema("private")
+}

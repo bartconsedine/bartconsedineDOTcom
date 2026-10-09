@@ -1,5 +1,5 @@
 // Dependency-injected policy, shared by the server-only registry and regression tests.
-export function createAppRegistry(entries, requireOwner) {
+export function createAppRegistry(entries, requireAdmin) {
   const slugs = new Set();
   const apps = entries.map(entry => {
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.slug) || entry.slug.length > 80 || slugs.has(entry.slug)) throw new Error('Invalid or duplicate app slug');
@@ -12,11 +12,11 @@ export function createAppRegistry(entries, requireOwner) {
   });
   return {
     async list() {
-      await requireOwner();
+      await requireAdmin();
       return apps.map(({ slug, name, description }) => ({ slug, name, description }));
     },
     async get(slug) {
-      await requireOwner();
+      await requireAdmin();
       return apps.find(app => app.slug === slug) || null;
     },
   };

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authConfig } from '@/lib/auth-config';
 import { serverClient } from '@/lib/supabase';
-import { verifyOwner } from '@/lib/auth-policy';
+import { verifyAdmin } from '@/lib/auth-policy';
 
 export async function GET(request) {
   const config = authConfig();
@@ -19,10 +19,10 @@ export async function GET(request) {
     const supabase = await serverClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) return finish('/login?state=expired');
-    const owner = await verifyOwner(supabase.auth, config.ownerId, config.ownerEmail);
-    if (!owner.ok) {
+    const admin = await verifyAdmin(supabase);
+    if (!admin.ok) {
       await supabase.auth.signOut({ scope: 'local' });
-      return finish(`/login?state=${owner.reason}`);
+      return finish(`/login?state=${admin.reason}`);
     }
     return finish('/admin');
   } catch { return finish('/login?state=unavailable'); }

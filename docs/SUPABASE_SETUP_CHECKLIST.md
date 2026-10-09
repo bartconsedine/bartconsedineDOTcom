@@ -1,68 +1,61 @@
-# Supabase setup handoff
+# Two-admin setup handoff
 
-Prepared 9 October 2026. This is a review checklist, not authorization to change a live account.
+Prepared 9 October 2026 for coordinated review with the original website setup task. This code task did not change hosted settings, create credentials, enroll anyone, merge, or deploy. The parent separately applied the base migration; Prisma now manages all subsequent migrations. See [Prisma and backups](DATABASE_MIGRATIONS_AND_BACKUPS.md).
 
-## Confirmed access state
+## Known target and scope
 
-- Supabase dashboard is signed out in Barton's Chrome browser, MGNI profile.
-- Login page offers GitHub (marked **LAST USED**), ChatGPT, SSO, and email/password. No Google dashboard-login option is displayed. Dashboard login is distinct from this website's Google sign-in provider.
-- GitHub browser sign-in previously showed an empty username/password form. The authenticated `gh` CLI does not prove the browser is signed in, and its token must not be copied into browser login.
-- No Supabase CLI, project binding, `supabase/config.toml`, or `.env.local` was found in the new site workspace. Only the newly prepared migration and blank configuration template exist.
-- The existing Vercel project has no project environment variables. Supabase organization, project, plan, Google provider, and free-project capacity remain unknown.
+The healthy project is `vgsmfbupgydafvotkold` in Pro organization `owgnktyhtvbdainnnhug`. Read-only inspection now confirms only the original base migration is applied: `private.site_owner` and `public.app_data` exist, with no two-admin table. The parent confirms both are empty and no admin is enrolled. Do not replay the base migration or mark the second one applied.
 
-## Smallest next approval
+Only `bartconsedine@gmail.com` and `mjshah8@gmail.com` can be enrolled. Both need an independently verified Auth UUID. There is no first-user admin, email-only auto-enrollment, browser enrollment endpoint, or service-role key in the application. Each admin owns separate `app_data` rows; membership does not grant access to the other admin's records.
 
-Ask permission to use the **last-used GitHub option to sign into the existing Supabase account and inspect projects**. The login page displays Supabase Terms of Service and Privacy Policy agreement language. Do not treat the earlier Vercel Google grant as authorization for Supabase. Stop at any new OAuth permission screen to quote its actual requested permissions before approval, or hand off an unavailable password/MFA step. Do not create another Supabase account.
+## Coordinated setup order (not executed)
 
-Sign-in page: https://supabase.com/dashboard/sign-in
+1. Follow the [Prisma adoption and pre-migration backup procedure](DATABASE_MIGRATIONS_AND_BACKUPS.md): verify the captured baseline, create a protected logical backup, record only `0_private_workspace` using Prisma's guarded baseline command, then use the guarded `db:deploy` command for the pending two-admin SQL. Never run these files directly through the Supabase connector/SQL editor. The second migration preserves any explicitly enrolled legacy owner when upgrading; it does not auto-enroll Auth users.
+2. Keep `private` out of the Data API exposed schemas. The application calls only `public.is_site_admin()` and `public.app_data`. `authenticated` has schema USAGE and EXECUTE on the private lookup, but no privileges on its table. The privileged function is in `private`; its public wrapper is SECURITY INVOKER, accepts no arguments, and returns only the current session's membership boolean. `anon`/PUBLIC cannot execute either function. Both tables have RLS; app data retains SELECT/INSERT/UPDATE/DELETE grants plus per-user USING and WITH CHECK policies.
+3. Coordinate provider setup separately: approved Google OAuth web client, standard `openid`, email, profile scopes only; Supabase provider callback `https://vgsmfbupgydafvotkold.supabase.co/auth/v1/callback`. Do not create credentials or grant OAuth access as part of code review. Disable unused sign-in providers and anonymous sign-in for the intended Google-only flow. If Google consent is in Testing, both intended users must be allowed test users during the separately approved provider setup.
+4. Configure exact website callbacks in Supabase: `https://bartconsedine.com/auth/callback`, local `http://127.0.0.1:3000/auth/callback` only if needed, and only explicitly approved preview URLs. Set the corresponding Site URL. Avoid wildcard callbacks.
+5. Configure the server environment with `SUPABASE_URL=https://vgsmfbupgydafvotkold.supabase.co`, its publishable key, and `SITE_URL` for that environment. No `OWNER_USER_ID` or `OWNER_EMAIL` is used. No dummy owner UUID is needed. Do not add service-role/secret keys or NEXT_PUBLIC authorization settings. Migration, environment changes, and deploying the reviewed code must be coordinated; the old deployment cannot authorize against the new membership schema.
+6. After the reviewed code/provider setup is authorized and available, each person signs in with their Google account once. Auth can establish their identity without any enrollment, but the callback denies admin access and signs out the local session. This is expected. Their Auth record remains available for administrative review.
+7. Inspect the resulting Auth records administratively using the query below. Verify the actual person/account, exact UUID, confirmed user email, provider `google`, matching identity email, and boolean `email_verified=true`. Do not use `raw_user_meta_data`, profile display names, JWT role metadata, or email lookup alone to authorize.
+8. Replace both UUID placeholders in `supabase/admin/enroll_two_admins.sql` with the reviewed UUIDs, review the exact SQL, and execute only when enrollment is authorized. The script independently rechecks both identities and atomically aborts unless both match. It can be rerun with the same UUIDs. A different UUID for an already enrolled email fails the unique constraint; investigate rather than silently replacing a member.
+9. Have each person sign in again. Complete the live acceptance checks below before treating the workspace as ready. No deployment or hosted migration is authorized by this checklist itself.
 
-## Read-only inventory after sign-in
+## Identity inspection SQL
 
-Record only non-secret metadata:
+Run as the database administrator, not through a browser session:
 
-1. Account/organization identity, plan, role, active project count, available Free-plan capacity.
-2. Any project clearly intended for bartconsedine.com; project reference, region, status, and current usage by other apps.
-3. Authentication Google provider enabled/disabled, configured redirect origins, and owner Google user presence. Never reveal provider secret fields.
-4. Existing schemas/tables, RLS status, owner-related records, and migration history for collisions with `private.site_owner`, `public.is_site_owner()`, and `public.app_data`.
-5. Whether an existing Google Cloud web OAuth client is dedicated to this project. Do not modify an unrelated application's OAuth client, provider settings, tables, or policies.
+```sql
+select u.id, u.email, u.email_confirmed_at, u.is_anonymous,
+       i.provider, i.identity_data ->> 'email' as google_email,
+       i.identity_data -> 'email_verified' as google_email_verified
+from auth.users u
+join auth.identities i on i.user_id = u.id
+where lower(u.email) in ('bartconsedine@gmail.com', 'mjshah8@gmail.com')
+order by u.email, i.provider;
+```
 
-Reuse only a project confirmed as intended for this site. Do not apply this migration blindly to a shared project.
+Enrollment SQL is kept separately from migrations in [enroll_two_admins.sql](../supabase/admin/enroll_two_admins.sql). No real UUIDs or credentials are committed.
 
-## Concrete configuration to review together
+## Revocation
 
-Once the actual project and organization are identified, present one bounded setup plan with the following named actions and exact destinations. Later consent screens and new credential creation still need their required action-time approval.
+As database administrator, delete the reviewed membership row. For example, revoke the second admin with:
 
-| Change | Exact intended scope |
-|---|---|
-| Project | Reuse the confirmed site project, or create one dedicated project only if the UI confirms Free plan and $0 incremental recurring cost. Record organization, region and name first. Stop if payment, plan upgrade, or added compute charges are shown. |
-| Google OAuth | Reuse the dedicated web client if appropriate; otherwise create a dedicated web OAuth client after approval. Scopes only `openid`, `https://www.googleapis.com/auth/userinfo.email`, `https://www.googleapis.com/auth/userinfo.profile`. These identify the user; no Gmail messages, Drive files, or Calendar access. |
-| Google callback | Copy the selected Supabase project's exact Google-provider callback, normally `https://<verified-project-ref>.supabase.co/auth/v1/callback`. Do not confuse it with the website callback. |
-| Supabase redirects | Local callback `http://127.0.0.1:3000/auth/callback`; production callback `https://bartconsedine.com/auth/callback` only when production configuration is approved. Add the exact Vercel preview callback only after a preview hostname exists and is approved. No wildcard allowlist. |
-| Provider secret | Google Client ID and Client Secret belong in the selected Supabase Google-provider configuration. Use an approved secure credential handoff; never paste secrets into chat, reports, shell command arguments, Git, or screenshots. No service-role or personal-access token is needed by the site. |
-| Database | Apply `supabase/migrations/202610090001_private_workspace.sql` after confirming no naming collisions. It adds owner enrollment and generic private app data, enables RLS, and seeds no records. Keep `private` outside the exposed API schemas. |
-| Owner enrollment | After Barton's Google sign-in, verify `bartconsedine@gmail.com`, confirmed email, Google identity, and exact Auth UUID. Administratively insert that UUID in `private.site_owner`, and set the same UUID in `OWNER_USER_ID`. Another Google account must never self-enroll. |
-| Local configuration | Privately populate `.env.local` with `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `OWNER_USER_ID`, `OWNER_EMAIL=bartconsedine@gmail.com`, and `SITE_URL=http://127.0.0.1:3000`. |
-| Vercel configuration | Separate later approval: supported Node runtime for this project only, appropriate environment variables and HTTPS `SITE_URL`. No DNS change is expected. No deployment is authorized by account sign-in or backend setup alone. |
+```sql
+delete from private.site_admin where email = 'mjshah8@gmail.com';
+```
 
-If owner provisioning requires an initial website login, configure a nonmatching UUID temporarily so authorization remains denied. Complete one Google authentication, inspect the resulting identity, then enroll the verified UUID. There is no first-user-becomes-admin behavior.
+The next protected server request and database operation recheck membership. App data remains under its original user UUID. Sign-out/revoking refresh sessions alone does not instantly invalidate already issued access JWTs; membership removal is the immediate authorization revocation mechanism. Auth user deletion cascades to membership and that user's app data, so do not delete users merely to revoke admin access.
 
-## Cost boundaries
+## Live acceptance checks (pending)
 
-Supabase publicly lists Free at $0/month with two active free projects, 500 MB database storage, and Google/social OAuth included. Free projects can pause after one week of inactivity. Eligibility is not yet verified for this account. The two-project limit spans organizations where the user is owner/admin. A paid organization cannot contain a Free-plan project; adding a project there may add compute charges. Do not promise a free project before inspecting the actual organization and creation screen.
+- Both approved Google accounts reach `/admin` after enrollment and are denied beforehand. Login no longer greets every admin as Bart.
+- Missing/expired/forged sessions fail on protected pages, registry/per-app APIs, and data helpers. Auth and membership lookup outages fail closed.
+- A third Google user, even with edited `user_metadata`, cannot access admin, private tables, or app data or enroll themselves. Auth signup may still create an unprivileged user record.
+- Through direct Data API requests, both admins can CRUD only their own disposable app-data rows. Cross-user SELECT returns none; spoofed INSERT/reassignment UPDATE fails; cross-user UPDATE/DELETE changes nothing. Anonymous users cannot call membership or access data.
+- Verify the hosted private schema exposure, grants, RLS, and Supabase advisors. Private table privileges remain revoked; no exposed SECURITY DEFINER lookup is needed.
+- Removing membership, changing confirmed email, removing Google identity, or mismatching/unverifying Google identity denies subsequent access. Restore only reviewed test changes.
+- Validate real PKCE code exchange, malformed/reused callbacks, cookie refresh, logout, exact-origin mutation protection, no-store responses, and public-site access without login.
 
-Sources checked 9 October 2026:
-- https://supabase.com/pricing
-- https://supabase.com/docs/guides/platform/billing-on-supabase
-- https://supabase.com/docs/guides/auth/social-login/auth-google
+Local tests use PGlite PostgreSQL with a minimal Auth fixture. They exercise actual migrations, SQL privileges, policies, and enrollment SQL, but do not substitute for hosted Auth/PostgREST/advisor verification.
 
-## Live acceptance checks before publication
-
-1. Barton's approved Google identity reaches `/admin`; sign-out invalidates browser access.
-2. Direct visits to `/admin`, `/admin/apps/<slug>`, and `/api/admin/apps` reject missing, invalid, expired, and non-owner sessions.
-3. A non-owner Google sign-in may create an ordinary Auth record but gains no admin access or private rows.
-4. Anonymous and non-owner requests directly to Supabase cannot read, insert, update, delete, spoof owner IDs, or enroll an owner. Test the actual hosted policies with disposable records, with permission, then remove only those test records.
-5. Callback rejects bad/reused codes and does not honor external redirect destinations. Local and preview cookies remain private; production cookies are Secure.
-6. Check live session refresh and logout; inspect logs without printing tokens or authorization codes.
-7. Confirm public pages remain usable without sign-in and contain no private app data.
-
-The current nine local tests and production build already pass. Hosted Google OAuth and hosted RLS are still unverified until this setup is approved and completed.
+References checked: [Google OAuth](https://supabase.com/docs/guides/auth/social-login/auth-google), [server-verified getUser](https://supabase.com/docs/reference/javascript/auth-getuser), [identities](https://supabase.com/docs/guides/auth/identities), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security). The current changelog was inspected; no relevant new Auth/SSR breaking change requires a dependency update here.

@@ -1,10 +1,10 @@
 import 'server-only';
-import { requireOwner } from './auth';
+import { requireAdmin } from './auth';
 import { getApp } from './apps';
 import { serverClient } from './supabase';
 
 async function context(slug, key) {
-  const owner = await requireOwner();
+  const owner = await requireAdmin();
   if (!await getApp(slug)) throw new Error('App not installed');
   if (typeof key !== 'string' || key.length < 1 || key.length > 200) throw new Error('Invalid key');
   return { owner, client: await serverClient() };

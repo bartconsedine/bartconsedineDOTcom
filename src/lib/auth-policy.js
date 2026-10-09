@@ -1,20 +1,29 @@
-// Pure authorization policy; invoked only with a server-verified Supabase user.
-export function ownerDecision(user, ownerId, ownerEmail) {
-  if (!ownerId || !ownerEmail) return { ok: false, status: 503, reason: 'unconfigured' };
+// Only call with a user returned by the Auth server, never cookie/client metadata.
+export function googleIdentityDecision(user) {
   if (!user) return { ok: false, status: 401, reason: 'unauthenticated' };
-  if (user.id !== ownerId || !user.email_confirmed_at || user.is_anonymous || user.email?.toLowerCase() !== ownerEmail.toLowerCase() || !user.identities?.some(identity => identity.provider === 'google')) {
+  const email = user.email?.toLowerCase();
+  if (!user.id || !email || !user.email_confirmed_at || user.is_anonymous ||
+      !user.identities?.some(identity => identity.provider === 'google' &&
+        identity.identity_data?.email_verified === true &&
+        identity.identity_data?.email?.toLowerCase() === email)) {
     return { ok: false, status: 403, reason: 'forbidden' };
   }
   return { ok: true, user };
 }
 
-export async function verifyOwner(auth, ownerId, ownerEmail) {
-  if (!ownerId || !ownerEmail || !auth) return { ok: false, status: 503, reason: 'unconfigured' };
+export async function verifyAdmin(client) {
+  if (!client) return { ok: false, status: 503, reason: 'unconfigured' };
   try {
-    // Never authorize using getSession(), client state, or user-editable metadata.
-    const { data, error } = await auth.getUser();
+    // getUser validates with Auth; getSession and user_metadata cannot authorize.
+    const { data, error } = await client.auth.getUser();
     if (error) return { ok: false, status: error.status >= 500 ? 503 : 401, reason: error.status >= 500 ? 'unavailable' : 'unauthenticated' };
-    return ownerDecision(data?.user, ownerId, ownerEmail);
+    const identity = googleIdentityDecision(data?.user);
+    if (!identity.ok) return identity;
+    // Uses this user's session. The RPC accepts no UUID/email from the caller.
+    const membership = await client.rpc('is_site_admin');
+    if (membership.error) return { ok: false, status: 503, reason: 'unavailable' };
+    if (membership.data !== true) return { ok: false, status: 403, reason: 'forbidden' };
+    return identity;
   } catch {
     return { ok: false, status: 503, reason: 'unavailable' };
   }

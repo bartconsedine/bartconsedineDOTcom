@@ -1,0 +1,320 @@
+{
+  "grants": [
+    {
+      "role": "anon",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "DELETE"
+    },
+    {
+      "role": "anon",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "INSERT"
+    },
+    {
+      "role": "anon",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "REFERENCES"
+    },
+    {
+      "role": "anon",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "SELECT"
+    },
+    {
+      "role": "anon",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "TRIGGER"
+    },
+    {
+      "role": "anon",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "TRUNCATE"
+    },
+    {
+      "role": "anon",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "UPDATE"
+    },
+    {
+      "role": "anon",
+      "table": "public.app_data",
+      "allowed": false,
+      "privilege": "DELETE"
+    },
+    {
+      "role": "anon",
+      "table": "public.app_data",
+      "allowed": false,
+      "privilege": "INSERT"
+    },
+    {
+      "role": "anon",
+      "table": "public.app_data",
+      "allowed": false,
+      "privilege": "REFERENCES"
+    },
+    {
+      "role": "anon",
+      "table": "public.app_data",
+      "allowed": false,
+      "privilege": "SELECT"
+    },
+    {
+      "role": "anon",
+      "table": "public.app_data",
+      "allowed": false,
+      "privilege": "TRIGGER"
+    },
+    {
+      "role": "anon",
+      "table": "public.app_data",
+      "allowed": false,
+      "privilege": "TRUNCATE"
+    },
+    {
+      "role": "anon",
+      "table": "public.app_data",
+      "allowed": false,
+      "privilege": "UPDATE"
+    },
+    {
+      "role": "authenticated",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "DELETE"
+    },
+    {
+      "role": "authenticated",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "INSERT"
+    },
+    {
+      "role": "authenticated",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "REFERENCES"
+    },
+    {
+      "role": "authenticated",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "SELECT"
+    },
+    {
+      "role": "authenticated",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "TRIGGER"
+    },
+    {
+      "role": "authenticated",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "TRUNCATE"
+    },
+    {
+      "role": "authenticated",
+      "table": "private.site_owner",
+      "allowed": false,
+      "privilege": "UPDATE"
+    },
+    {
+      "role": "authenticated",
+      "table": "public.app_data",
+      "allowed": true,
+      "privilege": "DELETE"
+    },
+    {
+      "role": "authenticated",
+      "table": "public.app_data",
+      "allowed": true,
+      "privilege": "INSERT"
+    },
+    {
+      "role": "authenticated",
+      "table": "public.app_data",
+      "allowed": false,
+      "privilege": "REFERENCES"
+    },
+    {
+      "role": "authenticated",
+      "table": "public.app_data",
+      "allowed": true,
+      "privilege": "SELECT"
+    },
+    {
+      "role": "authenticated",
+      "table": "public.app_data",
+      "allowed": false,
+      "privilege": "TRIGGER"
+    },
+    {
+      "role": "authenticated",
+      "table": "public.app_data",
+      "allowed": false,
+      "privilege": "TRUNCATE"
+    },
+    {
+      "role": "authenticated",
+      "table": "public.app_data",
+      "allowed": true,
+      "privilege": "UPDATE"
+    }
+  ],
+  "tables": [
+    {
+      "rls": true,
+      "name": "site_owner",
+      "force": false,
+      "schema": "private"
+    },
+    {
+      "rls": true,
+      "name": "app_data",
+      "force": true,
+      "schema": "public"
+    }
+  ],
+  "columns": [
+    {
+      "name": "owner_id",
+      "type": "uuid",
+      "table": "app_data",
+      "default": "auth.uid()",
+      "notnull": true
+    },
+    {
+      "name": "app_slug",
+      "type": "text",
+      "table": "app_data",
+      "default": null,
+      "notnull": true
+    },
+    {
+      "name": "key",
+      "type": "text",
+      "table": "app_data",
+      "default": null,
+      "notnull": true
+    },
+    {
+      "name": "value",
+      "type": "jsonb",
+      "table": "app_data",
+      "default": "'{}'::jsonb",
+      "notnull": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "app_data",
+      "default": "now()",
+      "notnull": true
+    },
+    {
+      "name": "singleton",
+      "type": "boolean",
+      "table": "private.site_owner",
+      "default": "true",
+      "notnull": true
+    },
+    {
+      "name": "user_id",
+      "type": "uuid",
+      "table": "private.site_owner",
+      "default": null,
+      "notnull": true
+    },
+    {
+      "name": "email",
+      "type": "text",
+      "table": "private.site_owner",
+      "default": null,
+      "notnull": true
+    }
+  ],
+  "policies": [
+    {
+      "cmd": "ALL",
+      "qual": "(( SELECT is_site_owner() AS is_site_owner) AND (owner_id = ( SELECT auth.uid() AS uid)))",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "app_data",
+      "permissive": "PERMISSIVE",
+      "policyname": "owner_private_data",
+      "schemaname": "public",
+      "with_check": "(( SELECT is_site_owner() AS is_site_owner) AND (owner_id = ( SELECT auth.uid() AS uid)))"
+    }
+  ],
+  "functions": [
+    {
+      "anon": false,
+      "name": "is_site_owner",
+      "config": [
+        "search_path=\"\""
+      ],
+      "schema": "public",
+      "source": "selectexists(select1fromprivate.site_ownerojoinauth.usersuonu.id=o.user_idwhereo.user_id=(selectauth.uid())andlower(u.email)=lower(o.email)andu.email_confirmed_atisnotnullandnotcoalesce(u.is_anonymous,false)andexists(select1fromauth.identitiesiwherei.user_id=u.idandi.provider='google'));",
+      "definer": true,
+      "volatility": "s",
+      "authenticated": true
+    }
+  ],
+  "constraints": [
+    {
+      "name": "app_data_app_slug_check",
+      "table": "app_data",
+      "definition": "CHECK ((app_slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))"
+    },
+    {
+      "name": "app_data_key_check",
+      "table": "app_data",
+      "definition": "CHECK (((length(key) >= 1) AND (length(key) <= 200)))"
+    },
+    {
+      "name": "app_data_owner_id_fkey",
+      "table": "app_data",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "app_data_pkey",
+      "table": "app_data",
+      "definition": "PRIMARY KEY (owner_id, app_slug, key)"
+    },
+    {
+      "name": "site_owner_email_check",
+      "table": "private.site_owner",
+      "definition": "CHECK ((lower(email) = 'bartconsedine@gmail.com'::text))"
+    },
+    {
+      "name": "site_owner_pkey",
+      "table": "private.site_owner",
+      "definition": "PRIMARY KEY (singleton)"
+    },
+    {
+      "name": "site_owner_singleton_check",
+      "table": "private.site_owner",
+      "definition": "CHECK (singleton)"
+    },
+    {
+      "name": "site_owner_user_id_fkey",
+      "table": "private.site_owner",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "site_owner_user_id_key",
+      "table": "private.site_owner",
+      "definition": "UNIQUE (user_id)"
+    }
+  ],
+  "private_usage": false
+}

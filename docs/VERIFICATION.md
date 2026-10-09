@@ -1,3 +1,42 @@
+# Database connection hardening — 9 October 2026
+
+- Shared connection policy is used by both database tooling and direct Prisma configuration. Hosted Prisma URLs are normalized to `sslmode=require&sslaccept=strict`; `verify-full` is not passed to Prisma's native connector because it does not support libpq's mode names. All clients use the same explicit absolute CA when supplied, otherwise system/default trust with verification enabled.
+- Subprocess environments use an OS-variable allowlist, then add only validated connection fields. Inherited PGHOSTADDR, PGSERVICE/PGSERVICEFILE, PGOPTIONS, SSL/GSS options, alternate connection URLs, Node TLS overrides and Prisma engine overrides are excluded. `localhost` is pinned to `127.0.0.1`; hosted ports are restricted to 5432.
+- 26 tests pass, including weak/duplicate TLS URL parameters, direct Prisma config normalization, CA consistency, and hostile subprocess-environment regressions. Prisma validation and the production build pass.
+- The real local PostgreSQL baseline/backup/restore drill also passed with poisoned PGHOSTADDR, service-file, SSL and search-path variables inherited by the test process. Restored data isolation and table/ledger restrictions still pass. No hosted connections or writes were used for these tests.
+- No public UI/design or runtime authentication behavior changed in this hardening commit. Code-only deployment remains fail-closed until the hosted membership migration/configuration/enrollment is completed separately. Parent final review is required before coordinating the authorized merge/release.
+
+---
+
+# Prisma adoption and backup verification — 9 October 2026
+
+This section supersedes migration-path and no-dependency-change statements in the prior two-admin verification below.
+
+- Read-only hosted inspection confirmed PostgreSQL 17.11, Pro organization, only the original `private_workspace` migration, and matching base tables/security. Captured `prisma/baseline-state.json` from real catalog data. No hosted writes were made by this code task.
+- Pinned stable Prisma 7.10.0 (npm `latest` was an 8.0 release candidate). Added migration-only tooling; no Prisma runtime client or elevated database access in the website. Patched CLI transitive dependencies with exact overrides (`deepmerge-ts` 8.0.2, `mysql2` 3.24.5); `npm audit` reports zero vulnerabilities.
+- `npm test`: 22 tests pass. `npm run db:validate`: passes. Production build: passes. Existing authorization/RLS tests now consume the sole Prisma migration history.
+- Real local PostgreSQL 17 recovery drill passed: exact hosted baseline comparison, intentional RLS-drift rejection, baseline-only Prisma resolve, incremental deploy, fresh deploy, status checks, three logical snapshots, corrupt-manifest rejection, occupied-target rejection, and isolated restore. Restored migration history, both admins' individual rows, membership RPC and private-table denial were checked. No production data was used.
+- Prisma ledger is forced into `private._prisma_migrations`, with explicit RLS and revoked client privileges in the pending migration. Branch deployment remains disabled; no hosted schema/app release occurs from this review branch.
+- Hosted connection credentials, a protected production backup destination, and completed Supabase backup inventory remain unavailable. Pro's documented seven-day daily-backup entitlement is not evidence of a completed snapshot. Hosted baseline/deploy and hosted recovery are still unexecuted and unverified.
+
+See [migration and recovery runbook](DATABASE_MIGRATIONS_AND_BACKUPS.md) for exact commands and restrictions.
+
+---
+
+# Two-admin code verification — 9 October 2026
+
+This section supersedes the historical single-owner notes below. Based on deployed commit `1a19e22`, implemented in an isolated worktree on `codex/two-admin-access` without modifying the original checkout.
+
+- `npm test`: 20 tests, including actual PostgreSQL migrations/RLS/grant checks in PGlite, both approved Google accounts, missing/expired/forged sessions, metadata spoofing, membership failure/revocation, verified identity mismatch, per-admin CRUD isolation, legacy migration preservation, and atomic administrative enrollment.
+- `npm run build`: passes on Node 22.23.2, Next.js 16.4.0. No dependency changes.
+- Local production HTTP checks without credentials: `/` and `/login` return 200; `/admin` and `/admin/apps/test` redirect 307 to unconfigured login; registry and per-app APIs return 503 with only `{"error":"unconfigured"}` and private/no-store headers. No browser was used.
+- Both protected page/API guards and OAuth callback use server-verified `getUser()` then the session-scoped `is_site_admin` RPC. No owner UUID environment bootstrap is required. Provider identity data, not editable user metadata, must contain a matching email and boolean verification.
+- Private membership is limited to the two requested addresses, keyed by verified UUID; RLS is enabled/forced with no client table grants. The SECURITY DEFINER lookup is in unexposed `private`, has a fixed empty search path, checks `auth.uid()`, and accepts no caller-supplied identity. The public RPC is SECURITY INVOKER, authenticated-only, and returns a boolean. Per-user app data remains isolated with USING and WITH CHECK.
+- `vercel.json` disables Git deployments only for this review branch, using [Vercel's documented branch switch](https://vercel.com/docs/project-configuration/git-configuration#git.deploymentenabled). Coordinate release with the parent task; no merge/deployment is part of this work.
+- Hosted migration, hosted advisor results, Data API schema exposure, real Google OAuth/callback/cookie behavior, and both actual Auth UUIDs remain pending. No hosted configuration, credentials, membership, or browser state were changed.
+
+---
+
 # Verification and access, 9 October 2026
 
 ## Current framework, private app hub and responsive verification
