@@ -1,9 +1,9 @@
 .portfolio { --folio-ink:#eeeae3; --folio-muted:#aca9a4; --folio-rule:#373735; background:#111210; color:var(--folio-ink); }
 .folio-width { width:min(1320px,calc(100% - 112px)); margin-inline:auto; }
 .folio-header { height:94px; display:flex; align-items:center; justify-content:space-between; }
-.folio-signature { font-size:27px; font-weight:600; letter-spacing:-.09em; }
+.folio-signature { display:inline-flex; align-items:center; min-height:44px; font-size:27px; font-weight:600; letter-spacing:-.09em; }
 .folio-header nav { display:flex; gap:38px; font-size:13px; }
-.folio-header nav a { padding-block:10px; }
+.folio-header nav a { display:inline-flex; align-items:center; min-height:44px; padding-block:10px; }
 .folio-header nav a:hover { text-decoration:underline; text-underline-offset:7px; }
 .folio-header nav span { margin-left:12px; }
 .folio-hero { border-bottom:1px solid var(--folio-rule); }
@@ -11,7 +11,7 @@
 .hero-stage { display:grid; grid-template-columns:1fr 1fr; align-items:end; gap:60px; }
 .hero-statement { padding:22px 0 48px; }
 .hero-statement h2 { font-size:clamp(34px,4vw,58px); font-weight:400; line-height:1.12; letter-spacing:-.035em; }
-.folio-link { display:inline-flex; gap:35px; align-items:center; padding-block:9px; border-bottom:1px solid #6b6c65; font-size:13px; line-height:1.5; }
+.folio-link { display:inline-flex; gap:35px; align-items:center; min-height:44px; padding-block:9px; border-bottom:1px solid #6b6c65; font-size:13px; line-height:1.5; }
 .folio-link span { transition:transform .2s; }
 .folio-link:hover span { transform:translate(2px,-2px); }
 .hero-index { margin-top:40px; }
@@ -32,7 +32,7 @@
 .experience-identity p { font-size:12px; line-height:1.6; color:var(--folio-muted); max-width:210px; }
 .experience-description>p,.experience-detail p { font-size:14px; line-height:1.8; color:var(--folio-muted); }
 .experience details { margin-top:16px; }
-.experience summary { display:flex; gap:25px; align-items:center; width:max-content; font-size:12px; list-style:none; padding-block:7px; }
+.experience summary { display:flex; gap:25px; align-items:center; min-height:44px; width:max-content; font-size:12px; list-style:none; padding-block:7px; }
 .experience summary::-webkit-details-marker { display:none; }
 .experience summary span { font-size:17px; transition:transform .2s; }
 .experience details[open] summary span { transform:rotate(45deg); }
@@ -45,6 +45,8 @@
 .contact-methods { display:flex; justify-content:space-between; gap:25px; margin-top:38px; }
 .folio-footer { display:flex; justify-content:space-between; gap:20px; border-top:1px solid var(--folio-rule); padding-block:30px; color:var(--folio-muted); font-size:11px; }
 .folio-footer a:hover { color:var(--folio-ink); }
+.folio-footer a { display:inline-flex; align-items:center; min-height:44px; }
+.folio-footer>span { align-self:center; }
 @media(max-width:1050px) {
   .folio-width { width:calc(100% - 72px); }
   .folio-header { height:80px; }

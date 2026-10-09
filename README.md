@@ -5,6 +5,7 @@ Next.js App Router, JavaScript, React, Supabase Auth (Google OAuth), and Supabas
 The original checkout is untouched. This branch has not been pushed or deployed.
 
 ```sh
+nvm use # optional: uses the tested Node 22.23.2 from .nvmrc
 npm ci
 npm run dev
 # http://127.0.0.1:3000
@@ -12,7 +13,9 @@ npm test
 npm run build
 ```
 
-The public site works without credentials. `/admin` and `/api/admin/apps` fail closed until configuration is complete. There is no demo login or bypass. The workspace contains no invented apps. Google OAuth integration and database policies need the live setup below before they can be verified end to end.
+Runtime: Node 22.x (tested 22.23.2). Next.js itself requires Node >=20.9, but the installed Supabase client requires >=22. The package manifest and lockfile declare 22.x. On 9 October 2026 the official npm registry's stable tags matched the existing exact pins: Next.js 16.4.0, React 19.3.0 and React DOM 19.3.0. No prerelease packages were installed. The original static favicon was moved into `public/static/` with the same `/static/favicon.ico` URL, removing the legacy static-directory warning.
+
+The public site works without credentials. `/admin`, `/admin/apps/<slug>`, `/api/admin/apps` and `/api/admin/apps/<slug>` fail closed until configuration is complete. There is no demo login or bypass. The workspace contains no invented apps. A validated server-only registry supplies the app grid, active sidebar navigation and per-app routes. Optional registered GET/POST API handlers run behind verified owner checks, same-origin mutation checks and private/no-store responses. Google OAuth integration and database policies need the live setup below before they can be verified end to end.
 
 ## Live setup, after approval
 
