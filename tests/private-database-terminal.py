@@ -8,7 +8,8 @@ import termios
 import time
 
 launcher = sys.argv[1]
-marker = 'SYNTHETIC-PTY-private-value-7193'
+password_mode = len(sys.argv) > 2 and sys.argv[2] == 'password'
+marker = 'SYNTHETIC-PTY-private-value-7193' + ('%#@!$`' if password_mode else '')
 url = 'postgresql://postgres:' + marker + '@db.vgsmfbupgydafvotkold.supabase.co:5432/postgres'
 
 for accepted in (True, False):
@@ -26,15 +27,15 @@ for accepted in (True, False):
                 output += os.read(master, 65536)
 
     try:
-        until(b'Database URL (hidden):')
+        until(b'Database password (hidden):' if password_mode else b'Database URL (hidden):')
         assert not (termios.tcgetattr(slave)[3] & termios.ECHO), 'credential input must not echo'
-        value = url if accepted else 'DATABASE_URL=' + url
+        value = (marker if accepted else url) if password_mode else (url if accepted else 'DATABASE_URL=' + url)
         os.write(master, (value + '\n').encode())
         until(b'Choose 1, 2, or q:' if accepted else b'Press Return to close.')
         assert marker.encode() not in output, 'synthetic credential leaked'
         assert url.encode() not in output, 'synthetic URL leaked'
         if not accepted:
-            assert b'input/INPUT_WRAPPER' in output
+            assert (b'input/PASSWORD_MODE' if password_mode else b'input/INPUT_WRAPPER') in output
             assert b'Choose 1, 2, or q:' not in output
         os.write(master, b'q\n' if accepted else b'\n')
         until(b'Credential cleared from this process.')
