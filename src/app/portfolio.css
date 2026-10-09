@@ -1,0 +1,84 @@
+.portfolio { --folio-ink:#eeeae3; --folio-muted:#aca9a4; --folio-rule:#373735; background:#111210; color:var(--folio-ink); }
+.folio-width { width:min(1320px,calc(100% - 112px)); margin-inline:auto; }
+.folio-header { height:94px; display:flex; align-items:center; justify-content:space-between; }
+.folio-signature { font-size:27px; font-weight:600; letter-spacing:-.09em; }
+.folio-header nav { display:flex; gap:38px; font-size:13px; }
+.folio-header nav a { padding-block:10px; }
+.folio-header nav a:hover { text-decoration:underline; text-underline-offset:7px; }
+.folio-header nav span { margin-left:12px; }
+.folio-hero { border-bottom:1px solid var(--folio-rule); }
+.folio-hero h1 { font-size:clamp(70px,11.55vw,170px); font-weight:500; letter-spacing:-.065em; line-height:1.08; padding-block:28px 40px; white-space:nowrap; }
+.hero-stage { display:grid; grid-template-columns:1fr 1fr; align-items:end; gap:60px; }
+.hero-statement { padding:22px 0 48px; }
+.hero-statement h2 { font-size:clamp(34px,4vw,58px); font-weight:400; line-height:1.12; letter-spacing:-.035em; }
+.folio-link { display:inline-flex; gap:35px; align-items:center; padding-block:9px; border-bottom:1px solid #6b6c65; font-size:13px; line-height:1.5; }
+.folio-link span { transition:transform .2s; }
+.folio-link:hover span { transform:translate(2px,-2px); }
+.hero-index { margin-top:40px; }
+.folio-portrait { width:min(100%,445px); justify-self:end; }
+.folio-portrait img { width:100%; height:auto; object-fit:contain; object-position:center top; filter:grayscale(1); }
+.folio-section-label { display:flex; align-items:baseline; gap:22px; font-size:12px; }
+.folio-section-label>span { color:var(--folio-muted); font-variant-numeric:tabular-nums; }
+.folio-section-label h2 { font-family:inherit; font-weight:400; font-size:14px; letter-spacing:0; }
+.folio-about,.folio-work,.folio-contact { padding-block:100px; display:grid; grid-template-columns:1fr 2.15fr; gap:60px; }
+.folio-bio { max-width:840px; }
+.folio-bio p { color:var(--folio-muted); font-size:17px; line-height:1.8; margin-bottom:28px; }
+.folio-bio .bio-lead { color:var(--folio-ink); font-family:'Manrope',Arial,sans-serif; font-size:clamp(23px,2.3vw,33px); line-height:1.5; letter-spacing:-.03em; margin-bottom:40px; }
+.folio-bio .folio-link { margin-top:5px; }
+.folio-work { border-top:1px solid var(--folio-rule); }
+.experience { display:grid; grid-template-columns:1fr 1.4fr; gap:32px; padding-block:34px; border-bottom:1px solid var(--folio-rule); }
+.experience:first-child { padding-top:0; }
+.experience-identity h3 { font-size:27px; line-height:1.2; letter-spacing:-.045em; margin-bottom:12px; }
+.experience-identity p { font-size:12px; line-height:1.6; color:var(--folio-muted); max-width:210px; }
+.experience-description>p,.experience-detail p { font-size:14px; line-height:1.8; color:var(--folio-muted); }
+.experience details { margin-top:16px; }
+.experience summary { display:flex; gap:25px; align-items:center; width:max-content; font-size:12px; list-style:none; padding-block:7px; }
+.experience summary::-webkit-details-marker { display:none; }
+.experience summary span { font-size:17px; transition:transform .2s; }
+.experience details[open] summary span { transform:rotate(45deg); }
+.experience-detail { padding-top:12px; }
+.experience-detail .experience-tools { font-size:11px; margin-top:16px; color:var(--folio-ink); }
+.folio-contact { border-top:1px solid var(--folio-rule); padding-bottom:110px; }
+.contact-title { display:flex; align-items:center; justify-content:space-between; gap:25px; font-family:'Manrope',Arial,sans-serif; font-size:clamp(60px,7.5vw,110px); line-height:1.1; letter-spacing:-.065em; }
+.contact-title span { font-size:.6em; font-weight:400; }
+.contact-title:hover span { transform:translate(3px,-3px); }
+.contact-methods { display:flex; justify-content:space-between; gap:25px; margin-top:38px; }
+.folio-footer { display:flex; justify-content:space-between; gap:20px; border-top:1px solid var(--folio-rule); padding-block:30px; color:var(--folio-muted); font-size:11px; }
+.folio-footer a:hover { color:var(--folio-ink); }
+@media(max-width:1050px) {
+  .folio-width { width:calc(100% - 72px); }
+  .folio-header { height:80px; }
+  .folio-hero h1 { padding-block:30px; }
+  .hero-stage { gap:35px; }
+  .folio-portrait { max-width:370px; }
+  .hero-statement { padding-bottom:35px; }
+  .folio-about,.folio-work,.folio-contact { grid-template-columns:1fr 3fr; gap:35px; padding-block:75px; }
+  .experience { grid-template-columns:1fr; gap:18px; }
+  .experience-identity p { max-width:none; }
+}
+@media(max-width:720px) {
+  .folio-width { width:calc(100% - 40px); }
+  .folio-header { height:76px; }
+  .folio-header nav { gap:23px; font-size:12px; }
+  .folio-header nav span { display:none; }
+  .folio-signature { font-size:25px; }
+  .folio-hero h1 { font-size:clamp(56px,16vw,112px); line-height:1.05; letter-spacing:-.072em; padding:26px 0 33px; white-space:normal; }
+  .folio-hero h1 span { display:block; }
+  .hero-stage { grid-template-columns:1fr; gap:30px; }
+  .hero-statement { padding:0; }
+  .hero-statement h2 { font-size:clamp(30px,7.8vw,45px); line-height:1.16; }
+  .hero-index { margin-top:22px; font-size:12px; }
+  .folio-portrait { width:100%; max-width:420px; justify-self:center; }
+  .folio-about,.folio-work,.folio-contact { grid-template-columns:1fr; gap:35px; padding-block:54px; }
+  .folio-section-label { gap:16px; }
+  .folio-section-label h2 { font-size:13px; }
+  .folio-bio .bio-lead { font-size:23px; line-height:1.5; margin-bottom:30px; }
+  .folio-bio p { font-size:15px; line-height:1.8; margin-bottom:23px; }
+  .experience { grid-template-columns:1fr; gap:19px; padding-block:29px; }
+  .experience-identity h3 { font-size:29px; margin-bottom:8px; }
+  .experience-description>p,.experience-detail p { font-size:14px; }
+  .contact-title { font-size:clamp(54px,16vw,85px); }
+  .contact-methods { flex-direction:column; align-items:flex-start; gap:16px; margin-top:25px; }
+  .contact-methods .folio-link { font-size:12px; gap:25px; }
+  .folio-footer { padding-block:23px; font-size:10px; gap:12px; }
+}

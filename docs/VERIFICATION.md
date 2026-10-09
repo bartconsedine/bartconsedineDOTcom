@@ -1,5 +1,20 @@
 # Verification and access, 9 October 2026
 
+## Latest editorial redesign
+
+The public page now uses a large name masthead, a three-line role statement with the exact approved text, and a larger transparent portrait aligned to the hero's bottom rule. The biography has a larger lead paragraph with a restrained left section column. Earlier work is four aligned company/role/description rows with native expandable details; filters, card backgrounds, badge-like tags, duplicate hero labels and generic section slogans were removed. Contact uses a large email link and two direct contact methods. A scoped `portfolio.css` keeps these changes separate from login/admin styling.
+
+Verified in Bart's Chrome browser at 1473px, 390px and 320px. No horizontal overflow; the full head is visible and the 320px portrait renders at 280 × 280 with `object-fit:contain`. Zero broken images. Project details open and close correctly. Four source-grounded work entries remain. Programmatic comparison confirms all three approved biography paragraphs are unchanged. Rendered hero text is exactly “Leading AI Engineering at Magnite”; no “Barton” remains in rendered public copy. Primary text contrast is 15.67:1 and secondary text is 8.02:1 against the public background. All nine auth/RLS tests pass, final production build passes, and `git diff --check` passes. No auth implementation or hosted settings changed.
+
+Latest screenshots, all new Library items at version 0:
+
+| View | Library ID |
+|---|---|
+| Editorial desktop hero | `libfile_d33c02553bb48191a8c441b07a9bb698` |
+| Editorial mobile hero | `libfile_ce3e510aa6b88191812b07578223e1f1` |
+| Editorial full desktop page | `libfile_d3bc0d78c28c81919478fa09bb9f025a` |
+| Editorial full mobile page | `libfile_ec9fd296b1348191ab7da438d417130a` |
+
 ## Source and hosting
 
 - GitHub: `bartconsedine/bartconsedineDOTcom`, main commit `d187ab5258af07cd1ab9f99decd9dc46820dca9a`. Authenticated CLI confirms admin/push/pull permissions.

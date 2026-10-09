@@ -1,17 +1,8 @@
-'use client';
-
-import { useState } from 'react';
 import { work } from '@/lib/content';
 
 export default function WorkGrid() {
-  const [filter, setFilter] = useState('All work');
-  const items = work.filter(item => filter === 'All work' || item.category === filter);
-  return <>
-    <div className="work-filters" aria-label="Filter selected work">{['All work', 'Engineering', 'Growth'].map(label => <button key={label} type="button" aria-pressed={filter === label} onClick={() => setFilter(label)}>{label}</button>)}</div>
-    <p className="sr-only" aria-live="polite">Showing {items.length} work highlights</p>
-    <div className="work-grid">{items.map(item => <article className={`work-card ${item.id}`} key={item.id} aria-label={`${item.company}: ${item.role}`}>
-      <div className="work-card-top"><span>{item.company}</span><span className="work-number" aria-hidden="true">{item.number}</span></div>
-      <div className="work-copy"><p className="eyebrow">{item.role}</p><h3>{item.title}</h3><p>{item.description}</p><div className="tags">{item.tags.map(tag => <span key={tag}>{tag}</span>)}</div><details><summary>About this work <span aria-hidden="true">+</span></summary><p>{item.detail}</p></details></div>
-    </article>)}</div>
-  </>;
+  return <div className="experience-list">{work.map(item => <article className="experience" key={item.id} aria-label={`${item.company}: ${item.role}`}>
+    <div className="experience-identity"><h3>{item.company}</h3><p>{item.role}</p></div>
+    <div className="experience-description"><p>{item.description}</p><details><summary>Read more <span aria-hidden="true">+</span></summary><div className="experience-detail"><p>{item.detail}</p><p className="experience-tools">{item.tags.join(' / ')}</p></div></details></div>
+  </article>)}</div>;
 }
