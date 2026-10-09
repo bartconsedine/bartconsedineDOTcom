@@ -10,7 +10,7 @@ export default function Home() {
     <main id="main">
       <section className="hero wrap" aria-labelledby="intro-title">
         <div className="hero-copy"><p className="eyebrow">AI / ENGINEERING / STRATEGY</p><h1 id="intro-title">Bart<br/>Consedine<span className="name-period">.</span></h1><p className="hero-intro">Leading AI Engineering at Magnite</p><div className="hero-links"><a className="button" href="#about">About me <span aria-hidden="true">↓</span></a><a className="hero-text-link" href="#work">Selected work <span aria-hidden="true">↗</span></a></div></div>
-        <figure className="portrait-wrap"><img src="/images/headshot.jpeg" alt="Bart Consedine" width="700" height="700" fetchPriority="high"/><figcaption>BART CONSEDINE</figcaption></figure>
+        <figure className="portrait-wrap"><img src="/images/headshot-cutout.png" alt="Bart Consedine" width="1254" height="1254" fetchPriority="high"/><figcaption>BART CONSEDINE</figcaption></figure>
       </section>
       <section id="about" className="about wrap">
         <div className="section-label"><p className="eyebrow">01 / ABOUT</p><h2>Technology.<br/>With purpose.</h2></div>

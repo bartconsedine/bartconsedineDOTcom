@@ -33,6 +33,20 @@ Google OAuth against a real Supabase project and live database RLS have not been
 
 ## Screenshot delivery
 
+Portrait update: the built-in image generation edit tool removed the background into `public/images/headshot-cutout.png`; the original `headshot.jpeg` remains unchanged. PNG inspection confirms 1254 × 1254 pixels, an alpha channel, 755,337 fully transparent pixels, and 17 transparent rows above the first visible pixel. The cutout was visually compared with the source for face, hair, pose and shirt continuity; it is an AI-edited derivative, not a pixel-identical masked original.
+
+The hero now renders at the asset's natural aspect ratio using `height:auto` and `object-fit:contain`, with no fixed crop. Actual Chrome screenshots at desktop, 390px and 320px show the complete head. Mobile image dimensions are 350 × 350 and 280 × 280, respectively, and document width equals viewport width in both cases. All nine tests and the production build pass after this update.
+
+| Latest portrait deliverable | Library ID |
+|---|---|
+| Desktop with transparent cutout | `libfile_404645cf05e08191bec68bfc649f57f7` |
+| Mobile with complete head | `libfile_6421aea8ea648191aed5611108a0b495` |
+| Transparent PNG asset | `libfile_9a4d625afa888191aee250382f0d2677` |
+
+Image edit prompt (built-in tool, `transparent_background: true`):
+
+> Use case: background-extraction. Edit target: the provided photograph of Bart Consedine. Remove ONLY the plain background to genuine alpha transparency, preserving the exact photographed man, face, expression, hairstyle including every part of the top of the hair, ears, skin texture, beard, shirt pattern, body, pose, and colors. Do not beautify, redraw or reinterpret his identity. Preserve the complete original square framing and all visible torso, with clear transparent space above the entire head. Clean natural hair edges, no halo, no backdrop, no added shadows, no text. This is a faithful photographic cutout for a personal website; output transparent PNG.
+
 Latest copy correction: visible names, accessibility names, page title and metadata use “Bart.” The hero role is exactly “Leading AI Engineering at Magnite” with no subtitle beneath it. The approved biography is otherwise unchanged. Desktop and 390px mobile screenshots were inspected again, with no overflow and no remaining “Barton” in rendered homepage text. All nine tests and the production build passed again. Supabase sign-in remains unapproved and was not attempted.
 
 Latest hero screenshots (new Library items, version 0):
