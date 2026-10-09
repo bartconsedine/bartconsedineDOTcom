@@ -1,7 +1,27 @@
 import { isAbsolute } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 export const project = 'vgsmfbupgydafvotkold';
 export class DatabaseToolError extends Error {}
+export const bundledCaPath = fileURLToPath(new URL('../certs/supabase-prod-ca-2021.crt', import.meta.url));
+const bundledCaSha256 = '700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7';
+
+function readCa(path) {
+  let pem;
+  try { pem = readFileSync(path, 'utf8'); }
+  catch { throw new DatabaseToolError('Approved database CA could not be loaded.'); }
+  if (path === bundledCaPath && createHash('sha256').update(pem).digest('hex') !== bundledCaSha256) {
+    throw new DatabaseToolError('Bundled database CA integrity check failed.');
+  }
+  return pem;
+}
+
+// node-postgres needs PEM contents; libpq and Prisma need absolute file paths.
+export function nodePgSsl(c) {
+  return c.local ? false : { rejectUnauthorized: true, ca: readCa(c.caCert) };
+}
 
 // Shared by the tools AND prisma.config.ts, including direct Prisma CLI use.
 export function connection(value, { caCert = process.env.DATABASE_CA_CERT } = {}) {
@@ -22,7 +42,8 @@ export function connection(value, { caCert = process.env.DATABASE_CA_CERT } = {}
   }
   const certificates = [...new Set([caCert, ...url.searchParams.getAll('sslrootcert'), ...url.searchParams.getAll('sslcert')].filter(Boolean))];
   if (certificates.length > 1 || certificates.some(path => !isAbsolute(path))) throw new DatabaseToolError('Supply one absolute CA certificate path consistently.');
-  caCert = local ? undefined : certificates[0];
+  caCert = local ? undefined : certificates[0] || bundledCaPath;
+  if (caCert === bundledCaPath) readCa(caCert); // Fail closed before any network/authentication.
   url.searchParams.delete('sslrootcert');
   url.searchParams.delete('sslcert');
   if (caCert) url.searchParams.set('sslcert', caCert);

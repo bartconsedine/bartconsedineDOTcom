@@ -6,7 +6,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { resolve, join, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
-import { connection, DatabaseToolError, project, pgEnvironment, prismaEnvironment, subprocessEnvironment } from './database-connection.mjs';
+import { connection, DatabaseToolError, project, pgEnvironment, prismaEnvironment, subprocessEnvironment, nodePgSsl } from './database-connection.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 export { connection } from './database-connection.mjs';
@@ -21,7 +21,7 @@ function prisma(args, c) {
   return run(process.execPath, [join(root, 'node_modules/prisma/build/index.js'), ...args], prismaEnvironment(c));
 }
 async function client(c) {
-  const ssl = c.local ? false : { rejectUnauthorized: true, ...(c.caCert ? { ca: await readFile(c.caCert, 'utf8') } : {}) };
+  const ssl = nodePgSsl(c);
   const db = new pg.Client({ host: c.host, port: Number(c.port), user: c.user, database: c.database, password: async () => c.password, ssl, options: '-c search_path=public', replication: 'false', client_encoding: 'UTF8', application_name: 'bart-site-db-tools', connectionTimeoutMillis: 15000 });
   await db.connect(); return db;
 }

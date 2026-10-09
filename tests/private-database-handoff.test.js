@@ -42,6 +42,11 @@ test('driver, dependency and unknown failures expose only allowlisted categories
   }
   const result = await runHandoff('baseline-check', { DATABASE_URL: url }, async () => { throw Object.assign(new Error(url), {code:'ERR_MODULE_NOT_FOUND'}); });
   assert.match(result.message, /dependencies\/DEPENDENCIES/);
+  for (const message of ['Approved database CA could not be loaded.', 'Bundled database CA integrity check failed.']) {
+    const output = safeDiagnostic(Object.assign(new Error(message), { cause: new Error(url) }), 'input');
+    assert.match(output, /input\/CA_BUNDLE/);
+    assert.ok(!output.includes(secret));
+  }
 });
 
 test('helper cannot dispatch schema writes and rejects temporary backups before driver loading', async () => {

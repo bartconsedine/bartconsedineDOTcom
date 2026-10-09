@@ -16,6 +16,7 @@ const messages = {
   INPUT_PASSWORD: 'The URL has no password or still contains YOUR-PASSWORD. Substitute the existing password privately.',
   INPUT_OPTIONS: 'The connection URL has unsupported options. Start with the project Connect URI.',
   INPUT_CA: 'Use one consistent absolute path for the approved CA certificate.',
+  CA_BUNDLE: 'The approved database CA file is missing or changed. Restore it from the reviewed checkout; do not disable verification.',
   DEPENDENCIES: 'Required local packages could not load. Run npm ci in this repository, then retry.',
   DNS: 'The database hostname could not be resolved. Check network/DNS and the project Connect URI privately.',
   CONNECTIVITY: 'The database could not be reached. Check connectivity; use the project Session pooler on port 5432 if direct IPv6 is unavailable.',
@@ -30,7 +31,7 @@ const messages = {
 class HandoffError extends Error { constructor(code) { super(code); this.safeCode = code; } }
 const fail = code => { throw new HandoffError(code); };
 
-// Pure format/target validation. No imports of database drivers or network calls.
+// Local format/target/CA validation. No database drivers or network calls.
 export function validateTarget(value, options = {}) {
   if (!value?.trim()) fail('INPUT_EMPTY');
   const input = value.trim();
@@ -53,6 +54,7 @@ export function validateTarget(value, options = {}) {
     if (error instanceof URIError) fail('INPUT_ENCODING');
     if (error.message === 'Unsupported connection URL option.') fail('INPUT_OPTIONS');
     if (error.message === 'Supply one absolute CA certificate path consistently.') fail('INPUT_CA');
+    if (['Approved database CA could not be loaded.', 'Bundled database CA integrity check failed.'].includes(error.message)) fail('CA_BUNDLE');
     fail('INPUT_STRUCTURE');
   }
 }
@@ -62,7 +64,8 @@ export function validateTarget(value, options = {}) {
 export function safeDiagnostic(error, stage) {
   let code = error instanceof HandoffError ? error.safeCode : undefined;
   if (!code) {
-    if (['ERR_MODULE_NOT_FOUND', 'MODULE_NOT_FOUND'].includes(error?.code)) code = 'DEPENDENCIES';
+    if (['Approved database CA could not be loaded.', 'Bundled database CA integrity check failed.'].includes(error?.message)) code = 'CA_BUNDLE';
+    else if (['ERR_MODULE_NOT_FOUND', 'MODULE_NOT_FOUND'].includes(error?.code)) code = 'DEPENDENCIES';
     else if (['ENOTFOUND', 'EAI_AGAIN'].includes(error?.code)) code = 'DNS';
     else if (['ECONNREFUSED', 'ENETUNREACH', 'EHOSTUNREACH', 'ETIMEDOUT', 'ECONNRESET'].includes(error?.code) || error?.message === 'timeout expired') code = 'CONNECTIVITY';
     else if (['CERT_HAS_EXPIRED', 'DEPTH_ZERO_SELF_SIGNED_CERT', 'SELF_SIGNED_CERT_IN_CHAIN', 'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY', 'ERR_TLS_CERT_ALTNAME_INVALID'].includes(error?.code)) code = 'TLS';
