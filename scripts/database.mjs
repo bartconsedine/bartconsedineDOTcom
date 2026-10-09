@@ -6,45 +6,23 @@ import { isDeepStrictEqual } from 'node:util';
 import { resolve, join, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
+import { connection, DatabaseToolError, project, pgEnvironment, prismaEnvironment, subprocessEnvironment } from './database-connection.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const project = 'vgsmfbupgydafvotkold';
-class DatabaseToolError extends Error {}
-export function connection(value) {
-  if (!value) throw new DatabaseToolError('Supply DATABASE_URL securely in the process environment.');
-  const url = new URL(value);
-  if (!['postgres:', 'postgresql:'].includes(url.protocol)) throw new DatabaseToolError('Expected a PostgreSQL URL.');
-  const host = url.hostname.replace(/^\[|\]$/g, '');
-  const local = ['localhost', '127.0.0.1', '::1'].includes(host);
-  const user = decodeURIComponent(url.username);
-  if (!local && !(host === `db.${project}.supabase.co` || (host.endsWith('.pooler.supabase.com') && user === `postgres.${project}`))) throw new DatabaseToolError('Database target is not this site project.');
-  if (!local && url.port === '6543') throw new DatabaseToolError('Use direct connection or session pooler port 5432, not transaction pooling.');
-  const database = decodeURIComponent(url.pathname.slice(1));
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(database) || !user) throw new DatabaseToolError('Use a simple database name and provide a user.');
-  for (const key of url.searchParams.keys()) {
-    if (!['sslmode', 'sslrootcert', 'schema', 'connect_timeout', 'pool_timeout', 'connection_limit'].includes(key)) throw new DatabaseToolError('Unsupported connection URL option.');
-  }
-  // Keep Prisma's own migration ledger out of Supabase's exposed public schema.
-  url.searchParams.set('schema', 'private');
-  return { url, host, local, database, user, password: decodeURIComponent(url.password), port: url.port || '5432' };
-}
+export { connection } from './database-connection.mjs';
 function tool(name) { return process.env.PG_BIN_DIR ? join(process.env.PG_BIN_DIR, name) : name; }
-function pgEnv(c) {
-  return { ...process.env, PGHOST: c.host, PGPORT: c.port, PGDATABASE: c.database, PGUSER: c.user,
-    PGPASSWORD: c.password, PGSSLMODE: c.local ? 'disable' : 'verify-full', PGCONNECT_TIMEOUT: '15' };
-}
-function run(command, args, env = process.env) {
+function run(command, args, env = subprocessEnvironment()) {
   const result = spawnSync(command, args, { cwd: root, env, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
   // Do not print driver/CLI errors: they can contain connection details or secrets.
   if (result.status !== 0) throw new DatabaseToolError(`${command.split('/').pop()} failed; no later step was executed. Inspect privately.`);
   return result.stdout;
 }
 function prisma(args, c) {
-  return run(process.execPath, [join(root, 'node_modules/prisma/build/index.js'), ...args], { ...process.env, DATABASE_URL: c.url.href });
+  return run(process.execPath, [join(root, 'node_modules/prisma/build/index.js'), ...args], prismaEnvironment(c));
 }
 async function client(c) {
-  const ssl = c.local ? false : { rejectUnauthorized: true, ...(process.env.PGSSLROOTCERT ? { ca: await readFile(process.env.PGSSLROOTCERT, 'utf8') } : {}) };
-  const db = new pg.Client({ host: c.host, port: Number(c.port), user: c.user, database: c.database, password: c.password, ssl, connectionTimeoutMillis: 15000 });
+  const ssl = c.local ? false : { rejectUnauthorized: true, ...(c.caCert ? { ca: await readFile(c.caCert, 'utf8') } : {}) };
+  const db = new pg.Client({ host: c.host, port: Number(c.port), user: c.user, database: c.database, password: async () => c.password, ssl, options: '-c search_path=public', replication: 'false', client_encoding: 'UTF8', application_name: 'bart-site-db-tools', connectionTimeoutMillis: 15000 });
   await db.connect(); return db;
 }
 async function withClient(c, fn) { const db = await client(c); try { return await fn(db); } finally { await db.end(); } }
@@ -72,7 +50,7 @@ export async function backup(c) {
   if (Number(version) < Number(metadata.serverVersion.split('.')[0])) throw new DatabaseToolError('pg_dump must be the same major version as the server or newer.');
   const name = `${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.dump`;
   const archive = join(dir, name);
-  run(tool('pg_dump'), ['--format=custom', '--file', `${archive}.partial`, '--no-password'], pgEnv(c));
+  run(tool('pg_dump'), ['--format=custom', '--file', `${archive}.partial`, '--no-password'], pgEnvironment(c));
   run(tool('pg_restore'), ['--list', `${archive}.partial`]);
   await rename(`${archive}.partial`, archive); await chmod(archive, 0o600);
   const migrations = {};
@@ -109,7 +87,7 @@ export async function restoreLocal(archive, c) {
       }
     }
   });
-  run(tool('pg_restore'), ['--exit-on-error', '--single-transaction', '--no-owner', '--no-password', '--dbname', c.database, archive], pgEnv(c));
+  run(tool('pg_restore'), ['--exit-on-error', '--single-transaction', '--no-owner', '--no-password', '--dbname', c.database, archive], pgEnvironment(c));
   console.log('Restored into isolated local test database. Run application/RLS checks; hosted recovery is not certified.');
 }
 export async function main() {

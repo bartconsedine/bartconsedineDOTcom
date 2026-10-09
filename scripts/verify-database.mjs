@@ -16,7 +16,7 @@ const suffix = randomBytes(6).toString('hex');
 const names = [`migration_test_${suffix}`, `fresh_test_${suffix}`, `restore_test_${suffix}`];
 const backups = await mkdtemp(join(tmpdir(), 'prisma-recovery-fixture-')); await chmod(backups, 0o700);
 const target = name => { const url = new URL(c.url); url.pathname = `/${name}`; return url.href; };
-const query = async (name, sql) => { const db = new pg.Client({ connectionString: target(name) }); await db.connect(); try { return await db.query(sql); } finally { await db.end(); } };
+const query = async (name, sql) => { const db = new pg.Client({ connectionString: target(name), options: '-c search_path=public' }); await db.connect(); try { return await db.query(sql); } finally { await db.end(); } };
 const run = (args, name) => {
   const result = spawnSync(process.execPath, args, { encoding: 'utf8', env: { ...process.env, DATABASE_URL: target(name), BACKUP_DIR: backups } });
   assert.equal(result.status, 0, result.stderr); return result.stdout;
@@ -28,6 +28,9 @@ try {
   const baseline = await readFile(new URL('../prisma/migrations/0_private_workspace/migration.sql', import.meta.url), 'utf8');
   for (const name of names.slice(0, 2)) await query(name, fixture);
   await query(names[0], baseline);
+  // Poison inherited libpq configuration: real backup/restore must still use the
+  // validated loopback target and ignore service/TLS/role overrides.
+  Object.assign(process.env, { PGHOSTADDR: '192.0.2.1', PGSERVICE: 'missing_service', PGSERVICEFILE: '/nonexistent/service', PGSSLMODE: 'verify-full', PGSSLROOTCERT: '/nonexistent/ca', PGOPTIONS: '-c search_path=untrusted' });
   await baselineCheck(connection(target(names[0])));
   await query(names[0], 'alter table public.app_data disable row level security');
   await assert.rejects(baselineCheck(connection(target(names[0]))), /differs/);

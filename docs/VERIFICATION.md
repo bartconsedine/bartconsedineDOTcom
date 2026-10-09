@@ -1,3 +1,13 @@
+# Database connection hardening — 9 October 2026
+
+- Shared connection policy is used by both database tooling and direct Prisma configuration. Hosted Prisma URLs are normalized to `sslmode=require&sslaccept=strict`; `verify-full` is not passed to Prisma's native connector because it does not support libpq's mode names. All clients use the same explicit absolute CA when supplied, otherwise system/default trust with verification enabled.
+- Subprocess environments use an OS-variable allowlist, then add only validated connection fields. Inherited PGHOSTADDR, PGSERVICE/PGSERVICEFILE, PGOPTIONS, SSL/GSS options, alternate connection URLs, Node TLS overrides and Prisma engine overrides are excluded. `localhost` is pinned to `127.0.0.1`; hosted ports are restricted to 5432.
+- 26 tests pass, including weak/duplicate TLS URL parameters, direct Prisma config normalization, CA consistency, and hostile subprocess-environment regressions. Prisma validation and the production build pass.
+- The real local PostgreSQL baseline/backup/restore drill also passed with poisoned PGHOSTADDR, service-file, SSL and search-path variables inherited by the test process. Restored data isolation and table/ledger restrictions still pass. No hosted connections or writes were used for these tests.
+- No public UI/design or runtime authentication behavior changed in this hardening commit. Code-only deployment remains fail-closed until the hosted membership migration/configuration/enrollment is completed separately. Parent final review is required before coordinating the authorized merge/release.
+
+---
+
 # Prisma adoption and backup verification — 9 October 2026
 
 This section supersedes migration-path and no-dependency-change statements in the prior two-admin verification below.
