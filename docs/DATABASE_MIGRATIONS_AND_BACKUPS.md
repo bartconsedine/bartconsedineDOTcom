@@ -56,6 +56,39 @@ After restore, check migration history, row counts, both admins' own data, denie
 
 No secure hosted PostgreSQL connection is available to this code task. No production backup destination has been selected. Completed hosted backup inventory is not available through these connector tools, and this task has no browser authorization. Therefore no hosted logical snapshot, Prisma baseline marker, two-admin migration, or hosted restoration has been executed by this task.
 
+## Secure execution handoff
+
+The 9 October 2026 follow-up request to run the schema was attempted only through `npm run db:baseline:check`; it stopped with `Supply DATABASE_URL securely in the process environment.` Read-only hosted inspection still found `private.site_owner`, no `private.site_admin`, and no `private._prisma_migrations`. No schema or membership write occurred. The connector's SQL access is not a PostgreSQL credential for Prisma or `pg_dump`, and must not be used to bypass this workflow.
+
+1. Open [this Supabase project](https://supabase.com/dashboard/project/vgsmfbupgydafvotkold), then **Connect**. Copy the direct connection, or the **Session pooler** connection on port 5432 if IPv6 is unavailable. Use the existing database password privately; percent-encode reserved characters in it. Do not reset credentials to unblock this task, and do not send the URL/password through chat. Inspect **Database → Backups** and record the actual completed backup timestamp/status/retention; do not assume a Pro entitlement means a snapshot exists. If no completed recovery point is available, stop and report that before a hosted write.
+2. On the trusted local machine, select an existing protected backup directory outside Git and `/tmp` (0700, preferably on an encrypted volume). Use a trusted Bash terminal in the reviewed repository checkout, with no shell tracing or session recording. Set the connection through an existing secret manager, or enter it into the silent prompt below. This is a user-terminal handoff, not a command for an agent to collect secrets from chat. `DATABASE_URL` belongs only in this local process environment, never the deployed website. If required, privately set `DATABASE_CA_CERT` to an absolute approved CA path; TLS verification must remain enabled. Ensure PostgreSQL 17+ client tools are installed and on PATH, or set `PG_BIN_DIR` to their directory.
+
+   ```bash
+   set +x
+   read -r -s -p 'PostgreSQL connection URL (hidden): ' DATABASE_URL
+   printf '\n'
+   export DATABASE_URL
+   read -r -p 'Existing protected backup directory: ' BACKUP_DIR
+   export BACKUP_DIR
+   export CONFIRM_HOSTED_MIGRATION=vgsmfbupgydafvotkold
+   ```
+
+3. Run the following in order, stopping on any failure. The `&&` chain prevents later steps from running after a failure. Both write commands create and verify their own fresh logical backup first; the baseline never replays the existing base SQL. If a command fails after recording history, inspect that state before any retry; do not rerun the whole chain blindly.
+
+   ```bash
+   npm ci &&
+   npm run db:validate &&
+   npm run db:baseline:check &&
+   npm run db:baseline &&
+   npm run db:deploy &&
+   npm run db:status
+   unset DATABASE_URL CONFIRM_HOSTED_MIGRATION
+   ```
+
+Record the backup filenames/checksums and the two completed Prisma migration names, then perform step 6 of **First adoption** above to verify actual hosted security. Do not send archive contents or credentials in the report. Stop before `supabase/admin/enroll_two_admins.sql`: authorization to run schema migrations does not enroll either account. If secure access cannot be supplied, leave the schema pending and share only the missing prerequisite, not secrets.
+
+Connection source: [Supabase connection methods and Connect dialog](https://supabase.com/docs/guides/database/connecting-to-postgres).
+
 References: [Prisma baselining](https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/baselining), [custom SQL features](https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/unsupported-database-features), [Prisma config](https://www.prisma.io/docs/orm/v7/reference/prisma-config-reference), [Supabase backups and limits](https://supabase.com/docs/guides/platform/backups).
 
 TLS implementation reference: [Prisma PostgreSQL SSL parameters](https://www.prisma.io/docs/orm/v6/overview/databases/postgresql#configuring-an-ssl-connection), checked against the installed Prisma 7.10 native engine source, and [libpq environment overrides](https://www.postgresql.org/docs/current/libpq-envars.html).

@@ -36,3 +36,5 @@ All migrations now run through [Prisma Migrate with a pre-migration backup](docs
 ## Extension
 
 See [adding apps](docs/ADDING_APPS.md). Public work content lives in `src/lib/content.js`.
+
+For changes, use the [documented and tested PR workflow](CONTRIBUTING.md) and the project `$pr` skill.
