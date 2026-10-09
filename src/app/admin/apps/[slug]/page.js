@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { requireOwner } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { getApp } from '@/lib/apps';
 
 export default async function AppPage({ params }) {
-  await requireOwner();
+  await requireAdmin();
   const { slug } = await params;
   const app = await getApp(slug);
   if (!app) notFound();

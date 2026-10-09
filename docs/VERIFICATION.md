@@ -1,3 +1,17 @@
+# Two-admin code verification — 9 October 2026
+
+This section supersedes the historical single-owner notes below. Based on deployed commit `1a19e22`, implemented in an isolated worktree on `codex/two-admin-access` without modifying the original checkout.
+
+- `npm test`: 20 tests, including actual PostgreSQL migrations/RLS/grant checks in PGlite, both approved Google accounts, missing/expired/forged sessions, metadata spoofing, membership failure/revocation, verified identity mismatch, per-admin CRUD isolation, legacy migration preservation, and atomic administrative enrollment.
+- `npm run build`: passes on Node 22.23.2, Next.js 16.4.0. No dependency changes.
+- Local production HTTP checks without credentials: `/` and `/login` return 200; `/admin` and `/admin/apps/test` redirect 307 to unconfigured login; registry and per-app APIs return 503 with only `{"error":"unconfigured"}` and private/no-store headers. No browser was used.
+- Both protected page/API guards and OAuth callback use server-verified `getUser()` then the session-scoped `is_site_admin` RPC. No owner UUID environment bootstrap is required. Provider identity data, not editable user metadata, must contain a matching email and boolean verification.
+- Private membership is limited to the two requested addresses, keyed by verified UUID; RLS is enabled/forced with no client table grants. The SECURITY DEFINER lookup is in unexposed `private`, has a fixed empty search path, checks `auth.uid()`, and accepts no caller-supplied identity. The public RPC is SECURITY INVOKER, authenticated-only, and returns a boolean. Per-user app data remains isolated with USING and WITH CHECK.
+- `vercel.json` disables Git deployments only for this review branch, using [Vercel's documented branch switch](https://vercel.com/docs/project-configuration/git-configuration#git.deploymentenabled). Coordinate release with the parent task; no merge/deployment is part of this work.
+- Hosted migration, hosted advisor results, Data API schema exposure, real Google OAuth/callback/cookie behavior, and both actual Auth UUIDs remain pending. No hosted configuration, credentials, membership, or browser state were changed.
+
+---
+
 # Verification and access, 9 October 2026
 
 ## Current framework, private app hub and responsive verification
