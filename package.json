@@ -1,26 +1,23 @@
 {
+  "name": "bartconsedine-site",
+  "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next",
+    "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
-    "start": "next start"
+    "start": "next start --hostname 127.0.0.1",
+    "test": "node --test tests/*.test.js"
   },
   "dependencies": {
-    "@chakra-ui/icons": "^2.0.2",
-    "@chakra-ui/react": "^2.2.1",
-    "@chakra-ui/theme-tools": "^2.0.2",
-    "@emotion/react": "^11.10.4",
-    "@emotion/styled": "^11.9.0",
-    "framer-motion": "^6.3.0",
-    "next": "latest",
-    "react": "^18.2.0",
-    "react-awesome-reveal": "^4.0.1",
-    "react-dom": "^18.2.0"
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.117.3",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
-    "@types/node": "^18.0.0",
-    "@types/react": "^18.0.0",
-    "@types/react-dom": "^18.0.0",
-    "typescript": "^4.7.2"
+    "@electric-sql/pglite": "0.5.8"
   }
 }
