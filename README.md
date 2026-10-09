@@ -2,7 +2,7 @@
 
 Reversible rebuild of `bartconsedine/bartconsedineDOTcom` from commit `d187ab5`.
 Next.js App Router, JavaScript, React, Supabase Auth (Google OAuth), and Supabase Postgres.
-The original checkout is untouched. This branch has not been pushed or deployed.
+The original checkout is untouched. The rebuild branch is published on GitHub. Vercel Preview deployment `FjBRgwRwakypdd8aTm1FxhLhG3gd` succeeded for commit `3b48622`; production publication has been authorized separately from Supabase setup.
 
 ```sh
 nvm use # optional: uses the tested Node 22.23.2 from .nvmrc
@@ -17,9 +17,9 @@ Runtime: Node 22.x (tested 22.23.2). Next.js itself requires Node >=20.9, but th
 
 The public site works without credentials. `/admin`, `/admin/apps/<slug>`, `/api/admin/apps` and `/api/admin/apps/<slug>` fail closed until configuration is complete. There is no demo login or bypass. The workspace contains no invented apps. A validated server-only registry supplies the app grid, active sidebar navigation and per-app routes. Optional registered GET/POST API handlers run behind verified owner checks, same-origin mutation checks and private/no-store responses. Google OAuth integration and database policies need the live setup below before they can be verified end to end.
 
-## Live setup, after approval
+## Deployment and live auth setup
 
-1. Vercel login is verified at `https://vercel.com/bartconsedines-projects/bartconsedine`. It points to the existing repository, domain, and commit `d187ab5`. The project still uses discontinued Node.js 16.x: select a supported Node runtime before any new build, with approval. Local checks used Node 22.23.2. Do not bulk-upgrade unrelated projects.
+1. Vercel login is verified at `https://vercel.com/bartconsedines-projects/bartconsedine`. The existing Git integration deploys production from `main`. The manifest pins Node `22.x`, which overrides the legacy project dropdown according to Vercel documentation; the preview build succeeded. Local checks used Node 22.23.2. Keep the original production commit `d187ab5258af07cd1ab9f99decd9dc46820dca9a` and Vercel deployment `9yyBjPzZX7SNRYmvYEHR3Gemwipw` for rollback.
 2. Sign into Supabase and identify or approve the intended project. The repository contains no existing Supabase project binding. No project, provider credentials, database migration, or account security setting has been changed in this task.
 3. Configure the Google provider in Supabase using an approved Google Cloud OAuth web client. The Google authorized redirect URI is the exact callback shown by Supabase (`https://PROJECT.supabase.co/auth/v1/callback`). Only request standard sign-in identity scopes, not Gmail inbox access.
 4. Set Supabase Site URL to the intended site origin and allow the exact `/auth/callback` URLs for local and production environments. Avoid broad preview wildcards. The app uses PKCE, server cookies, and exchanges the code on the server.
@@ -28,7 +28,7 @@ The public site works without credentials. `/admin`, `/admin/apps/<slug>`, `/api
 7. Copy `.env.example` to `.env.local`; populate the project URL, publishable key, verified owner UUID and site origin privately. Use the same environment variables in the approved Vercel environment. **No service-role key is used.** Keep `private` out of exposed API schemas.
 8. Verify the owner can sign in and sign out. Test another Google account, missing/expired cookies, malformed callback codes, and direct API requests. Validate SQL RLS with an anonymous and a non-owner authenticated session before storing private data. A Google sign-in can create a Supabase Auth user; it cannot enroll an administrator or gain data access.
 9. The biography uses the user's approved three paragraphs, including the requested “AI” wording. Its professional claims are user-provided, not independently verified. The four earlier work examples come from the original source. The old resume assets are preserved but not promoted as current.
-10. After publication approval, push this branch and review a Vercel Preview deployment with its exact callback URL configured. Merge/promote only after auth and RLS pass. The existing Vercel domain can remain attached; no DNS change should be necessary. Keep the current production deployment for rollback.
+10. Public-site publication is authorized and can proceed with the private workspace failing closed. Google sign-in and private data access must remain unavailable until configuration and end-to-end auth/RLS verification pass. The existing Vercel domain remains attached; no DNS change is needed. Roll back using the previous production deployment above, or revert the rebuild changes on `main` and let the Git integration deploy the revert.
 
 ## Security boundaries
 
