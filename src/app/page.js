@@ -21,7 +21,6 @@ export default function Home() {
         <div className="folio-bio">
           <p className="bio-lead">Bart leads AI for Engineering at Magnite, shaping how the company builds with and applies AI. He drives AI adoption across engineering, embeds intelligent agents into Magnite’s ad tech products, and develops internal tools that improve how people and teams work.</p>
           <p>His career spans digital advertising, software engineering, and business strategy. After beginning in ad tech and transitioning into software development, Bart earned his MBA at NYU and joined EY-Parthenon’s Software Strategy Group, conducting technical due diligence for private equity M&amp;A transactions. He assessed software architectures, engineering teams, and technology risk before joining Magnite as Chief of Staff to the CTO. That role grew into his current leadership of engineering AI initiatives.</p>
-          <p>Bart brings an engineer’s understanding of how technology works and a strategist’s perspective on where it creates value. His focus is making AI useful in practice, building better products, strengthening engineering capabilities, and helping teams work more effectively.</p>
           <a className="folio-link" href="https://www.linkedin.com/in/bartconsedine">More on LinkedIn <span aria-hidden="true">↗</span></a>
         </div>
       </section>
