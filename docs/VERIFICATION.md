@@ -1,6 +1,16 @@
+# Official database CA fix — 9 October 2026
+
+- Default Node trust reproduced `SELF_SIGNED_CERT_IN_CHAIN` against the approved Direct host. An unauthenticated SSLRequest handshake using the revised shared policy succeeded with TLS 1.3 at 22:35:49 UTC; a deliberately wrong hostname failed with `ERR_TLS_CERT_ALTNAME_INVALID`. No password, PostgreSQL startup/authentication message, or SQL was sent.
+- Bundled Supabase Root 2021 CA was obtained from the official Studio-configured HTTPS download and pinned by PEM SHA-256. Its provenance, certificate fingerprint, validity and rotation procedure are in the [database runbook](DATABASE_MIGRATIONS_AND_BACKUPS.md#bundled-hosted-database-trust). No global or OS trust configuration changed.
+- All three clients receive the same CA with their strict verification settings. Regression tests cover absent/altered bundled trust, consistent client options, explicit overrides, unchanged loopback behavior and safe CA diagnostics.
+- `npm ci` reports zero vulnerabilities. `npm run db:validate`, all 40 tests, and `npm run build` pass. The isolated PostgreSQL 17 drill passes baseline validation, fresh and incremental migrations, logical backups, restore, and restored RLS/grants/data checks.
+- Hosted authentication, SQL access, backup, migration and enrollment remain unverified by this fix. Session pooler TLS was not separately probed. Public TLS verification does not establish password correctness.
+
+---
+
 # Database connection hardening — 9 October 2026
 
-- Shared connection policy is used by both database tooling and direct Prisma configuration. Hosted Prisma URLs are normalized to `sslmode=require&sslaccept=strict`; `verify-full` is not passed to Prisma's native connector because it does not support libpq's mode names. All clients use the same explicit absolute CA when supplied, otherwise system/default trust with verification enabled.
+- Shared connection policy is used by both database tooling and direct Prisma configuration. Hosted Prisma URLs are normalized to `sslmode=require&sslaccept=strict`; `verify-full` is not passed to Prisma's native connector because it does not support libpq's mode names. All clients use the same reviewed bundled Supabase CA by default, or a consistent explicit absolute approved CA path. The bundled PEM integrity is checked before networking; strict certificate and hostname verification remains enabled.
 - Subprocess environments use an OS-variable allowlist, then add only validated connection fields. Inherited PGHOSTADDR, PGSERVICE/PGSERVICEFILE, PGOPTIONS, SSL/GSS options, alternate connection URLs, Node TLS overrides and Prisma engine overrides are excluded. `localhost` is pinned to `127.0.0.1`; hosted ports are restricted to 5432.
 - 26 tests pass, including weak/duplicate TLS URL parameters, direct Prisma config normalization, CA consistency, and hostile subprocess-environment regressions. Prisma validation and the production build pass.
 - The real local PostgreSQL baseline/backup/restore drill also passed with poisoned PGHOSTADDR, service-file, SSL and search-path variables inherited by the test process. Restored data isolation and table/ledger restrictions still pass. No hosted connections or writes were used for these tests.

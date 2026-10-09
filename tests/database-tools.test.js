@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { connection, restoreLocal } from '../scripts/database.mjs';
+import { bundledCaPath, nodePgSsl } from '../scripts/database-connection.mjs';
+import { X509Certificate } from 'node:crypto';
+import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 test('database tools restrict project target and keep Prisma history private', () => {
   assert.throws(() => connection(), /Supply DATABASE_URL/);
@@ -31,8 +37,39 @@ test('hosted Prisma URLs cannot downgrade encryption or certificate verification
     assert.deepEqual(url.searchParams.getAll('sslmode'), ['require']);
     assert.deepEqual(url.searchParams.getAll('sslaccept'), ['strict']);
     assert.equal(pgEnvironment(c, {}).PGSSLMODE, 'verify-full');
-    assert.equal(pgEnvironment(c, {}).PGSSLROOTCERT, 'system');
+    assert.equal(pgEnvironment(c, {}).PGSSLROOTCERT, bundledCaPath);
+    assert.equal(url.searchParams.get('sslcert'), bundledCaPath);
   }
+});
+
+test('the official bundled CA reaches node-postgres with strict verification and leaves loopback unchanged', () => {
+  const c = connection('postgresql://postgres@db.vgsmfbupgydafvotkold.supabase.co/postgres', { caCert: null });
+  const ssl = nodePgSsl(c);
+  assert.equal(ssl.rejectUnauthorized, true);
+  const ca = new X509Certificate(ssl.ca);
+  assert.equal(ca.ca, true);
+  assert.equal(ca.fingerprint256, '80:70:25:AD:50:D4:ED:21:9D:2C:9C:7D:29:9C:00:4F:82:4E:B0:0C:F7:F6:5A:FE:F6:07:D0:7B:72:E6:CA:FA');
+  assert.equal(ca.verify(ca.publicKey), true);
+  const local = connection('postgresql://tester@127.0.0.1/restore_test_fixture');
+  assert.equal(local.caCert, undefined);
+  assert.equal(local.url.searchParams.has('sslcert'), false);
+  assert.equal(nodePgSsl(local), false);
+});
+
+test('missing or modified bundled trust fails locally instead of falling back to weaker TLS', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'database-ca-policy-'));
+  try {
+    await mkdir(join(root, 'scripts')); await mkdir(join(root, 'certs'));
+    const modulePath = join(root, 'scripts/database-connection.mjs');
+    await writeFile(modulePath, await readFile(new URL('../scripts/database-connection.mjs', import.meta.url)));
+    const policy = await import(pathToFileURL(modulePath).href);
+    const url = 'postgresql://postgres@db.vgsmfbupgydafvotkold.supabase.co/postgres';
+    assert.throws(() => policy.connection(url, { caCert: null }), /CA could not be loaded/);
+    await writeFile(policy.bundledCaPath, (await readFile(bundledCaPath, 'utf8')) + '\n');
+    assert.throws(() => policy.connection(url, { caCert: null }), /CA integrity check failed/);
+    await writeFile(policy.bundledCaPath, await readFile(bundledCaPath));
+    assert.equal(policy.connection(url, { caCert: null }).caCert, policy.bundledCaPath);
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test('explicit CA trust is consistent across clients and cannot use ambiguous relative paths', async () => {
