@@ -23,7 +23,8 @@ Work is in a separate clone on `codex/bio-app-hub`. Original source at `Document
 - Auth-policy tests cover valid owner, incomplete configuration, missing session, rejected expired/forged tokens, another Google user, metadata privilege spoofing, email mismatch, unverified/anonymous/non-Google identities, and provider outage.
 - RLS test applies the actual migration to isolated Postgres with a minimal Supabase Auth schema. It verifies that no user can self-enroll, owner CRUD is allowed, anonymous and other Google users cannot read or write, owner-ID spoofing fails, unauthorized mutations do nothing, and Google-identity removal/email changes revoke access.
 - Actual local HTTP checks: `/` and `/login` 200; `/admin` and `/admin/apps/example` redirect to unconfigured sign-in; `/api/admin/apps` returns 503 without credentials and no private data; malformed callback ignores an external `next` destination.
-- Actual Chrome UI: desktop homepage and login inspected; homepage at 390px wide inspected with document width 390px and zero broken images. Growth filter shows two matching projects; details expand successfully.
+- Actual Chrome UI: dark desktop homepage and login inspected; homepage and login at 390px wide inspected with document width 390px. Homepage has zero broken images. Engineering filter shows two matching projects; details expand successfully. Temporary viewport overrides were reset after inspection.
+- Re-ran all nine tests and the production build after the dark design revision; both passed. Rendered biography matches the user's approved three paragraphs, with the requested change to “AI.”
 - `git diff --check` passed.
 
 ## Limits
@@ -36,9 +37,11 @@ Files were saved to ChatGPT Library using the Library skill:
 
 | Image | Library ID |
 |---|---|
-| Desktop homepage | `libfile_27b3d845f2108191835b672321617080` |
-| Mobile homepage | `libfile_aa869e359ffc8191b80d810acee9f2e1` |
-| Private Google sign-in | `libfile_0d94758d6ab881918e439a09137fd06e` |
-| Full homepage with updated biography | `libfile_ba4b412ae03481918c7b016c0cf56455` (version 1) |
+| Dark desktop homepage | `libfile_0456af2094c48191bd4a4f0c7d61dec9` |
+| Dark mobile homepage | `libfile_6eee8e98bce481919023b077c2cf594c` |
+| Dark private Google sign-in | `libfile_536aeaf03ec88191839d941b62a7a683` |
+| Dark full homepage with approved biography | `libfile_00f8415072688191af687603578c463a` |
 
-The public design uses cream `#f7f7ee`, forest green `#26352c`, lime `#e6ed9f`, Manrope/DM Sans, and Georgia italic accents. Work illustrations are decorative geometric CSS, not screenshots of the employers' products.
+These are new Library items (version 0), preserving the earlier design screenshots. Local copies are in `../screenshots/barton-dark-*.jpg` and carry Library ID/version attributes.
+
+The approved design direction is dark and minimalist: near-black `#0c0d0f`, panels `#121316`, white `#f2f2f3`, muted `#a5a6ad`, Manrope/DM Sans, a grayscale portrait, and simple bordered work cards. Decorative geometric artwork, serif accents, and the earlier cream/green palette were removed. Existing source-grounded work history is labeled “Earlier work.”
