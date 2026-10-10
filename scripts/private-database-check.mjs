@@ -17,6 +17,7 @@ const messages = {
   INPUT_OPTIONS: 'The connection URL has unsupported options. Start with the project Connect URI.',
   INPUT_CA: 'Use one consistent absolute path for the approved CA certificate.',
   CA_BUNDLE: 'The approved database CA file is missing or changed. Restore it from the reviewed checkout; do not disable verification.',
+  MIGRATION_FILES: 'Reviewed migration files are missing, changed, or unexpected. Stop for code review; do not regenerate checksums to bypass the guard.',
   DEPENDENCIES: 'Required local packages could not load. Run npm ci in this repository, then retry.',
   DNS: 'The database hostname could not be resolved. Check network/DNS and the project Connect URI privately.',
   CONNECTIVITY: 'The database could not be reached. Check connectivity; use the project Session pooler on port 5432 if direct IPv6 is unavailable.',
@@ -64,7 +65,8 @@ export function validateTarget(value, options = {}) {
 export function safeDiagnostic(error, stage) {
   let code = error instanceof HandoffError ? error.safeCode : undefined;
   if (!code) {
-    if (['Approved database CA could not be loaded.', 'Bundled database CA integrity check failed.'].includes(error?.message)) code = 'CA_BUNDLE';
+    if (error?.message === 'Reviewed migration files are missing, changed, or unexpected. Stop for code review.') code = 'MIGRATION_FILES';
+    else if (['Approved database CA could not be loaded.', 'Bundled database CA integrity check failed.'].includes(error?.message)) code = 'CA_BUNDLE';
     else if (['ERR_MODULE_NOT_FOUND', 'MODULE_NOT_FOUND'].includes(error?.code)) code = 'DEPENDENCIES';
     else if (['ENOTFOUND', 'EAI_AGAIN'].includes(error?.code)) code = 'DNS';
     else if (['ECONNREFUSED', 'ENETUNREACH', 'EHOSTUNREACH', 'ETIMEDOUT', 'ECONNRESET'].includes(error?.code) || error?.message === 'timeout expired') code = 'CONNECTIVITY';

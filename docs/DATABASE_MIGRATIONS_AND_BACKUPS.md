@@ -28,6 +28,14 @@ Prisma **7.10.0** is the latest non-prerelease found in the npm registry during 
 
 On a fresh **local** test database, first provision the test-only Auth fixture and roles, then `prisma migrate deploy` runs both migrations. Fresh hosted Supabase provisioning is a separate reviewed workflow; never baseline an empty database as though the base already exists.
 
+## Exact reviewed migration boundary
+
+The guarded adoption/deploy commands verify the exact two migration directories, SQL bytes and PostgreSQL lock file against the SHA-256 pins in `scripts/reviewed-migrations.mjs`. Additional directories/files, missing files, symlinks, modified SQL or another database provider fail before any database write. Applied Prisma ledger checksums must match those same pins. The current deployment permits only the base to be recorded and only `20261009203911_two_admin_membership` to be pending; it rechecks the base catalog before its fresh backup.
+
+After the backup, the files are verified again and copied into a private 0700 staging directory. Prisma receives only that verified snapshot through an explicit config path; changes to the original checkout cannot add SQL while Prisma executes. Staged SQL/config files are read-only, the config contains no connection value, and cleanup runs after success or failure. The connection remains in the allowlisted child environment. Do not run raw `prisma migrate deploy` against the hosted database: the guarded project commands provide these additional controls.
+
+Do not auto-regenerate pins to accept a mismatch. A future migration requires a new PR that reviews its SQL, updates the explicit allowed set and history/precondition logic, and tests the intended upgrade path. Applied migration SQL must remain unchanged.
+
 ## Subsequent migrations
 
 Run `npm run db:migration:new -- descriptive_name` to create a Prisma migration SQL file. Write/review the SQL and update the column models when relevant. Keep explicit transactions, RLS, USING/WITH CHECK predicates, grants, function search paths, and foreign keys intact. Do not edit applied migration files. Test both fresh installation and incremental upgrade against disposable local databases. Run tests, `db:validate`, the build, and the restore drill before release. Use `npm run db:deploy` for an approved hosted application; it always performs a new backup first.
@@ -54,7 +62,7 @@ After restore, check migration history, row counts, both admins' own data, denie
 
 ## Remaining execution blockers
 
-No secure hosted PostgreSQL connection is available to this code task. No production backup destination has been selected. Completed hosted backup inventory is not available through these connector tools, and this task has no browser authorization. Therefore no hosted logical snapshot, Prisma baseline marker, two-admin migration, or hosted restoration has been executed by this task.
+Updated 10 October 2026: the user successfully completed the private baseline check and logical backup. The archive and manifest exist in the protected home directory with user ownership and mode 0600; their recorded project and SHA-256 match. No archive contents were displayed. The agent still has no database credential, by design. Completed platform backup inventory is unavailable through the connected tools, and browser access remains restricted. Prisma adoption, the two-admin migration, and hosted restoration have not been performed. Do not treat a successful local archive check as evidence of a completed platform recovery point or tested hosted restoration.
 
 ## Private password-only migration launcher
 
@@ -62,7 +70,7 @@ Use `bash scripts/private-database-migrate.command` from the reviewed checkout *
 
 The suggested local backup directory is `$HOME/.local/share/bartconsedine/database-backups`, outside Documents and the repository. On Bart's machine, the dedicated directory was created and checked on 10 October 2026: owned by the user, `0700`, no symlink, no ACL entries, and no group/world-writable parent. No existing directory permissions were changed. This location is outside standard synced Documents folders; third-party backup/sync settings and disk encryption are not asserted. The launcher accepts another reviewed existing protected absolute path and never creates or changes directories itself.
 
-1. Choose **1** to inspect actual Prisma history without writing. Only the known unadopted, baseline-only, or complete states are accepted; failed, rolled-back or unexpected history stops for inspection.
+1. Choose **1** to inspect actual Prisma history without writing. Only the known unadopted, baseline-only, or complete states are accepted; failed, rolled-back, unexpected or checksum-mismatched history stops for inspection.
 2. If unadopted, choose **2**, type `ADOPT vgsmfbupgydafvotkold`, confirm the protected directory, and type `READY` only after verifying the completed recovery point and runbook prerequisites. This repeats the catalog baseline check, creates a fresh verified backup, and records only `0_private_workspace`. It never replays the base SQL.
 3. After successful adoption, choose **3**, type `DEPLOY vgsmfbupgydafvotkold`, confirm the directory and recovery readiness again. A new backup must succeed before Prisma deploys `20261009203911_two_admin_membership`. The launcher checks completed history afterward.
 4. Choose **q** to clear the credential. Perform the hosted security and private-schema checks, then coordinate OAuth and separately approved identity enrollment. The launcher cannot reset, blindly resolve failures, or enroll an administrator.
@@ -128,3 +136,31 @@ The certificate is public trust material, not a credential. Its provenance is Su
 The shared policy checks the bundled PEM hash before networking. Missing or altered bundled trust fails closed with a fixed `CA_BUNDLE` diagnostic. node-postgres receives PEM contents with `rejectUnauthorized: true`; libpq receives the absolute path in `PGSSLROOTCERT` with `PGSSLMODE=verify-full`; Prisma receives the same absolute path in `sslcert` with `sslmode=require&sslaccept=strict`. No OS, Keychain, global Node, or libpq trust store is modified. Local loopback test databases retain their existing non-TLS policy.
 
 To retry the private check, exit an existing launcher with `q`, start the reviewed launcher again, enter the credential only at its hidden prompt, and choose **1**. Do not loosen verification after a TLS error. If Supabase rotates its CA, verify the replacement through official sources and its live hostname-verified chain, update the certificate and pin in a reviewed PR, then rerun tests. An explicit CA override remains available for a separately reviewed trust change; relative or conflicting paths are rejected.
+
+
+## Supabase-compatible recovery procedure (documented, not executed)
+
+### Preconditions before the migration
+
+1. Retain the successful local archive and its manifest in the protected directory. The confirmed initial archive is `2026-10-10T17-20-25-204Z-5a5ed22a-2490-4822-b1bf-f0b3501c03e4.dump`, SHA-256 `903661de4abbf90e888fccc054d39c236c1dbe848a7e4538ac320ad3aaa771ff`. Its checksum was independently recomputed without displaying contents. The guarded write commands must still create their own fresh backups.
+2. In an authorized human session, inspect this project's Database → Backups. Record the completed recovery-point timestamp, status and available retention, and confirm it precedes the proposed writes. A Pro subscription is not proof a particular snapshot completed. The connected tools cannot supply this inventory; do not create a management token or bypass browser restrictions to obtain it.
+3. Record the migration/app commits and current schema state. Read-only checks on 10 October found PostgreSQL 17.11, no Prisma ledger, `private.site_owner` present, no `private.site_admin`, and zero app rows, legacy memberships and Storage object records. Installed extensions were pg_stat_statements 1.11, pgcrypto 1.3, plpgsql 1.0, supabase_vault 0.3.1 and uuid-ossp 1.1. Recheck these facts when recovery is actually needed.
+4. Only confirm `READY` after these checks. If a completed platform point is unavailable, report that and coordinate a different verified recovery plan before writing. Do not silently substitute a readable archive listing for a tested hosted recovery method.
+
+### If recovery becomes necessary
+
+Stop further migrations and application writes, preserve the failed-state evidence privately, and choose a recovery point and allowed data-loss window. Do not run reset, alter failed ledger rows to claim success, or delete backups. Obtain separate approval naming the exact project, restore point, target and downtime before restoring.
+
+For an in-place platform restore, use the recorded completed backup in Supabase's Database → Backups and the platform's confirmation flow. The project is unavailable during restoration. Pro normally retains seven days of daily backups; PITR is a separate optional add-on. Database backups exclude Storage object bytes and custom-role passwords. Plan any needed restoration of those separately; never send them through chat. [Official backup and restore process](https://supabase.com/docs/guides/platform/backups).
+
+When an isolated target is preferred, Supabase's **Restore to a new project** can preserve the database, Auth records and encryption root key from an available physical backup. It creates a billable project and requires separate cost/creation approval. Auth settings/API keys, Storage, functions and other platform configuration need independent review. Extension-driven jobs can start immediately in a clone, so evaluate external side effects before creating one. This is an optional recovery approach, not a prerequisite purchase for the current migration. [Official restore-to-new-project procedure](https://supabase.com/docs/guides/platform/clone-project).
+
+The local `.dump` is PostgreSQL custom format, not the plain SQL export used in the Supabase CLI examples. Do not feed it to `psql`, replay it blindly over live managed schemas, or bypass restore errors. Use a separately approved compatible isolated target for any logical rehearsal, with appropriate extensions and reviewed role/ownership mappings. Supabase's logical guide addresses managed Auth/Storage customizations, migration-history preservation, publications and encryption-root-key handling for Vault/encrypted columns. Our local helper creates inert role placeholders and is suitable for its disposable tests; it is not a hosted restore tool. The current archive has not been restored into a matching Supabase stack, so that route remains unverified. [Official logical recovery considerations](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore).
+
+### Validate before resuming service
+
+In the selected target, compare the restored catalog and migration ledger with the chosen snapshot: a pre-adoption point should have the original base and no completed two-admin migration. Verify ledger checksums when present, RLS, grants, function security/search paths, private-schema non-exposure, row counts and each user's data isolation. Recheck Supabase security advisors and a real Google login only when provider setup is approved. A restored membership must still correspond to an approved verified identity; recovery does not authorize new enrollment.
+
+Verify any Storage data and external settings independently. Test the public site, locked/authorized admin behavior, cookie/session handling and no-store responses against the selected app commit. Authorize any cutover/environment changes separately, then resume writes only after these checks pass. Keep the original backup and recovery record until the agreed retention period ends.
+
+Paid PITR, additional retention, off-device replication and a production restore exercise are optional improvements. The outstanding pre-migration requirement here is evidence of the chosen completed platform recovery point, not enabling a new paid feature. No hosted restore, clone, credential change or cutover was performed for this documentation.

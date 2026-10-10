@@ -1,3 +1,14 @@
+# PR 5 allowlist review fix — 10 October 2026
+
+- Closed the review finding where Prisma could execute an additional pending migration before the launcher noticed unexpected history. The exact reviewed directory set, PostgreSQL lock and SQL SHA-256 pins are checked before any database write. Ledger checksums must match, and deployment repeats the base catalog comparison.
+- After the fresh backup, validation repeats and Prisma receives a private snapshot of only the pinned SQL through an explicit config. The config contains paths and an environment-variable reference, never a credential. Checkout edits cannot add executable SQL to that snapshot; cleanup occurs on success and failure.
+- All 50 tests pass, including actual guarded-function rejection before database connection, added/edited/missing/symlinked SQL, provider changes, snapshot isolation and cleanup. Prisma validation and the production build pass.
+- Expanded disposable PostgreSQL 17 drill proves extra and modified SQL cannot create a ledger during adoption or advance it during deployment, no unapproved marker table appears, altered ledger checksums stop deployment, failed backups still prevent writes, and the normal migration/backup/restore/RLS flow succeeds. An initial fixture-path issue on macOS was corrected; the complete drill then passed.
+- The user's initial hosted logical backup was reported successful. Read-only filesystem verification confirmed the archive/manifest belong to the user with mode 0600, correct project metadata, and matching SHA-256 `903661de4abbf90e888fccc054d39c236c1dbe848a7e4538ac320ad3aaa771ff`. No archive contents were displayed.
+- Official-source recovery procedure now distinguishes platform backup inventory, in-place restore, optional paid clone/PITR, custom-dump limitations, Vault/roles/extensions and post-restore security checks. No hosted restore was attempted. Completed platform recovery-point inventory remains unverified; no migration, enrollment or merge was performed in this review fix.
+
+---
+
 # Private Prisma migration handoff — 10 October 2026
 
 - Added a separate password-only migration launcher with hidden input, explicit project/action and recovery-readiness confirmations, read-only state inspection, safe fixed diagnostics, and credential cleanup. It never inherits the existing private launcher's secret or exposes an enrollment/reset action.

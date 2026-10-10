@@ -1,10 +1,11 @@
 // Requires a dedicated disposable local PostgreSQL cluster. Never uses DATABASE_URL.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, chmod, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, chmod, readFile, writeFile, cp, symlink, mkdir, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { connection, baselineCheck, backup, restoreLocal, migrationState } from './database.mjs';
 
@@ -15,13 +16,36 @@ await admin.connect();
 const suffix = randomBytes(6).toString('hex');
 const names = [`migration_test_${suffix}`, `fresh_test_${suffix}`, `restore_test_${suffix}`];
 const backups = await mkdtemp(join(tmpdir(), 'prisma-recovery-fixture-')); await chmod(backups, 0o700);
+const guardFixture = await realpath(await mkdtemp(join(tmpdir(), 'prisma-guard-fixture-')));
 const target = name => { const url = new URL(c.url); url.pathname = `/${name}`; return url.href; };
 const query = async (name, sql) => { const db = new pg.Client({ connectionString: target(name), options: '-c search_path=public' }); await db.connect(); try { return await db.query(sql); } finally { await db.end(); } };
 const run = (args, name) => {
   const result = spawnSync(process.execPath, args, { encoding: 'utf8', env: { ...process.env, DATABASE_URL: target(name), BACKUP_DIR: backups } });
   assert.equal(result.status, 0, result.stderr); return result.stdout;
 };
+const rejectEditedSql = async action => {
+  const migrations = join(guardFixture, 'prisma/migrations');
+  for (const name of ['20990101000000_extra', '20261009203911_two_admin_membership', '0_private_workspace']) {
+    const folder = join(migrations, name);
+    const file = join(folder, 'migration.sql');
+    const extra = name === '20990101000000_extra';
+    const original = extra ? '' : await readFile(file, 'utf8');
+    if (extra) await mkdir(folder);
+    try {
+      await writeFile(file, original + '\ncreate table private.review_unapproved_marker(id integer);\n');
+      const result = spawnSync(process.execPath, [join(guardFixture, 'scripts/database.mjs'), action], {
+        encoding: 'utf8', env: { ...process.env, DATABASE_URL: target(names[0]), BACKUP_DIR: backups },
+      });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /Reviewed migration files/, 'file rejection must happen before a Prisma write');
+      assert.equal((await query(names[0], "select to_regclass('private.review_unapproved_marker') as name")).rows[0].name, null);
+    } finally { if (extra) await rm(folder, { recursive: true }); else await writeFile(file, original); }
+  }
+};
 try {
+  await cp(new URL('./', import.meta.url), join(guardFixture, 'scripts'), { recursive: true });
+  await cp(new URL('../prisma', import.meta.url), join(guardFixture, 'prisma'), { recursive: true });
+  await symlink(fileURLToPath(new URL('../node_modules', import.meta.url)), join(guardFixture, 'node_modules'), 'dir');
   for (const role of ['anon', 'authenticated']) if (!(await admin.query('select 1 from pg_roles where rolname=$1', [role])).rowCount) await admin.query(`create role ${role}`);
   for (const name of names) await admin.query(`create database ${name}`);
   const fixture = await readFile(new URL('../tests/fixtures/auth.sql', import.meta.url), 'utf8');
@@ -36,6 +60,8 @@ try {
   await assert.rejects(baselineCheck(connection(target(names[0]))), /differs/);
   await query(names[0], 'alter table public.app_data enable row level security');
   assert.equal(await migrationState(connection(target(names[0]))), 'unadopted');
+  await rejectEditedSql('baseline');
+  assert.equal(await migrationState(connection(target(names[0]))), 'unadopted', 'invalid SQL must not create history');
   const blocked = action => spawnSync(process.execPath, ['scripts/database.mjs', action], {
     encoding: 'utf8', env: { ...process.env, DATABASE_URL: target(names[0]), BACKUP_DIR: join(backups, 'does-not-exist') },
   });
@@ -45,6 +71,16 @@ try {
   let history = (await query(names[0], 'select migration_name from private._prisma_migrations')).rows;
   assert.deepEqual(history.map(r => r.migration_name), ['0_private_workspace']);
   assert.equal(await migrationState(connection(target(names[0]))), 'baseline');
+  await rejectEditedSql('deploy');
+  assert.equal(await migrationState(connection(target(names[0]))), 'baseline', 'invalid SQL must leave only the base applied');
+  const checksum = (await query(names[0], 'select checksum from private._prisma_migrations')).rows[0].checksum;
+  await query(names[0], "update private._prisma_migrations set checksum='invalid'");
+  assert.equal(await migrationState(connection(target(names[0]))), 'attention');
+  const wrongHistory = spawnSync(process.execPath, ['scripts/database.mjs', 'deploy'], { encoding: 'utf8', env: { ...process.env, DATABASE_URL: target(names[0]), BACKUP_DIR: backups } });
+  assert.notEqual(wrongHistory.status, 0);
+  assert.match(wrongHistory.stderr, /history and checksums/);
+  assert.equal((await query(names[0], "select to_regclass('private.site_admin') as name")).rows[0].name, null);
+  await query(names[0], `update private._prisma_migrations set checksum='${checksum}'`);
   assert.notEqual(blocked('deploy').status, 0, 'missing backup directory must block deployment');
   assert.equal(await migrationState(connection(target(names[0]))), 'baseline');
   assert.equal((await query(names[0], "select to_regclass('private.site_admin') as name")).rows[0].name, null);
@@ -87,4 +123,5 @@ try {
 } finally {
   for (const name of names) await admin.query(`drop database if exists ${name} with (force)`);
   await admin.end();
+  await rm(guardFixture, { recursive: true, force: true });
 }

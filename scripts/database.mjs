@@ -7,6 +7,7 @@ import { resolve, join, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { connection, DatabaseToolError, project, pgEnvironment, prismaEnvironment, subprocessEnvironment, nodePgSsl } from './database-connection.mjs';
+import { reviewedMigrations, verifyReviewedMigrations, withReviewedMigrationSnapshot } from './reviewed-migrations.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 export { connection } from './database-connection.mjs';
@@ -17,8 +18,8 @@ function run(command, args, env = subprocessEnvironment()) {
   if (result.status !== 0) throw new DatabaseToolError(`${command.split('/').pop()} failed; no later step was executed. Inspect privately.`);
   return result.stdout;
 }
-function prisma(args, c) {
-  return run(process.execPath, [join(root, 'node_modules/prisma/build/index.js'), ...args], prismaEnvironment(c));
+function prisma(args, c, config) {
+  return run(process.execPath, [join(root, 'node_modules/prisma/build/index.js'), ...args, ...(config ? ['--config', config] : [])], prismaEnvironment(c));
 }
 async function client(c) {
   const ssl = nodePgSsl(c);
@@ -91,21 +92,23 @@ export async function restoreLocal(archive, c) {
   console.log('Restored into isolated local test database. Run application/RLS checks; hosted recovery is not certified.');
 }
 export async function adoptBaseline(c) {
-  authorizeWrite(c); await baselineCheck(c); await backup(c);
+  authorizeWrite(c); await verifyReviewedMigrations();
+  if (await migrationState(c) !== 'unadopted') throw new DatabaseToolError('Prisma history already exists; inspect status instead of re-baselining.');
+  await baselineCheck(c); await backup(c);
   await withClient(c, async db => {
     if ((await db.query("select to_regclass('private._prisma_migrations') as table_name")).rows[0].table_name &&
         (await db.query('select 1 from private._prisma_migrations limit 1')).rowCount) throw new DatabaseToolError('Prisma history already exists; inspect status instead of re-baselining.');
   });
-  prisma(['migrate', 'resolve', '--applied', '0_private_workspace'], c);
+  await withReviewedMigrationSnapshot(config => prisma(['migrate', 'resolve', '--applied', '0_private_workspace'], c, config));
   console.log('Recorded only the verified existing base migration. Two-admin migration remains pending.'); return;
 }
 export async function deployMigrations(c) {
-  authorizeWrite(c);
-  await withClient(c, async db => {
-    const { rows } = await db.query("select migration_name from private._prisma_migrations where finished_at is not null and rolled_back_at is null and migration_name='0_private_workspace'");
-    if (rows.length !== 1) throw new DatabaseToolError('Verified baseline must be recorded before deployment.');
+  authorizeWrite(c); await verifyReviewedMigrations();
+  if (await migrationState(c) !== 'baseline') throw new DatabaseToolError('Only the reviewed baseline may be recorded before first deployment; inspect history and checksums.');
+  await baselineCheck(c); await backup(c);
+  await withReviewedMigrationSnapshot(config => {
+    prisma(['migrate', 'deploy'], c, config); prisma(['migrate', 'status'], c, config);
   });
-  await backup(c); prisma(['migrate', 'deploy'], c); prisma(['migrate', 'status'], c);
   console.log('Reviewed Prisma migrations applied; verify database security before enrollment/release.'); return;
 }
 
@@ -113,9 +116,9 @@ export async function deployMigrations(c) {
 export async function migrationState(c) {
   return withClient(c, async db => {
     if (!(await db.query("select to_regclass('private._prisma_migrations') as table_name")).rows[0].table_name) return 'unadopted';
-    const { rows } = await db.query('select migration_name, finished_at, rolled_back_at from private._prisma_migrations order by migration_name');
+    const { rows } = await db.query('select migration_name, checksum, finished_at, rolled_back_at from private._prisma_migrations order by migration_name');
     if (!rows.length) return 'unadopted';
-    if (rows.some(row => !row.finished_at || row.rolled_back_at)) return 'attention';
+    if (rows.some(row => !row.finished_at || row.rolled_back_at || row.checksum !== reviewedMigrations[row.migration_name])) return 'attention';
     const names = rows.map(row => row.migration_name);
     if (isDeepStrictEqual(names, ['0_private_workspace'])) return 'baseline';
     if (isDeepStrictEqual(names, ['0_private_workspace', '20261009203911_two_admin_membership'])) return 'complete';
