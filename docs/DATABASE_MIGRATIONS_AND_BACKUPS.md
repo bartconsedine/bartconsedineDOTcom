@@ -56,6 +56,19 @@ After restore, check migration history, row counts, both admins' own data, denie
 
 No secure hosted PostgreSQL connection is available to this code task. No production backup destination has been selected. Completed hosted backup inventory is not available through these connector tools, and this task has no browser authorization. Therefore no hosted logical snapshot, Prisma baseline marker, two-admin migration, or hosted restoration has been executed by this task.
 
+## Private password-only migration launcher
+
+Use `bash scripts/private-database-migrate.command` from the reviewed checkout **after** the initial logical backup succeeds and recovery prerequisites are verified. This is a separate launcher; do not edit or replace the currently running backup launcher. Exit the old process with `q` and reenter the existing password privately at the new hidden prompt. No credential is transferred between launchers, saved, or sent through chat.
+
+The suggested local backup directory is `$HOME/.local/share/bartconsedine/database-backups`, outside Documents and the repository. On Bart's machine, the dedicated directory was created and checked on 10 October 2026: owned by the user, `0700`, no symlink, no ACL entries, and no group/world-writable parent. No existing directory permissions were changed. This location is outside standard synced Documents folders; third-party backup/sync settings and disk encryption are not asserted. The launcher accepts another reviewed existing protected absolute path and never creates or changes directories itself.
+
+1. Choose **1** to inspect actual Prisma history without writing. Only the known unadopted, baseline-only, or complete states are accepted; failed, rolled-back or unexpected history stops for inspection.
+2. If unadopted, choose **2**, type `ADOPT vgsmfbupgydafvotkold`, confirm the protected directory, and type `READY` only after verifying the completed recovery point and runbook prerequisites. This repeats the catalog baseline check, creates a fresh verified backup, and records only `0_private_workspace`. It never replays the base SQL.
+3. After successful adoption, choose **3**, type `DEPLOY vgsmfbupgydafvotkold`, confirm the directory and recovery readiness again. A new backup must succeed before Prisma deploys `20261009203911_two_admin_membership`. The launcher checks completed history afterward.
+4. Choose **q** to clear the credential. Perform the hosted security and private-schema checks, then coordinate OAuth and separately approved identity enrollment. The launcher cannot reset, blindly resolve failures, or enroll an administrator.
+
+A blank or wrong confirmation cancels before any database command. Any database-operation failure exits the launcher and clears its credential; inspect state in a new private session rather than blindly rerunning adoption. Errors use fixed categories and never claim that no write occurred after an uncertain migration failure. Existing `db:baseline` and `db:deploy` CLI commands use the same guarded functions, including their backup-before-write and project interlocks. The new launcher is for this first adoption only; use the normal reviewed migration workflow for later migrations.
+
 ## Secure execution handoff
 
 For an interactive Mac Terminal handoff, run `bash scripts/private-database.command` from this checkout. Paste only the full connection URL at its hidden prompt (no quotes or `DATABASE_URL=` prefix). The launcher disables tracing/history and clears the credential on exit. It accepts only this hosted project, offers a read-only baseline check and an optional logical backup, and has no schema-write or enrollment option. Backup creation still requires a user-selected protected directory. Do not attach an agent terminal recorder or share the URL, clipboard, raw errors, or Terminal history.

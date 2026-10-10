@@ -59,3 +59,20 @@ The next protected server request and database operation recheck membership. App
 Local tests use PGlite PostgreSQL with a minimal Auth fixture. They exercise actual migrations, SQL privileges, policies, and enrollment SQL, but do not substitute for hosted Auth/PostgREST/advisor verification.
 
 References checked: [Google OAuth](https://supabase.com/docs/guides/auth/social-login/auth-google), [server-verified getUser](https://supabase.com/docs/reference/javascript/auth-getuser), [identities](https://supabase.com/docs/guides/auth/identities), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security). The current changelog was inspected; no relevant new Auth/SSR breaking change requires a dependency update here.
+
+
+## Disabled Google button: configuration check
+
+The “Sign-in setup is pending” state means `authConfig()` rejected the deployed server environment before trying Google. Check these variable **names** in the production Vercel environment without exposing secret values:
+
+| Server setting | Required production value |
+| --- | --- |
+| `SUPABASE_URL` | `https://vgsmfbupgydafvotkold.supabase.co` |
+| `SUPABASE_PUBLISHABLE_KEY` | This project's existing publishable key; never a secret/service-role key |
+| `SITE_URL` | `https://bartconsedine.com` |
+
+At least one is absent or invalid when the button is disabled; the public page does not identify which. These are server-only names in this application, not `NEXT_PUBLIC_*`. Both URLs must use HTTPS in production. A normal redeployment is needed after an approved environment update. `OWNER_EMAIL` and `OWNER_USER_ID` are obsolete.
+
+Once the config is valid, Google still needs an approved Web OAuth client, JavaScript origin `https://bartconsedine.com`, Google redirect URI `https://vgsmfbupgydafvotkold.supabase.co/auth/v1/callback`, and its client ID/secret configured in the Supabase Google provider. Supabase's Site URL is `https://bartconsedine.com`; the allowed application callback is `https://bartconsedine.com/auth/callback`. Use only standard `openid`, email and profile scopes. If consent remains in Testing, both intended accounts need approved test-user access. Creating persistent OAuth credentials or granting that access requires separate action-time confirmation. These checks do not create admin membership.
+
+This assessment used source code and the official Google-provider documentation on 10 October 2026. It did not inspect or modify hosted environment values, browser state, OAuth credentials, or provider configuration.

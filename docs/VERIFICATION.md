@@ -1,3 +1,14 @@
+# Private Prisma migration handoff — 10 October 2026
+
+- Added a separate password-only migration launcher with hidden input, explicit project/action and recovery-readiness confirmations, read-only state inspection, safe fixed diagnostics, and credential cleanup. It never inherits the existing private launcher's secret or exposes an enrollment/reset action.
+- The launcher calls the same guarded baseline/deploy functions as the existing CLI. Both take a new verified logical backup before writing; baseline adoption records only the already executed base. Failed, rolled-back, unexpected or already-complete state prevents an inappropriate write.
+- Protected backup-directory validation checks absolute real directory, exact 0700 mode, current-user ownership, no repository ancestry and no temporary tree. The prepared home directory is outside Documents; no existing permissions were changed. No production archive was read by this task.
+- `npm run db:validate`, all 46 tests and `npm run build` passed. Prisma's cache update required normal local filesystem escalation; validation succeeded afterward. Synthetic PTY tests verify hidden password input, cancellation before database commands, echo restoration and cleanup.
+- Disposable PostgreSQL 17 drill passed baseline validation, failed-backup write prevention for adoption and deploy, first-adoption state transitions, fresh/incremental migrations, backup, restore and restored RLS/grants/data. No hosted credential or production data was used.
+- The parent reported a successful user-operated hosted baseline check. A hosted backup, Prisma adoption/deploy, completed platform recovery point, Google provider configuration and administrative enrollment remain unconfirmed here. The auth checklist documents the exact required server variable names and callback URLs without reading hosted values.
+
+---
+
 # Official database CA fix — 9 October 2026
 
 - Default Node trust reproduced `SELF_SIGNED_CERT_IN_CHAIN` against the approved Direct host. An unauthenticated SSLRequest handshake using the revised shared policy succeeded with TLS 1.3 at 22:35:49 UTC; a deliberately wrong hostname failed with `ERR_TLS_CERT_ALTNAME_INVALID`. No password, PostgreSQL startup/authentication message, or SQL was sent.

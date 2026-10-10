@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
-import { connection, baselineCheck, backup, restoreLocal } from './database.mjs';
+import { connection, baselineCheck, backup, restoreLocal, migrationState } from './database.mjs';
 
 const c = connection(process.env.TEST_DATABASE_URL);
 assert.equal(c.local, true, 'Only a disposable local cluster is permitted');
@@ -35,10 +35,21 @@ try {
   await query(names[0], 'alter table public.app_data disable row level security');
   await assert.rejects(baselineCheck(connection(target(names[0]))), /differs/);
   await query(names[0], 'alter table public.app_data enable row level security');
+  assert.equal(await migrationState(connection(target(names[0]))), 'unadopted');
+  const blocked = action => spawnSync(process.execPath, ['scripts/database.mjs', action], {
+    encoding: 'utf8', env: { ...process.env, DATABASE_URL: target(names[0]), BACKUP_DIR: join(backups, 'does-not-exist') },
+  });
+  assert.notEqual(blocked('baseline').status, 0, 'missing backup directory must block baseline adoption');
+  assert.equal(await migrationState(connection(target(names[0]))), 'unadopted', 'backup failure must not record the base');
   console.log(run(['scripts/database.mjs', 'baseline'], names[0]).trim());
   let history = (await query(names[0], 'select migration_name from private._prisma_migrations')).rows;
   assert.deepEqual(history.map(r => r.migration_name), ['0_private_workspace']);
+  assert.equal(await migrationState(connection(target(names[0]))), 'baseline');
+  assert.notEqual(blocked('deploy').status, 0, 'missing backup directory must block deployment');
+  assert.equal(await migrationState(connection(target(names[0]))), 'baseline');
+  assert.equal((await query(names[0], "select to_regclass('private.site_admin') as name")).rows[0].name, null);
   console.log(run(['scripts/database.mjs', 'deploy'], names[0]).trim());
+  assert.equal(await migrationState(connection(target(names[0]))), 'complete');
   history = (await query(names[0], 'select migration_name from private._prisma_migrations where finished_at is not null order by migration_name')).rows;
   assert.equal(history.length, 2);
   assert.equal((await query(names[0], "select relrowsecurity from pg_class where oid='private._prisma_migrations'::regclass")).rows[0].relrowsecurity, true);

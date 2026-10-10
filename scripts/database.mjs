@@ -90,6 +90,38 @@ export async function restoreLocal(archive, c) {
   run(tool('pg_restore'), ['--exit-on-error', '--single-transaction', '--no-owner', '--no-password', '--dbname', c.database, archive], pgEnvironment(c));
   console.log('Restored into isolated local test database. Run application/RLS checks; hosted recovery is not certified.');
 }
+export async function adoptBaseline(c) {
+  authorizeWrite(c); await baselineCheck(c); await backup(c);
+  await withClient(c, async db => {
+    if ((await db.query("select to_regclass('private._prisma_migrations') as table_name")).rows[0].table_name &&
+        (await db.query('select 1 from private._prisma_migrations limit 1')).rowCount) throw new DatabaseToolError('Prisma history already exists; inspect status instead of re-baselining.');
+  });
+  prisma(['migrate', 'resolve', '--applied', '0_private_workspace'], c);
+  console.log('Recorded only the verified existing base migration. Two-admin migration remains pending.'); return;
+}
+export async function deployMigrations(c) {
+  authorizeWrite(c);
+  await withClient(c, async db => {
+    const { rows } = await db.query("select migration_name from private._prisma_migrations where finished_at is not null and rolled_back_at is null and migration_name='0_private_workspace'");
+    if (rows.length !== 1) throw new DatabaseToolError('Verified baseline must be recorded before deployment.');
+  });
+  await backup(c); prisma(['migrate', 'deploy'], c); prisma(['migrate', 'status'], c);
+  console.log('Reviewed Prisma migrations applied; verify database security before enrollment/release.'); return;
+}
+
+// Read-only first-adoption state. Do not expose ledger logs (which can contain SQL).
+export async function migrationState(c) {
+  return withClient(c, async db => {
+    if (!(await db.query("select to_regclass('private._prisma_migrations') as table_name")).rows[0].table_name) return 'unadopted';
+    const { rows } = await db.query('select migration_name, finished_at, rolled_back_at from private._prisma_migrations order by migration_name');
+    if (!rows.length) return 'unadopted';
+    if (rows.some(row => !row.finished_at || row.rolled_back_at)) return 'attention';
+    const names = rows.map(row => row.migration_name);
+    if (isDeepStrictEqual(names, ['0_private_workspace'])) return 'baseline';
+    if (isDeepStrictEqual(names, ['0_private_workspace', '20261009203911_two_admin_membership'])) return 'complete';
+    return 'attention';
+  });
+}
 export async function main() {
   const command = process.argv[2];
   const c = connection(command === 'restore-local' ? process.env.RESTORE_DATABASE_URL : process.env.DATABASE_URL);
@@ -97,24 +129,8 @@ export async function main() {
   if (command === 'restore-local') return restoreLocal(process.argv[3], c);
   if (command === 'baseline-check') return baselineCheck(c);
   if (command === 'status') { prisma(['migrate', 'status'], c); console.log('Prisma migration status is current.'); return; }
-  if (command === 'baseline') {
-    authorizeWrite(c); await baselineCheck(c); await backup(c);
-    await withClient(c, async db => {
-      if ((await db.query("select to_regclass('private._prisma_migrations') as table_name")).rows[0].table_name &&
-          (await db.query('select 1 from private._prisma_migrations limit 1')).rowCount) throw new DatabaseToolError('Prisma history already exists; inspect status instead of re-baselining.');
-    });
-    prisma(['migrate', 'resolve', '--applied', '0_private_workspace'], c);
-    console.log('Recorded only the verified existing base migration. Two-admin migration remains pending.'); return;
-  }
-  if (command === 'deploy') {
-    authorizeWrite(c);
-    await withClient(c, async db => {
-      const { rows } = await db.query("select migration_name from private._prisma_migrations where finished_at is not null and rolled_back_at is null and migration_name='0_private_workspace'");
-      if (rows.length !== 1) throw new DatabaseToolError('Verified baseline must be recorded before deployment.');
-    });
-    await backup(c); prisma(['migrate', 'deploy'], c); prisma(['migrate', 'status'], c);
-    console.log('Reviewed Prisma migrations applied; verify database security before enrollment/release.'); return;
-  }
+  if (command === 'baseline') return adoptBaseline(c);
+  if (command === 'deploy') return deployMigrations(c);
   throw new DatabaseToolError('Use backup, baseline-check, baseline, deploy, status or restore-local.');
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -1,6 +1,6 @@
 import { lstat, realpath } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
+import { resolve, dirname, join, isAbsolute } from 'node:path';
 import { connection, project } from './database-connection.mjs';
 
 const messages = {
@@ -79,6 +79,25 @@ export function safeDiagnostic(error, stage) {
   return `[${label}/${code}] ${messages[code]} No schema migration or enrollment was performed.`;
 }
 
+export async function validateBackupDirectory(path) {
+  try {
+    if (!path || !isAbsolute(path)) fail('BACKUP_DIRECTORY');
+    const stat = await lstat(path);
+    const directory = await realpath(path);
+    const root = await realpath(fileURLToPath(new URL('../', import.meta.url)));
+    const forbidden = ['/tmp', '/private/tmp', '/var/folders', '/private/var/folders', root];
+    if (!stat.isDirectory() || stat.isSymbolicLink() || (stat.mode & 0o777) !== 0o700 ||
+        (process.getuid && stat.uid !== process.getuid()) ||
+        forbidden.some(p => directory === p || directory.startsWith(p + '/'))) fail('BACKUP_DIRECTORY');
+    for (let parent = directory; ; parent = dirname(parent)) {
+      try { await lstat(join(parent, '.git')); fail('BACKUP_DIRECTORY'); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      if (dirname(parent) === parent) break;
+    }
+    return directory;
+  } catch { fail('BACKUP_DIRECTORY'); }
+}
+
 export async function runHandoff(action, env = process.env, load = () => import('./database.mjs')) {
   let stage = 'input';
   try {
@@ -87,13 +106,7 @@ export async function runHandoff(action, env = process.env, load = () => import(
     if (action === 'validate-target') return { ok: true, message: '[input/OK] URL format accepted. No network connection or password verification has occurred.' };
     if (action === 'backup') {
       stage = 'backup-directory';
-      try {
-        const stat = await lstat(env.BACKUP_DIR || '');
-        const directory = await realpath(env.BACKUP_DIR || '');
-        const root = await realpath(fileURLToPath(new URL('../', import.meta.url)));
-        const forbidden = ['/tmp', '/private/tmp', '/var/folders', '/private/var/folders', root];
-        if (!stat.isDirectory() || stat.isSymbolicLink() || (stat.mode & 0o077) !== 0 || forbidden.some(p => directory === p || directory.startsWith(p + '/'))) fail('BACKUP_DIRECTORY');
-      } catch { fail('BACKUP_DIRECTORY'); }
+      await validateBackupDirectory(env.BACKUP_DIR);
     }
     stage = 'dependencies';
     const db = await load();
