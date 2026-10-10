@@ -1,3 +1,25 @@
+# PR 5 allowlist review fix — 10 October 2026
+
+- Closed the review finding where Prisma could execute an additional pending migration before the launcher noticed unexpected history. The exact reviewed directory set, PostgreSQL lock and SQL SHA-256 pins are checked before any database write. Ledger checksums must match, and deployment repeats the base catalog comparison.
+- After the fresh backup, validation repeats and Prisma receives a private snapshot of only the pinned SQL through an explicit config. The config contains paths and an environment-variable reference, never a credential. Checkout edits cannot add executable SQL to that snapshot; cleanup occurs on success and failure.
+- All 50 tests pass, including actual guarded-function rejection before database connection, added/edited/missing/symlinked SQL, provider changes, snapshot isolation and cleanup. Prisma validation and the production build pass.
+- Expanded disposable PostgreSQL 17 drill proves extra and modified SQL cannot create a ledger during adoption or advance it during deployment, no unapproved marker table appears, altered ledger checksums stop deployment, failed backups still prevent writes, and the normal migration/backup/restore/RLS flow succeeds. An initial fixture-path issue on macOS was corrected; the complete drill then passed.
+- The user's initial hosted logical backup was reported successful. Read-only filesystem verification confirmed the archive/manifest belong to the user with mode 0600, correct project metadata, and matching SHA-256 `903661de4abbf90e888fccc054d39c236c1dbe848a7e4538ac320ad3aaa771ff`. No archive contents were displayed.
+- Official-source recovery procedure now distinguishes platform backup inventory, in-place restore, optional paid clone/PITR, custom-dump limitations, Vault/roles/extensions and post-restore security checks. No hosted restore was attempted. Completed platform recovery-point inventory remains unverified; no migration, enrollment or merge was performed in this review fix.
+
+---
+
+# Private Prisma migration handoff — 10 October 2026
+
+- Added a separate password-only migration launcher with hidden input, explicit project/action and recovery-readiness confirmations, read-only state inspection, safe fixed diagnostics, and credential cleanup. It never inherits the existing private launcher's secret or exposes an enrollment/reset action.
+- The launcher calls the same guarded baseline/deploy functions as the existing CLI. Both take a new verified logical backup before writing; baseline adoption records only the already executed base. Failed, rolled-back, unexpected or already-complete state prevents an inappropriate write.
+- Protected backup-directory validation checks absolute real directory, exact 0700 mode, current-user ownership, no repository ancestry and no temporary tree. The prepared home directory is outside Documents; no existing permissions were changed. No production archive was read by this task.
+- `npm run db:validate`, all 46 tests and `npm run build` passed. Prisma's cache update required normal local filesystem escalation; validation succeeded afterward. Synthetic PTY tests verify hidden password input, cancellation before database commands, echo restoration and cleanup.
+- Disposable PostgreSQL 17 drill passed baseline validation, failed-backup write prevention for adoption and deploy, first-adoption state transitions, fresh/incremental migrations, backup, restore and restored RLS/grants/data. No hosted credential or production data was used.
+- The parent reported a successful user-operated hosted baseline check. A hosted backup, Prisma adoption/deploy, completed platform recovery point, Google provider configuration and administrative enrollment remain unconfirmed here. The auth checklist documents the exact required server variable names and callback URLs without reading hosted values.
+
+---
+
 # Official database CA fix — 9 October 2026
 
 - Default Node trust reproduced `SELF_SIGNED_CERT_IN_CHAIN` against the approved Direct host. An unauthenticated SSLRequest handshake using the revised shared policy succeeded with TLS 1.3 at 22:35:49 UTC; a deliberately wrong hostname failed with `ERR_TLS_CERT_ALTNAME_INVALID`. No password, PostgreSQL startup/authentication message, or SQL was sent.
