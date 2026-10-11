@@ -1,0 +1,5 @@
+name: Verify encrypted cloud backup transport
+description: Exercise GitHub artifact retention and decryption with synthetic data only
+runs:
+  using: node24
+  main: index.cjs

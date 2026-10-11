@@ -1,0 +1,57 @@
+name: Supabase database migration
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: One checkpoint only
+        required: true
+        type: choice
+        options: [inspect, adopt, deploy]
+        default: inspect
+      confirmation:
+        description: For writes, type ADOPT vgsmfbupgydafvotkold or DEPLOY vgsmfbupgydafvotkold
+        type: string
+        required: false
+      recovery_confirmed:
+        description: I verified a completed Supabase restore point and recovery prerequisites
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: supabase-production-database
+  cancel-in-progress: false
+jobs:
+  migrate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: production-database
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.23.2'
+          cache: npm
+      - name: Install locked tooling and PostgreSQL 17 client
+        run: |
+          npm ci
+          curl --fail --silent --show-error https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /tmp/pgdg.asc
+          sudo install -m 644 /tmp/pgdg.asc /usr/share/keyrings/pgdg.asc
+          echo 'deb [signed-by=/usr/share/keyrings/pgdg.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+      - run: npm run db:validate
+      - run: npm test
+      - name: Run one guarded checkpoint on Linux
+        uses: ./.github/actions/cloud-migrate
+        with:
+          operation: ${{ inputs.operation }}
+          confirmation: ${{ inputs.confirmation }}
+          recovery_confirmed: ${{ inputs.recovery_confirmed }}
+        env:
+          SUPABASE_DATABASE_PASSWORD: ${{ secrets.SUPABASE_DATABASE_PASSWORD }}
+          CLOUD_BACKUP_KEY: ${{ secrets.CLOUD_BACKUP_KEY }}
+          PG_BIN_DIR: /usr/lib/postgresql/17/bin

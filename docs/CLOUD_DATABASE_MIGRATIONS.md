@@ -1,0 +1,52 @@
+# Supabase migrations in the cloud
+
+Run the production database checkpoints through the **Supabase database migration** GitHub Actions workflow. The runner is GitHub-hosted Ubuntu Linux; standard Prisma connects to the existing Supabase database with strict TLS. No Mac launcher, Docker daemon, local migration execution, or Vercel database credential is needed.
+
+## Current checkpoint — 11 October 2026
+
+Read-only takeover inspection found no `private._prisma_migrations`, no `private.site_admin`, and no `public.is_site_admin()`. The original `private.site_owner` remains with zero memberships. Bart's confirmed matching verified Google identity exists; Meera has not signed in. No migration or enrollment ran during this takeover.
+
+The previous Documents wrapper had a reproduced silent startup stall while files were cloud placeholders. The user's eventual silent exit is not conclusively explained. Do not reuse that wrapper. This cloud route bypasses the Mac startup boundary.
+
+## Private configuration
+
+After reviewing/merging the workflow and its prerequisite PR #6, create the repository environment **production-database**. Restrict deployment branches to `main`, designate Bart as required reviewer, and keep the migration workflow manual. Environment approval is separate from ordinary code validation.
+
+Add environment secrets through GitHub's private settings UI:
+
+- `SUPABASE_DATABASE_PASSWORD`: the existing database password, without quotes or a URL. Never paste it into chat, workflow inputs, Git, logs, or Vercel.
+- `CLOUD_BACKUP_KEY`: a base64 encoding of 32 cryptographically random bytes. Keep a second copy in Bart's protected recovery storage before running writes. Generate it with a trusted secret manager or `openssl rand -base64 32` in a private terminal. It is an encryption key, not the database password. Do not regenerate it after backups exist unless the old recovery key is retained.
+
+The fixed target is `aws-0-us-east-2.pooler.supabase.com:5432`, database `postgres`, user `postgres.vgsmfbupgydafvotkold`. No connection URL is an input. Node 22.23.2, locked dependencies, PostgreSQL 17 clients, bundled pinned CA and reviewed migration checksums are enforced. Production secrets reach only the guarded JavaScript action, after unprivileged validation steps finish.
+
+## Run one checkpoint at a time
+
+Open Actions → **Supabase database migration** → **Run workflow**, select `main`:
+
+1. Run **inspect**. The actual Linux Prisma read-only preflight verifies TLS/authentication. Require `[cloud/OK] inspect: unadopted` before adoption. If baseline or complete is already recorded, skip completed writes. Any failure/unexpected history stops setup.
+2. Reconfirm a completed Supabase physical restore point and recovery prerequisites in [the recovery runbook](DATABASE_MIGRATIONS_AND_BACKUPS.md). Previously verified points were 10 October 2026 10:35:05 UTC and 9 October 2026 19:59:45 UTC; recheck availability. A prior logical backup does not replace the fresh backup required by each write.
+3. Run **adopt**, enter `ADOPT vgsmfbupgydafvotkold`, check the recovery confirmation and approve the environment job. It compares the existing schema, takes a fresh full logical backup and verifies the archive/checksum. Before writing history it encrypts, uploads, downloads, decrypts and compares that backup. Only then does standard Prisma record `0_private_workspace` as already applied. Its SQL is never replayed. Require `[cloud/OK] adopt: baseline` and a positive backup artifact ID.
+4. Run **deploy** with `DEPLOY vgsmfbupgydafvotkold` and a fresh recovery confirmation. The same backup/retention gate runs again. Prisma deploys only `20261009203911_two_admin_membership`. Require `[cloud/OK] deploy: complete` and its own backup artifact ID.
+5. Independently verify both completed ledger records/checksums, RLS, functions, grants, private-schema exclusion and security advisors. Follow [the setup checklist](SUPABASE_SETUP_CHECKLIST.md) for separately approved enrollment and live acceptance.
+
+No reset, db push, migrate dev, raw SQL replacement, blind resolve, enrollment operation, or automatic deployment trigger exists. Writes are serialized with cancellation disabled. Do not retry a failed write until actual hosted ledger/schema state is inspected; a failed job does not prove rollback.
+
+## Encrypted backups and recovery
+
+Only AES-256-GCM ciphertext and a nonsecret encryption envelope are uploaded to GitHub artifacts. Auth rows, roles, manifest contents and plaintext dumps are never uploaded. Every fresh backup artifact is downloaded, authenticated/decrypted, and compared with the original dump and manifest **before** the migration write. Upload, download, tamper, wrong-key or comparison failure blocks that write. The runner cleans up plaintext scratch files on exit; a killed runner is discarded by GitHub.
+
+Artifacts request **30 days** retention, bounded by repository policy. Keep the backup key and retrieve needed artifacts before expiry; GitHub artifacts are not permanent archival storage. This is a new encrypted recovery copy alongside Supabase physical restore points. It excludes Storage bytes, role passwords and external OAuth/environment settings. Download/decryption verification does not certify a hosted restore.
+
+To inspect a downloaded artifact, supply `CLOUD_BACKUP_KEY` privately in your protected process environment and run:
+
+```sh
+node scripts/decrypt-cloud-backup.mjs /absolute/artifact-directory /absolute/new-protected-output-directory
+```
+
+The output directory must not exist. The command creates it with mode 0700 and files with mode 0600, verifies GCM authentication and the dump checksum, and never restores a database. Keep decrypted files outside Git and synced folders. Any hosted restore still requires separate approval naming the project, restore point, target and downtime and the Supabase-compatible procedure in the recovery runbook.
+
+## Validation and remaining limits
+
+`npm test` includes synthetic cloud input/authorization gates, retention ordering, encryption roundtrip, tamper and wrong-key rejection. The disposable PostgreSQL drill checks that actual adoption/deployment cannot write if the retention callback fails. PR CI runs the real GitHub artifact upload/download/decryption path with synthetic bytes only; it never receives a database credential. Real authentication, cloud migration and live admin acceptance remain unverified until the approved workflow runs.
+
+References: [GitHub environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments), [official artifact SDK](https://github.com/actions/toolkit/tree/main/packages/artifact), [PostgreSQL Ubuntu repository](https://www.postgresql.org/download/linux/ubuntu/).

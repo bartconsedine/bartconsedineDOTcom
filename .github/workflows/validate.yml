@@ -16,4 +16,6 @@ jobs:
       - run: npm run db:validate
       - run: npm test
       - run: npm run build
-# No credentials, hosted migrations, enrollment, backups, or deployments run in CI.
+      - name: Verify cloud backup transport with synthetic data
+        uses: ./.github/actions/verify-cloud-backup
+# CI uses synthetic bytes only; no hosted database credential or connection.

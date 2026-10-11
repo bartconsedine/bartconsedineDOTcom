@@ -1,0 +1,15 @@
+name: Guarded Supabase cloud migration
+description: Run standard Prisma on Linux after retaining an encrypted verified backup
+inputs:
+  operation:
+    required: true
+    description: inspect, adopt or deploy
+  confirmation:
+    required: false
+    description: Exact named project and action confirmation
+  recovery_confirmed:
+    required: true
+    description: Completed recovery point and prerequisites verified
+runs:
+  using: node24
+  main: index.cjs
