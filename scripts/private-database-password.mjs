@@ -6,20 +6,24 @@ import { runHandoff } from './private-database-check.mjs';
 // This is a nonsecret fixed destination, not a hostname inferred from its region.
 export const directEndpoint = 'postgresql://postgres@db.vgsmfbupgydafvotkold.supabase.co:5432/postgres';
 
-export function connectionFromPassword(password) {
+// Verified in this project's Connect > Session pooler panel on 2026-10-11.
+export const sessionEndpoint = 'postgresql://postgres.vgsmfbupgydafvotkold@aws-0-us-east-2.pooler.supabase.com:5432/postgres';
+
+export function connectionFromPassword(password, endpoint = 'direct') {
+  if (!['direct', 'session'].includes(endpoint)) throw new Error('PASSWORD_ENDPOINT');
   if (typeof password !== 'string' || password.length === 0) throw new Error('PASSWORD_EMPTY');
   if (/^\s*(?:postgres(?:ql)?:\/\/|(?:export\s+)?DATABASE_URL\s*=)/.test(password)) throw new Error('PASSWORD_MODE');
   if (/[\u0000-\u001f\u007f]/.test(password)) throw new Error('PASSWORD_LINE');
-  const url = new URL(directEndpoint);
+  const url = new URL(endpoint === 'session' ? sessionEndpoint : directEndpoint);
   // Preserve the literal password, including spaces and percent signs. No trim,
   // shell interpolation, command-line arguments, clipboard, or persisted secret.
   url.password = encodeURIComponent(password);
   return url.href;
 }
 
-export async function runPasswordHandoff(action, env = process.env, load) {
+export async function runPasswordHandoff(action, env = process.env, load, endpoint = 'direct') {
   let url;
-  try { url = connectionFromPassword(env.DATABASE_PASSWORD); }
+  try { url = connectionFromPassword(env.DATABASE_PASSWORD, endpoint); }
   catch (error) {
     const codes = {
       PASSWORD_EMPTY: 'Enter the existing database password at the hidden password prompt.',

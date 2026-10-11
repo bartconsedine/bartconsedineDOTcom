@@ -178,3 +178,12 @@ The approved design direction is dark and minimalist: near-black `#0c0d0f`, pane
 - Native TLS certificate-lifetime behavior is a concrete local reproduction, not proof of the discarded hosted error. Production connection recovery remains pending an independently verified compatible endpoint/runtime. No TLS bypass or system trust change was introduced.
 
 A later read-only Prisma probe against the actual Direct endpoint, using a deliberately invalid synthetic password rather than any user credential, returned the fixed `PRISMA_TLS` category before authentication. This confirms Direct-endpoint native TLS failure on the current runtime. The certificate-lifetime explanation is supported by the isolated local comparison; a compatible Session endpoint is still being verified. No migration SQL or credential-bearing output was emitted.
+
+### Private Linux runtime verification
+
+- Confirmed both actual Direct and Session endpoints fail native macOS Prisma TLS before authentication. Linux Prisma against the verified Session endpoint instead returns expected P1000 for a synthetic invalid password: strict TLS succeeded. Final integrated runner returns the sanitized PRISMA_AUTH category.
+- All 56 tests pass, including target/port/username/CA/SQL validation, stdin-only credential transport, raw-error redaction, and the independent-review regression for source changes during image build. Prisma validation, build, and disposable PostgreSQL backup/restore/security drill pass.
+- Inspected only a synthetic test container while its stdin remained open: no authentication/SQL was attempted, and the synthetic password was absent from Docker inspect. Verified log driver none, nonroot user, read-only filesystem, no mounts, no privilege and all capabilities dropped. Removed the synthetic container afterward.
+- Actual local wrapper passed a PTY test for hidden synthetic password entry, wrong-confirmation cancellation, terminal echo restoration and credential cleanup. Wrapper performs runtime check before password entry.
+- Independent source review found a build/source certification race; fixed by checking the copied build context and current source fingerprint before recording the immutable image. No further credential-transport or backup-order blocker was reported.
+- No hosted migration, administrative enrollment or real credential access was performed. A valid user-owned password and explicit ADOPT/DEPLOY confirmations remain required.

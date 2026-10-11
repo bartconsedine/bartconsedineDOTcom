@@ -26,6 +26,8 @@ export function prismaFailure(result) {
 }
 
 export const prismaMessages = Object.freeze({
+  PRISMA_RUNTIME: 'The reviewed private Linux runtime is missing, changed, or unavailable. Prepare it before another attempt; do not fall back to weaker TLS.',
+  PRISMA_CONTAINER: 'The private Linux Prisma process failed without a valid safe result. Inspect runtime and migration state before retrying.',
   PRISMA_TLS: 'Prisma could not verify the database TLS connection. Do not disable certificate or hostname verification. Inspect the approved certificate and runtime compatibility.',
   PRISMA_AUTH: 'Prisma rejected database authentication. Check the existing credential privately; do not reset it automatically.',
   PRISMA_CONNECTIVITY: 'Prisma could not reach the database or timed out. Check the approved endpoint and network.',

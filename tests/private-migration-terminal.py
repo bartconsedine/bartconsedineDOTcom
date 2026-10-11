@@ -1,9 +1,9 @@
 """Synthetic Terminal test: no real credential, database, or hosted connection."""
-import os, pty, select, subprocess, termios, time
+import os, pty, select, subprocess, termios, time, sys
 master, slave = pty.openpty()
 secret = 'SYNTHETIC-migrate-%#@!$`-7219'
 env = {k: os.environ[k] for k in ('PATH', 'HOME') if k in os.environ}
-child = subprocess.Popen(['/bin/bash', 'scripts/private-database-migrate.command'], stdin=slave, stdout=slave, stderr=slave, env=env)
+child = subprocess.Popen(['/bin/bash', sys.argv[1] if len(sys.argv)>1 else 'scripts/private-database-migrate.command'], stdin=slave, stdout=slave, stderr=slave, env=env)
 output = b''
 def until(needle):
     global output

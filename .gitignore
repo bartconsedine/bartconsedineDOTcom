@@ -137,3 +137,6 @@ dist
 *.dump.partial
 backups/
 .pgpass
+
+# Nonsecret, machine-local immutable Linux runtime identity
+.prisma-linux-runtime.json

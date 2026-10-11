@@ -178,3 +178,22 @@ On this macOS runtime, synthetic PostgreSQL TLS tests found that an otherwise eq
 A later read-only Prisma probe against the actual Direct endpoint, using a deliberately invalid synthetic password rather than any user credential, returned the fixed `PRISMA_TLS` category before authentication. This confirms Direct-endpoint native TLS failure on the current runtime. The certificate-lifetime explanation is supported by the isolated local comparison; a compatible Session endpoint is still being verified. No migration SQL or credential-bearing output was emitted.
 
 The local lifetime finding is consistent with [Apple's documented TLS certificate requirements](https://support.apple.com/en-us/103769), including an 825-day server-certificate limit. A five-year CA with a one-day server certificate also passed, isolating the server certificate rather than CA lifetime. [Supabase's Prisma guide](https://supabase.com/docs/guides/database/prisma) explicitly documents Session pooler port 5432 for migrations. Its [connection guide](https://supabase.com/docs/guides/database/connecting-to-postgres) requires taking the pooler host from Connect, not constructing it from the region. These sources do not authorize weakening TLS or changing project credentials.
+
+## Verified Mac recovery route: private Linux Prisma runner
+
+The exact Session endpoint was verified in this project's Connect panel: `aws-0-us-east-2.pooler.supabase.com:5432`, database `postgres`, username `postgres.vgsmfbupgydafvotkold`. Its certificate also has a five-year lifetime and macOS Prisma rejects it. Linux Prisma with the same pinned Supabase CA and `sslmode=require&sslaccept=strict` passed TLS and reached authentication (expected P1000 for a deliberately invalid synthetic password). No real credential or hosted schema write was used for this verification.
+
+On macOS, the migration launcher now uses that fixed Session endpoint and the private Linux Prisma runtime in the existing local Rancher Desktop. Node-postgres and PostgreSQL backup tools continue running on the Mac with verified TLS; backups stay in the existing protected home directory. Only Prisma runs in a short-lived Linux container. The Direct endpoint remains supported by the separate baseline/backup launcher, but is not used by this migration launcher.
+
+Prepare the local runtime without a database password, from the reviewed checkout with Rancher Desktop running:
+
+```sh
+node scripts/prepare-prisma-linux.mjs build
+node scripts/prepare-prisma-linux.mjs check
+```
+
+The build uses a digest-pinned official Node 22 base, the repository lockfile, the pinned public CA and a small allowlisted source context. It records the resulting immutable image ID and copied-source fingerprint in ignored `.prisma-linux-runtime.json`. Source changes during the build are rejected. No credentials enter the build. Runtime calls use `--pull=never`, a local Unix-socket Docker context, no host mounts, nonroot UID, read-only root, dropped capabilities, no-new-privileges, bounded resources, disabled core dumps and disabled Docker logs. SQL/config staging lives only in container tmpfs.
+
+The credential and reviewed SQL are delivered through stdin. The credential is never a Docker environment setting, command argument, image layer, mounted file or log entry. The child Prisma process receives its connection through its private process environment. The container independently verifies the exact project/user/port/database, pinned CA and SQL checksums. It accepts only read-only preflight, baseline adoption, deployment and status operations; no arbitrary SQL or enrollment operation exists. Prisma output is captured and reduced to fixed safe categories before returning to the Mac.
+
+The local `/Users/bartconsedine/Documents/Codex/2026-10-09/task-2/private-database-migrate.command` wrapper now points to the reviewed `db-prisma-diagnostics` checkout and checks runtime readiness before the hidden password prompt. Keep Rancher Desktop running. The existing user sequence remains: option 1 inspect, option 2 with exact ADOPT confirmation and READY, option 3 with exact DEPLOY confirmation and READY, then q. Read-only inspection immediately before enabling this wrapper still found no Prisma ledger or admin table, so adoption is the correct next write if option 1 confirms that state. Each write still requires a fresh successful backup. The runtime/preflight change does not grant membership or authorize production restoration.

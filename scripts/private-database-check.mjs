@@ -47,7 +47,7 @@ export function validateTarget(value, options = {}) {
   try { username = decodeURIComponent(url.username); password = decodeURIComponent(url.password); }
   catch { fail('INPUT_ENCODING'); }
   const direct = url.hostname === `db.${project}.supabase.co` && username === 'postgres';
-  const pooled = url.hostname.endsWith('.pooler.supabase.com') && username === `postgres.${project}`;
+  const pooled = url.hostname === 'aws-0-us-east-2.pooler.supabase.com' && username === `postgres.${project}`;
   if (!direct && !pooled) fail('INPUT_PROJECT');
   if (url.port && url.port !== '5432') fail('INPUT_PORT');
   if (url.pathname !== '/postgres') fail('INPUT_DATABASE');

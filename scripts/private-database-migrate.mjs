@@ -14,11 +14,11 @@ const stopped = (code, message) => ({ ok: false, message: `[migration/${code}] $
 
 export async function runMigrationHandoff(action, env = process.env, load = () => import('./database.mjs')) {
   if (!['validate-target', 'state', 'adopt', 'deploy'].includes(action)) return stopped('ACTION', 'Only validation, read-only state, baseline adoption, or reviewed deployment is permitted.');
-  const checked = await runPasswordHandoff('validate-target', env);
+  const checked = await runPasswordHandoff('validate-target', env, undefined, 'session');
   if (!checked.ok || action === 'validate-target') return checked;
   let stage = 'input';
   try {
-    const c = validateTarget(connectionFromPassword(env.DATABASE_PASSWORD), { caCert: env.DATABASE_CA_CERT });
+    const c = validateTarget(connectionFromPassword(env.DATABASE_PASSWORD, 'session'), { caCert: env.DATABASE_CA_CERT });
     if (action !== 'state') {
       if (env.CONFIRM_HOSTED_MIGRATION !== project || env.CONFIRM_MIGRATION_ACTION !== action) return stopped('CONFIRMATION', 'The exact project and action must be confirmed in this private session.');
       if (env.CONFIRM_RECOVERY_POINT !== project) return stopped('RECOVERY', 'Confirm a completed recovery point and the recovery prerequisites before a hosted write.');

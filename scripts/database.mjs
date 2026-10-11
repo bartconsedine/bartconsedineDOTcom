@@ -1,13 +1,14 @@
 import { spawnSync } from 'node:child_process';
-import { createReadStream } from 'node:fs';
+import { createReadStream, readFileSync } from 'node:fs';
 import { chmod, lstat, readFile, realpath, rename, writeFile, readdir } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
-import { resolve, join, isAbsolute } from 'node:path';
+import { resolve, join, isAbsolute, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { connection, DatabaseToolError, project, pgEnvironment, prismaEnvironment, subprocessEnvironment, nodePgSsl } from './database-connection.mjs';
 import { reviewedMigrations, verifyReviewedMigrations, withReviewedMigrationSnapshot } from './reviewed-migrations.mjs';
+import { runLinuxPrisma } from './prisma-linux-runtime.mjs';
 import { prismaFailure } from './prisma-diagnostics.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -20,6 +21,15 @@ function run(command, args, env = subprocessEnvironment()) {
   return result.stdout;
 }
 function prisma(args, c, config) {
+  if (process.platform === 'darwin' && !c.local) {
+    const operations = { check:['db','execute','--stdin'], adopt:['migrate','resolve','--applied','0_private_workspace'], deploy:['migrate','deploy'], status:['migrate','status'] };
+    const operation = Object.keys(operations).find(key => JSON.stringify(operations[key]) === JSON.stringify(args));
+    if (!operation || !config) throw new DatabaseToolError('Unsupported private Linux Prisma operation.');
+    const directory = join(dirname(config), 'migrations');
+    const names = ['migration_lock.toml', ...Object.keys(reviewedMigrations).map(name => `${name}/migration.sql`)];
+    const files = Object.fromEntries(names.map(name => [name, readFileSync(join(directory, name), 'utf8')]));
+    return runLinuxPrisma(operation, c, files);
+  }
   const result = spawnSync(process.execPath, [join(root, 'node_modules/prisma/build/index.js'), ...args, ...(config ? ['--config', config] : [])], {
     cwd: root, env: prismaEnvironment(c), encoding: 'utf8', maxBuffer: 20 * 1024 * 1024,
     ...(args[0] === 'db' && args[1] === 'execute' ? { input: 'select 1;\n' } : {}),
@@ -142,7 +152,7 @@ export async function main() {
   if (command === 'backup') return backup(c);
   if (command === 'restore-local') return restoreLocal(process.argv[3], c);
   if (command === 'baseline-check') return baselineCheck(c);
-  if (command === 'status') { prisma(['migrate', 'status'], c); console.log('Prisma migration status is current.'); return; }
+  if (command === 'status') { await withReviewedMigrationSnapshot(config => prisma(['migrate', 'status'], c, config)); console.log('Prisma migration status is current.'); return; }
   if (command === 'baseline') return adoptBaseline(c);
   if (command === 'deploy') return deployMigrations(c);
   throw new DatabaseToolError('Use backup, baseline-check, baseline, deploy, status or restore-local.');
