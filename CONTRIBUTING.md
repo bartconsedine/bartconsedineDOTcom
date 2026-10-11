@@ -16,6 +16,8 @@ Add change-specific verification from [the PR skill](.agents/skills/pr/SKILL.md)
 
 ## Invoke the project workflow
 
+Repository skills live in `.agents/skills/`: [admin-apps](.agents/skills/admin-apps/SKILL.md) covers private tool implementation, [japan-command-center](.agents/skills/japan-command-center/SKILL.md) covers trip data and booking evidence, and [pr](.agents/skills/pr/SKILL.md) covers delivery. They travel with the checkout and reference the maintained app and migration runbooks. Skill discovery may require refreshing the current Codex session; reading the files directly also works. Do not store private trip records or confirmation codes in skills.
+
 In Codex CLI or the IDE extension, use `$pr` in a request, or choose `pr` through `/skills`. The skill lives at `.agents/skills/pr/SKILL.md`, the supported repository skill location. In an existing session, if discovery has not refreshed, restart Codex or explicitly ask it to read that file and follow the workflow.
 
 Example: `Use $pr to add this feature, document it, add relevant tests, and open a draft PR.`
