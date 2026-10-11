@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { connection, DatabaseToolError, project, pgEnvironment, prismaEnvironment, subprocessEnvironment, nodePgSsl } from './database-connection.mjs';
 import { reviewedMigrations, verifyReviewedMigrations, withReviewedMigrationSnapshot } from './reviewed-migrations.mjs';
+import { prismaFailure } from './prisma-diagnostics.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 export { connection } from './database-connection.mjs';
@@ -19,7 +20,17 @@ function run(command, args, env = subprocessEnvironment()) {
   return result.stdout;
 }
 function prisma(args, c, config) {
-  return run(process.execPath, [join(root, 'node_modules/prisma/build/index.js'), ...args, ...(config ? ['--config', config] : [])], prismaEnvironment(c));
+  const result = spawnSync(process.execPath, [join(root, 'node_modules/prisma/build/index.js'), ...args, ...(config ? ['--config', config] : [])], {
+    cwd: root, env: prismaEnvironment(c), encoding: 'utf8', maxBuffer: 20 * 1024 * 1024,
+    ...(args[0] === 'db' && args[1] === 'execute' ? { input: 'select 1;\n' } : {}),
+  });
+  if (result.status !== 0) throw prismaFailure(result);
+  return result.stdout;
+}
+// Exercise Prisma's own TLS stack/config before any backup or migration write.
+// This fixed SELECT has no mutation and never accepts user-supplied SQL.
+export async function prismaConnectionCheck(c) {
+  await withReviewedMigrationSnapshot(config => prisma(['db', 'execute', '--stdin'], c, config));
 }
 async function client(c) {
   const ssl = nodePgSsl(c);
@@ -94,7 +105,7 @@ export async function restoreLocal(archive, c) {
 export async function adoptBaseline(c) {
   authorizeWrite(c); await verifyReviewedMigrations();
   if (await migrationState(c) !== 'unadopted') throw new DatabaseToolError('Prisma history already exists; inspect status instead of re-baselining.');
-  await baselineCheck(c); await backup(c);
+  await baselineCheck(c); await prismaConnectionCheck(c); await backup(c);
   await withClient(c, async db => {
     if ((await db.query("select to_regclass('private._prisma_migrations') as table_name")).rows[0].table_name &&
         (await db.query('select 1 from private._prisma_migrations limit 1')).rowCount) throw new DatabaseToolError('Prisma history already exists; inspect status instead of re-baselining.');
@@ -105,7 +116,7 @@ export async function adoptBaseline(c) {
 export async function deployMigrations(c) {
   authorizeWrite(c); await verifyReviewedMigrations();
   if (await migrationState(c) !== 'baseline') throw new DatabaseToolError('Only the reviewed baseline may be recorded before first deployment; inspect history and checksums.');
-  await baselineCheck(c); await backup(c);
+  await baselineCheck(c); await prismaConnectionCheck(c); await backup(c);
   await withReviewedMigrationSnapshot(config => {
     prisma(['migrate', 'deploy'], c, config); prisma(['migrate', 'status'], c, config);
   });

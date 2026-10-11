@@ -168,3 +168,11 @@ Files were saved to ChatGPT Library using the Library skill:
 These are new Library items (version 0), preserving the earlier design screenshots. Local copies are in `../screenshots/barton-dark-*.jpg` and carry Library ID/version attributes.
 
 The approved design direction is dark and minimalist: near-black `#0c0d0f`, panels `#121316`, white `#f2f2f3`, muted `#a5a6ad`, Manrope/DM Sans, a grayscale portrait, and simple bordered work cards. Decorative geometric artwork, serif accents, and the earlier cream/green palette were removed. Existing source-grounded work history is labeled “Earlier work.”
+
+## Adoption failure diagnostics — 11 October 2026
+
+- Hosted read-only inspection after the user's failed adoption found no Prisma ledger, no site_admin, and the original site_owner schema. No hosted write or credential inspection was performed in this investigation.
+- 52 tests pass, including fixed Prisma error categorization and secret-redaction regressions; `npm run db:validate` and `npm run build` pass. An initial build with symlinked dependencies failed Turbopack's filesystem-root check; using worktree-local dependencies resolved it without a code workaround.
+- Existing disposable PostgreSQL 17 migration/backup/restore/security drill passes with the new preflight.
+- Actual Prisma CLI with reviewed snapshot/config and synthetic TLS: short-lived CA/server certificates pass baseline adoption and pending migration, including certificate paths with spaces; wrong CA is rejected. Five-year certificates reproduce P1011 on this macOS runtime, now classified as PRISMA_TLS before any backup/history write.
+- Native TLS certificate-lifetime behavior is a concrete local reproduction, not proof of the discarded hosted error. Production connection recovery remains pending an independently verified compatible endpoint/runtime. No TLS bypass or system trust change was introduced.
