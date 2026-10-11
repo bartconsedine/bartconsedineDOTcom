@@ -35,6 +35,6 @@ All migrations now run through [Prisma Migrate with a pre-migration backup](docs
 
 ## Extension
 
-See [adding apps](docs/ADDING_APPS.md). Public work content lives in `src/lib/content.js`.
+The admin workspace is intended to grow into a collection of small, purpose-built apps for Bart's tasks. Every app uses Supabase as the source of truth for durable records, settings, drafts, and progress, with private ownership by default. See [adding apps](docs/ADDING_APPS.md) for the required persistence rules, structure, and completion checks. [AGENTS.md](AGENTS.md) makes these defaults part of future agent work. Public work content lives in `src/lib/content.js`.
 
 For changes, use the [documented and tested PR workflow](CONTRIBUTING.md) and the project `$pr` skill.

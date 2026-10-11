@@ -8,6 +8,21 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+## Product direction and admin app rules
+
+This repository is Bart's public website and private workspace for small, purpose-built apps. Expect an ongoing collection of tools for whatever tasks Bart needs. Unless the request says otherwise, build a new tool inside the existing admin workspace at `/admin/apps/<slug>`, using the shared authentication, navigation, registry, and data helpers. Keep each app focused; do not build a generic app builder or a separate service just to add a small tool.
+
+Read [docs/ADDING_APPS.md](docs/ADDING_APPS.md) before designing or changing an admin app. Its persistence and delivery rules are requirements:
+
+- **Supabase Postgres is the source of truth for all durable app state:** records, user-editable settings, saved drafts, progress, ordering, history needed by the app, and integration/job state. A reload or a different device must recover the user's saved state from Supabase.
+- Never substitute localStorage, IndexedDB, cookies, local files, in-memory server state, mock data, or another database for durable app storage. React state may hold temporary input and presentation state. Credentials stay in approved server secrets; attachments use private Supabase Storage with database metadata.
+- Use the signed-in user's Supabase session and owner-scoped RLS. Admin access does not make either admin's records shared. Sharing requires an explicit product requirement and reviewed authorization model.
+- Reuse `readAppData` / `writeAppData` for small JSON records; use dedicated tables for relational or independently updated records. Follow the existing Prisma migration and cloud execution runbooks for schema changes.
+- Validate inputs on the server, show real loading/empty/error/saving states, and only report a successful save after Supabase confirms it. Never silently fall back to browser-only or demo data when the database fails.
+- Deliver a working vertical slice: registered app, protected UI and server operations, real persistence, relevant tests, and app documentation. Verify reload persistence and cross-user denial. Report blocked live checks precisely.
+
+Keep executable component registration and static presentation defaults in code. Persist user-editable app configuration in Supabase; do not turn the registry into user-uploaded executable code. These rules govern future apps and do not imply the hosted database or admin enrollment is already configured.
+
 ## Project change workflow
 
 Follow [CONTRIBUTING.md](CONTRIBUTING.md) for every repository change: use a branch and PR, document the change, add relevant functionality/regression/security tests, and report actual validation. The reusable project workflow is [.agents/skills/pr/SKILL.md](.agents/skills/pr/SKILL.md), explicitly invoked as `$pr`; `/pr` is a request shorthand, not an installed slash command.
