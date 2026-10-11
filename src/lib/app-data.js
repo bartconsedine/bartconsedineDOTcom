@@ -2,6 +2,7 @@ import 'server-only';
 import { requireAdmin } from './auth';
 import { getApp } from './apps';
 import { serverClient } from './supabase';
+import { compareAndWrite } from './app-data-write';
 
 async function context(slug, key) {
   const owner = await requireAdmin();
@@ -22,4 +23,9 @@ export async function writeAppData(slug, key, value) {
   // Uses the owner's session and publishable key: RLS remains in force.
   const { error } = await client.from('app_data').upsert({ owner_id: owner.id, app_slug: slug, key, value, updated_at: new Date().toISOString() });
   if (error) throw new Error('Unable to save app data');
+}
+
+export async function compareAndWriteAppData(slug, key, value, expectedAt) {
+  const { owner, client } = await context(slug, key);
+  return compareAndWrite(client, owner.id, slug, key, value, expectedAt);
 }

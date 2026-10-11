@@ -15,6 +15,8 @@ Use Supabase Postgres as the durable source of truth. Small self-contained docum
 
 If a schema change is needed, follow [migration and backup requirements](../../../docs/DATABASE_MIGRATIONS_AND_BACKUPS.md) and [cloud execution](../../../docs/CLOUD_DATABASE_MIGRATIONS.md). Reuse Prisma's reviewed migration history. Hosted migrations, membership enrollment, and credentials are distinct operations with their own authorization; adding an app does not authorize those operations.
 
+Support chat maintenance alongside the UI. Read [chat data operations](../../../docs/CHAT_APP_DATA.md), share the app validator in a reviewed contract, and use atomic revision checks in every writer for chat-enabled records. The connector is a trusted operator path, separate from runtime user sessions.
+
 Provide loading, empty, saving, confirmed-save and retry states. Keep failed input recoverable. Document ownership, persistence keys, concurrency behavior, integrations, setup and actual verification in the app README.
 
 Test the primary workflow and validation, direct API denial/CSRF, database failures, and cross-user RLS. Run the repository checks. Verify desktop/mobile and confirmed-save reload/fresh-session behavior when authenticated access is available. Label fixtures, injected storage, local policy tests and hosted checks accurately; an inaccessible hosted check remains unverified.

@@ -4,14 +4,14 @@ import { createAppRegistry } from './app-registry';
 import JapanTrip from '@/private-apps/japan-trip/command-center';
 import { createTripApi } from '@/private-apps/japan-trip/api';
 import { startingPlan } from '@/private-apps/japan-trip/starter';
-import { readAppData, writeAppData } from './app-data';
+import { readAppData, compareAndWriteAppData } from './app-data';
 
 // Register only implemented apps here. Never place private app data in /public.
 // Each entry: { slug, name, description, Component }. See docs/ADDING_APPS.md.
 const registry = createAppRegistry([{
   slug: 'japan-trip', name: 'Japan command center',
   description: 'Tokyo streets, Hokkaido snow. Your itinerary, bookings and next decisions in one place.',
-  Component: JapanTrip, api: createTripApi({ readAppData, writeAppData, startingPlan }),
+  Component: JapanTrip, api: createTripApi({ readAppData, compareAndWriteAppData, startingPlan }),
 }], requireAdmin);
 
 export async function listApps() {
