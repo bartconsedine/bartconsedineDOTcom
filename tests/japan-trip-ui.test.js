@@ -19,7 +19,7 @@ test('editing, failed save, retry and reload keep the plan and report success on
   const fetcher = async (_, options = {}) => {
     if (options.method === 'POST') {
       if (failSave) return Response.json({ error: 'unavailable' }, { status: 503 });
-      saved = JSON.parse(options.body); return Response.json({ saved: true });
+      const body = JSON.parse(options.body); assert.equal(body.expectedAt, null); saved = body.plan; return Response.json({ saved: true, updatedAt: '2030-01-01T00:00:00Z' });
     }
     return Response.json({ plan: saved, updatedAt: saved ? '2030-01-01T00:00:00Z' : null });
   };
@@ -62,7 +62,7 @@ test('starting flight draft appears without import and stays marked unsaved unti
   const draft = { ...emptyPlan(), start: '2030-01-27', end: '2030-02-05' };
   let writes = 0;
   const ui = tripUi(async (_, options = {}) => {
-    if (options.method === 'POST') { writes++; return Response.json({ saved: true }); }
+    if (options.method === 'POST') { writes++; return Response.json({ saved: true, updatedAt: '2030-01-01T00:00:00Z' }); }
     return Response.json({ plan: draft, updatedAt: null });
   });
   let tree = await ui.mount();
@@ -71,4 +71,27 @@ test('starting flight draft appears without import and stays marked unsaved unti
   assert.equal(button(tree, 'Save changes').props.disabled, false); assert.equal(writes, 0);
   await button(tree, 'Save changes').props.onClick(); tree = ui.render();
   assert.equal(writes, 1); assert.match(renderToStaticMarkup(tree), /Saved to your private workspace/);
+});
+
+
+test('chat conflict keeps unsaved editor changes and sends the exact database revision', async () => {
+  const revision = '2030-01-01T00:00:00.123456Z';
+  const ui = tripUi(async (_, options = {}) => {
+    if (options.method === 'POST') {
+      const body = JSON.parse(options.body);
+      assert.equal(body.expectedAt, revision);
+      assert.equal(body.plan.title, 'Local draft');
+      return Response.json({ error: 'Your plan changed in another tab or chat. Export your edits, then reload and reconcile before saving.' }, { status: 409 });
+    }
+    return Response.json({ plan: emptyPlan(), updatedAt: revision });
+  });
+  let tree = await ui.mount();
+  button(tree, 'Trip settings').props.onClick(); tree = ui.render();
+  field(tree, 'Trip name').props.onChange('Local draft'); tree = ui.render();
+  await button(tree, 'Save changes').props.onClick(); tree = ui.render();
+  assert.match(renderToStaticMarkup(tree), /changed in another tab or chat/);
+  assert.equal(ui.states[0].title, 'Local draft');
+  assert.match(renderToStaticMarkup(tree), /Unsaved changes/);
+  assert.ok(nodes(tree).find(node => node.type === 'button' && Array.isArray(node.props.children) && node.props.children.join('') === 'Export current plan (includes unsaved edits)'));
+  assert.doesNotMatch(renderToStaticMarkup(tree), /Saved to your private workspace/);
 });

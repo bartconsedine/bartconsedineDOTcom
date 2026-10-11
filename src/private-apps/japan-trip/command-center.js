@@ -66,12 +66,13 @@ export default function JapanTrip() {
     try { validatePlan(plan); } catch (failure) { setError(failure.message); return; }
     busy.current = true; setSaving(true);
     try {
-      const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(plan) });
+      const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan, expectedAt: savedAt }) });
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(response.status === 400 || response.status === 413 ? data.error : 'Save failed. Your edits are still here. Check your sign-in and database connection, then retry.');
+        throw new Error(response.status === 400 || response.status === 413 || response.status === 409 ? data.error : 'Save failed. Your edits are still here. Check your sign-in and database connection, then retry.');
       }
-      setDirty(false); setUndo(null); setSavedAt(new Date().toISOString()); setMessage('Saved to your private workspace.');
+      const data = await response.json();
+      setDirty(false); setUndo(null); setSavedAt(data.updatedAt); setMessage('Saved to your private workspace.');
     } catch (failure) { setError(failure.message); }
     finally { busy.current = false; setSaving(false); }
   }
@@ -141,7 +142,7 @@ export default function JapanTrip() {
       </>}
       {tab === 'Trip settings' && <>
         <section className="jp-panel"><h3>The shape of your trip</h3><div className="jp-form-grid"><Field label="Trip name" value={plan.title} maxLength={120} onChange={value => patch('title', value)}/><Field label="Travelers" type="number" min="1" max="20" step="1" value={plan.travelers} onChange={value => patch('travelers', Number(value))}/><Field label="Departure date" type="date" value={plan.start} onChange={value => patch('start', value)}/><Field label="Return date" type="date" value={plan.end} onChange={value => patch('end', value)}/><Field label="Target budget · whole trip · USD" type="number" min="0" step="0.01" value={plan.budget} onChange={value => patch('budget', Number(value))}/></div></section>
-        <section className="jp-panel"><h3>Source & transfers</h3><p>Keep the canonical Sheet linked here. Imports are reviewed snapshots; edits here do not update the Sheet. Recheck older fares and schedules before booking.</p><div className="jp-form-grid"><Field label="Canonical trip Sheet · HTTPS" type="url" value={plan.sourceUrl} maxLength={2000} onChange={value => patch('sourceUrl', value)}/><Field label="Source last read" type="date" value={plan.sourceReadAt} onChange={value => patch('sourceReadAt', value)}/></div><div className="jp-actions"><button onClick={() => fileInput.current?.click()}>Import plan JSON</button><button onClick={exportPlan}>Export current plan{dirty ? ' (includes unsaved edits)' : ''}</button></div><p>Import replaces this planning document after review. Save to confirm it in Supabase. Edit in one tab at a time; the latest save replaces the whole plan.</p></section>
+        <section className="jp-panel"><h3>Source & transfers</h3><p>Keep the canonical Sheet linked here. Imports are reviewed snapshots; edits here do not update the Sheet. Recheck older fares and schedules before booking.</p><div className="jp-form-grid"><Field label="Canonical trip Sheet · HTTPS" type="url" value={plan.sourceUrl} maxLength={2000} onChange={value => patch('sourceUrl', value)}/><Field label="Source last read" type="date" value={plan.sourceReadAt} onChange={value => patch('sourceReadAt', value)}/></div><div className="jp-actions"><button onClick={() => fileInput.current?.click()}>Import plan JSON</button><button onClick={exportPlan}>Export current plan{dirty ? ' (includes unsaved edits)' : ''}</button></div><p>Import replaces this planning document after review. Save to confirm it in Supabase. You can also update this plan from chat. Reload to see those changes; saving an older copy is blocked. Export unsaved edits before reloading to reconcile a conflict.</p></section>
       </>}
       {importing && <section className="jp-import" role="region" aria-label="Review import"><h3>Review import: {importing.title}</h3><p>{dateLabel(importing.start)} – {dateLabel(importing.end)} · {importing.days.length} days · {importing.bookings.length} bookings · {importing.tasks.length} tasks</p><p>This replaces the current editor, including unsaved edits. The database changes only when you save.</p><button className="jp-primary" onClick={() => { change(importing); setImporting(null); setUndo(null); setTab('Overview'); }}>Use this plan</button><button onClick={() => setImporting(null)}>Cancel import</button></section>}
       <input ref={fileInput} type="file" accept="application/json,.json" aria-label="Import Japan plan JSON" className="sr-only" tabIndex={-1} onChange={readImport}/>

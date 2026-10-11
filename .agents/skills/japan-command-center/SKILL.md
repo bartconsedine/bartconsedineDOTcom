@@ -9,7 +9,7 @@ The app is `/admin/apps/japan-trip`. Read its [README](../../../src/private-apps
 
 ## Establish the current trip
 
-Read the signed-in owner's saved plan through the protected app API/UI. It is stored in Supabase `app_data`, slug `japan-trip`, key `plan-v1`. Never use another admin's plan. Bart explicitly requested flight details appear in the app without a private import, so `starter.js` supplies the original flight schedule and replanning tasks to his verified account when no saved plan exists. Saved Supabase data always takes precedence. Do not turn template edits into automatic overwrites of an existing plan or make Bart's starter another admin's default.
+Read the requested owner's saved plan using [the chat data skill](../app-data/SKILL.md) and generated Supabase connector queries, or the protected app API/UI when a signed-in session is available. It is stored in Supabase `app_data`, slug `japan-trip`, key `plan-v1`. Never use another admin's plan. Bart explicitly requested flight details appear in the app without a private import, so `starter.js` supplies the original flight schedule and replanning tasks to his verified account when no saved plan exists. Saved Supabase data always takes precedence. Do not turn template edits into automatic overwrites of an existing plan or make Bart's starter another admin's default.
 
 The saved `sourceUrl` points to the canonical planning Sheet; it is not an automatic integration. When using it, discover its exact tab names and read a bounded summary plus the relevant inputs, flights, itinerary, budget, bookings and sources. Use available connected Drive/Sheets tools; if unavailable, report the missing source and continue only work independent of its contents.
 
@@ -21,7 +21,7 @@ Changing international dates requires reconsidering domestic flights, lodging ni
 
 ## Update and verify
 
-Read current data immediately before editing. Make the smallest coherent change and preserve unrelated decisions. For a JSON import, validate against `model.js`, review the replacement, then explicitly save it. Read back after reload. Exports are transfer files, never the database. Record provenance, last source read, stale quotes, and unresolved discrepancies in notes.
+Use [the chat data skill](../app-data/SKILL.md) for ordinary requested updates from chat; no manual app import is needed. Read current data immediately before editing, preserve its exact revision, validate with the shared model, save with the revision guard, and reread to confirm. Make the smallest coherent change and preserve unrelated decisions. For a JSON import, validate against `model.js`, review the replacement, then explicitly save it. Read back after reload. Exports are transfer files, never the database. Record provenance, last source read, stale quotes, and unresolved discrepancies in notes.
 
 App edits do not write back to Google Sheets. Edit the Sheet only when that is within the user's requested scope, using native connected tools and preserving formulas/validation/formatting; reread changes and dependent calculations. If a model still needs replanning, report that instead of inventing a revised itinerary or total.
 
