@@ -33,7 +33,7 @@ export function connection(value, { caCert = process.env.DATABASE_CA_CERT } = {}
   const local = ['localhost', '127.0.0.1', '::1'].includes(host);
   if (host === 'localhost') { host = '127.0.0.1'; url.hostname = host; }
   const user = decodeURIComponent(url.username);
-  if (!local && !(host === `db.${project}.supabase.co` || (host.endsWith('.pooler.supabase.com') && user === `postgres.${project}`))) throw new DatabaseToolError('Database target is not this site project.');
+  if (!local && !(host === `db.${project}.supabase.co` || (host === 'aws-0-us-east-2.pooler.supabase.com' && user === `postgres.${project}`))) throw new DatabaseToolError('Database target is not this site project.');
   if (!local && url.port && url.port !== '5432') throw new DatabaseToolError('Use direct connection or session pooler port 5432, not transaction pooling.');
   const database = decodeURIComponent(url.pathname.slice(1));
   if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(database) || !user) throw new DatabaseToolError('Use a simple database name and provide a user.');

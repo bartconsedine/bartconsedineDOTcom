@@ -168,3 +168,22 @@ Files were saved to ChatGPT Library using the Library skill:
 These are new Library items (version 0), preserving the earlier design screenshots. Local copies are in `../screenshots/barton-dark-*.jpg` and carry Library ID/version attributes.
 
 The approved design direction is dark and minimalist: near-black `#0c0d0f`, panels `#121316`, white `#f2f2f3`, muted `#a5a6ad`, Manrope/DM Sans, a grayscale portrait, and simple bordered work cards. Decorative geometric artwork, serif accents, and the earlier cream/green palette were removed. Existing source-grounded work history is labeled “Earlier work.”
+
+## Adoption failure diagnostics — 11 October 2026
+
+- Hosted read-only inspection after the user's failed adoption found no Prisma ledger, no site_admin, and the original site_owner schema. No hosted write or credential inspection was performed in this investigation.
+- 52 tests pass, including fixed Prisma error categorization and secret-redaction regressions; `npm run db:validate` and `npm run build` pass. An initial build with symlinked dependencies failed Turbopack's filesystem-root check; using worktree-local dependencies resolved it without a code workaround.
+- Existing disposable PostgreSQL 17 migration/backup/restore/security drill passes with the new preflight.
+- Actual Prisma CLI with reviewed snapshot/config and synthetic TLS: short-lived CA/server certificates pass baseline adoption and pending migration, including certificate paths with spaces; wrong CA is rejected. Five-year certificates reproduce P1011 on this macOS runtime, now classified as PRISMA_TLS before any backup/history write.
+- Native TLS certificate-lifetime behavior is a concrete local reproduction, not proof of the discarded hosted error. Production connection recovery remains pending an independently verified compatible endpoint/runtime. No TLS bypass or system trust change was introduced.
+
+A later read-only Prisma probe against the actual Direct endpoint, using a deliberately invalid synthetic password rather than any user credential, returned the fixed `PRISMA_TLS` category before authentication. This confirms Direct-endpoint native TLS failure on the current runtime. The certificate-lifetime explanation is supported by the isolated local comparison; a compatible Session endpoint is still being verified. No migration SQL or credential-bearing output was emitted.
+
+### Private Linux runtime verification
+
+- Confirmed both actual Direct and Session endpoints fail native macOS Prisma TLS before authentication. Linux Prisma against the verified Session endpoint instead returns expected P1000 for a synthetic invalid password: strict TLS succeeded. Final integrated runner returns the sanitized PRISMA_AUTH category.
+- All 56 tests pass, including target/port/username/CA/SQL validation, stdin-only credential transport, raw-error redaction, and the independent-review regression for source changes during image build. Prisma validation, build, and disposable PostgreSQL backup/restore/security drill pass.
+- Inspected only a synthetic test container while its stdin remained open: no authentication/SQL was attempted, and the synthetic password was absent from Docker inspect. Verified log driver none, nonroot user, read-only filesystem, no mounts, no privilege and all capabilities dropped. Removed the synthetic container afterward.
+- Actual local wrapper passed a PTY test for hidden synthetic password entry, wrong-confirmation cancellation, terminal echo restoration and credential cleanup. Wrapper performs runtime check before password entry.
+- Independent source review found a build/source certification race; fixed by checking the copied build context and current source fingerprint before recording the immutable image. No further credential-transport or backup-order blocker was reported.
+- No hosted migration, administrative enrollment or real credential access was performed. A valid user-owned password and explicit ADOPT/DEPLOY confirmations remain required.

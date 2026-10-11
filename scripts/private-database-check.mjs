@@ -2,8 +2,10 @@ import { lstat, realpath } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname, join, isAbsolute } from 'node:path';
 import { connection, project } from './database-connection.mjs';
+import { prismaMessages } from './prisma-diagnostics.mjs';
 
 const messages = {
+  ...prismaMessages,
   ACTION: 'This launcher permits only URL validation, a read-only baseline check, or a logical backup.',
   INPUT_EMPTY: 'Nothing was entered. Paste the full PostgreSQL connection URL at the hidden prompt.',
   INPUT_WRAPPER: 'Paste only the URL, without DATABASE_URL=, export, quotes, or a shell command.',
@@ -45,7 +47,7 @@ export function validateTarget(value, options = {}) {
   try { username = decodeURIComponent(url.username); password = decodeURIComponent(url.password); }
   catch { fail('INPUT_ENCODING'); }
   const direct = url.hostname === `db.${project}.supabase.co` && username === 'postgres';
-  const pooled = url.hostname.endsWith('.pooler.supabase.com') && username === `postgres.${project}`;
+  const pooled = url.hostname === 'aws-0-us-east-2.pooler.supabase.com' && username === `postgres.${project}`;
   if (!direct && !pooled) fail('INPUT_PROJECT');
   if (url.port && url.port !== '5432') fail('INPUT_PORT');
   if (url.pathname !== '/postgres') fail('INPUT_DATABASE');
@@ -64,6 +66,7 @@ export function validateTarget(value, options = {}) {
 // paths, error causes, query details, or driver-supplied identity strings.
 export function safeDiagnostic(error, stage) {
   let code = error instanceof HandoffError ? error.safeCode : undefined;
+  if (!code && Object.hasOwn(prismaMessages, error?.diagnosticCode)) code = error.diagnosticCode;
   if (!code) {
     if (error?.message === 'Reviewed migration files are missing, changed, or unexpected. Stop for code review.') code = 'MIGRATION_FILES';
     else if (['Approved database CA could not be loaded.', 'Bundled database CA integrity check failed.'].includes(error?.message)) code = 'CA_BUNDLE';

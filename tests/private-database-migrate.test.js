@@ -27,7 +27,7 @@ test('migration handoff rejects unsupported actions, missing confirmations and u
 
 test('migration state is read-only and reports only fixed state descriptions', async () => {
   for (const state of ['unadopted', 'baseline', 'complete']) {
-    const result = await runMigrationHandoff('state', { DATABASE_PASSWORD: password }, async () => ({ migrationState: async c => { assert.equal(c.host, `db.${project}.supabase.co`); return state; } }));
+    const result = await runMigrationHandoff('state', { DATABASE_PASSWORD: password }, async () => ({ migrationState: async c => { assert.equal(c.host, 'aws-0-us-east-2.pooler.supabase.com'); assert.equal(c.user, `postgres.${project}`); return state; } }));
     assert.equal(result.ok, true); assert.match(result.message, /No schema write was performed/); assert.ok(!result.message.includes(password));
   }
   for (const state of ['attention', password]) {

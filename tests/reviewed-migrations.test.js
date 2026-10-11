@@ -50,7 +50,7 @@ test('actual adoption and deployment reject extra or edited SQL before opening a
     await mkdir(join(root, 'scripts')); await mkdir(join(root, 'prisma'));
     const migrations = join(root, 'prisma/migrations');
     await rename(dir, migrations);
-    for (const name of ['database.mjs', 'database-connection.mjs', 'reviewed-migrations.mjs']) {
+    for (const name of ['database.mjs', 'database-connection.mjs', 'reviewed-migrations.mjs', 'prisma-diagnostics.mjs', 'prisma-linux-runtime.mjs']) {
       await cp(new URL(`../scripts/${name}`, import.meta.url), join(root, 'scripts', name));
     }
     await symlink(fileURLToPath(new URL('../node_modules', import.meta.url)), join(root, 'node_modules'), 'dir');

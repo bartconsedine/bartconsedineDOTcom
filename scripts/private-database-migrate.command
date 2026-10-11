@@ -26,8 +26,9 @@ printf '\033]0;Private Prisma migration — bartconsedine.com\007'
 printf '%s\n' 'PRIVATE PRISMA MIGRATION — bartconsedine.com' \
   'Paste ONLY your existing database password below, then press Return.' \
   'Input will not appear. Do not paste into chat.' \
-  'Destination: the verified Direct endpoint for project vgsmfbupgydafvotkold, port 5432.' \
+  'Destination: verified Session pooler aws-0-us-east-2.pooler.supabase.com:5432 for vgsmfbupgydafvotkold.' \
   'Special characters are encoded internally. Do not add quotes or a URL.' \
+  'Prisma uses the reviewed private Linux runtime on macOS; backups stay in your protected Mac directory.' \
   'This separate launcher can adopt the existing baseline and deploy reviewed migrations after confirmation and a fresh backup. It cannot enroll anyone.'
 stty -echo || exit 1
 IFS= read -r -s -p 'Database password (hidden): ' DATABASE_PASSWORD || exit 1
