@@ -22,6 +22,8 @@ Example: `Use $pr to add this feature, document it, add relevant tests, and open
 
 `/pr` is a conversational shorthand for this project workflow, **not a custom slash command registered by these files**. There is no command parser, hook, or global configuration installed. The workflow is available to checkouts containing this commit; it does not modify other repositories or preserved older worktrees. Skill discovery and composer behavior should be verified in the user's active Codex surface before claiming the picker has loaded it.
 
+The workflow continues through exact-head GitHub CI, an authorized merge guarded against head changes, Vercel Ready status with a matching merge commit, and production desktop/mobile browser QA. Prefer the existing Actions workflow and Vercel Git integration. Preserve user work and use a readable local-only checkout outside synced folders when cloud placeholders cause problems. UI changes do not require database/auth setup.
+
 Merge and deploy only when authorized and required checks pass, without bypassing branch protections. A request to run this workflow does not itself grant hosted database, credentials, or membership permissions.
 
 Sources checked 9 October 2026: [OpenAI skill discovery and invocation](https://learn.chatgpt.com/docs/build-skills), [Codex CLI skill picker](https://learn.chatgpt.com/docs/developer-commands?surface=cli).
