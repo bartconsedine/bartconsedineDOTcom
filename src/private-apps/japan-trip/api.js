@@ -2,12 +2,14 @@ import { KEY, MAX_BYTES, SLUG, validatePlan } from './model.js';
 
 // The registry's shared dispatcher verifies admin access and exact-origin POST.
 // Production dependencies also recheck auth, registry membership, and owner RLS.
-export function createTripApi({ readAppData, writeAppData }) {
+export function createTripApi({ readAppData, writeAppData, startingPlan = () => null }) {
   return {
-    async GET() {
+    async GET(_request, { owner } = {}) {
       const record = await readAppData(SLUG, KEY);
       if (record) validatePlan(record.value);
-      return Response.json({ plan: record?.value ?? null, updatedAt: record?.updated_at ?? null });
+      const plan = record?.value ?? startingPlan(owner);
+      if (plan) validatePlan(plan);
+      return Response.json({ plan, updatedAt: record?.updated_at ?? null });
     },
     async POST(request) {
       if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') return Response.json({ error: 'Send a JSON plan.' }, { status: 415 });

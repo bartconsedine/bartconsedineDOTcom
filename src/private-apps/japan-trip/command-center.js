@@ -37,7 +37,7 @@ export default function JapanTrip() {
       if (!response.ok) throw new Error('Could not load your plan. Check your sign-in and database connection, then retry.');
       const data = await response.json();
       const value = data.plan ? validatePlan(data.plan) : emptyPlan();
-      setPlan(value); setSavedAt(data.updatedAt); setDirty(false);
+      setPlan(value); setSavedAt(data.updatedAt); setDirty(Boolean(data.plan && !data.updatedAt));
     } catch (failure) { setError(failure.message); }
     finally { setLoading(false); }
   }

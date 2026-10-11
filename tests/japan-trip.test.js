@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { emptyPlan, validatePlan, metrics, MAX_BYTES, SLUG, KEY } from '../src/private-apps/japan-trip/model.js';
 import { createTripApi } from '../src/private-apps/japan-trip/api.js';
+import { startingPlan } from '../src/private-apps/japan-trip/starter.js';
 import { createAppApi } from '../src/lib/app-api-policy.js';
 
 function booking(overrides = {}) {
@@ -82,4 +83,23 @@ test('load/save failures return generic private errors and never claim a save', 
   assert.deepEqual(await response.json(), { error: 'unavailable' });
   h.failWrite(); const saved = await h.handle(request(plan()), context);
   assert.equal(saved.status, 503); assert.deepEqual(await saved.json(), { error: 'unavailable' }); assert.equal(h.rows.size, 0);
+});
+
+test('original flight starter is scoped to Bart and never overwrites saved data or hides read failures', async () => {
+  const bart = { id: 'admin-a', email: 'bartconsedine@gmail.com' };
+  let record = null;
+  const api = createTripApi({ readAppData: async () => record, writeAppData: async () => { throw new Error('GET must not write'); }, startingPlan });
+  const initial = await (await api.GET(null, { owner: bart })).json();
+  assert.equal(initial.plan.start, '2027-01-27'); assert.equal(initial.plan.end, '2027-02-05');
+  assert.equal(initial.plan.bookings[0].status, 'On request'); assert.equal(initial.updatedAt, null);
+  assert.equal(initial.plan.days.find(day => day.location === 'Tokyo').date, '2027-01-28');
+  assert.doesNotThrow(() => validatePlan(initial.plan));
+  const other = await (await api.GET(null, { owner: { id: 'admin-b', email: 'mjshah8@gmail.com' } })).json();
+  assert.equal(other.plan, null);
+  initial.plan.title = 'Mutated template copy'; assert.equal(startingPlan(bart).title, 'Japan / Japow');
+  record = { value: { ...plan(), title: 'Saved custom trip' }, updated_at: '2030-01-01T00:00:00Z' };
+  const saved = await (await api.GET(null, { owner: bart })).json();
+  assert.equal(saved.plan.title, 'Saved custom trip'); assert.equal(saved.updatedAt, record.updated_at);
+  const unavailable = createTripApi({ readAppData: async () => { throw new Error('read failed'); }, startingPlan });
+  await assert.rejects(unavailable.GET(null, { owner: bart }), /read failed/);
 });

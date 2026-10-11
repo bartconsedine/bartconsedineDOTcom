@@ -57,3 +57,18 @@ test('undo removal restores only the removed task, preserving subsequent edits',
   button(tree, 'Undo removal').props.onClick();
   assert.equal(ui.states[0].tasks[0].title, 'Pack'); assert.equal(ui.states[0].tasks[1].title, 'Check ticket confirmation');
 });
+
+test('starting flight draft appears without import and stays marked unsaved until database confirmation', async () => {
+  const draft = { ...emptyPlan(), start: '2030-01-27', end: '2030-02-05' };
+  let writes = 0;
+  const ui = tripUi(async (_, options = {}) => {
+    if (options.method === 'POST') { writes++; return Response.json({ saved: true }); }
+    return Response.json({ plan: draft, updatedAt: null });
+  });
+  let tree = await ui.mount();
+  assert.match(renderToStaticMarkup(tree), /Jan 27.*Feb 5/);
+  assert.match(renderToStaticMarkup(tree), /Unsaved changes/);
+  assert.equal(button(tree, 'Save changes').props.disabled, false); assert.equal(writes, 0);
+  await button(tree, 'Save changes').props.onClick(); tree = ui.render();
+  assert.equal(writes, 1); assert.match(renderToStaticMarkup(tree), /Saved to your private workspace/);
+});

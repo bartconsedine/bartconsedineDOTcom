@@ -9,7 +9,7 @@ The app is `/admin/apps/japan-trip`. Read its [README](../../../src/private-apps
 
 ## Establish the current trip
 
-Read the signed-in owner's saved plan through the protected app API/UI. It is stored in Supabase `app_data`, slug `japan-trip`, key `plan-v1`. Never use another admin's plan or commit personal trip records, confirmation codes, or private attachments as application defaults.
+Read the signed-in owner's saved plan through the protected app API/UI. It is stored in Supabase `app_data`, slug `japan-trip`, key `plan-v1`. Never use another admin's plan. Bart explicitly requested flight details appear in the app without a private import, so `starter.js` supplies the original flight schedule and replanning tasks to his verified account when no saved plan exists. Saved Supabase data always takes precedence. Do not turn template edits into automatic overwrites of an existing plan or make Bart's starter another admin's default.
 
 The saved `sourceUrl` points to the canonical planning Sheet; it is not an automatic integration. When using it, discover its exact tab names and read a bounded summary plus the relevant inputs, flights, itinerary, budget, bookings and sources. Use available connected Drive/Sheets tools; if unavailable, report the missing source and continue only work independent of its contents.
 
