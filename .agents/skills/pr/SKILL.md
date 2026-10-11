@@ -7,6 +7,8 @@ description: Ship scoped changes to this website through a draft PR, exact-head 
 
 Treat `/pr` in a task request as the user's name for this workflow, not as a registered slash command. The explicit Codex skill invocation is `$pr`; `/skills` is the CLI picker. If the skill has not been discovered, read this file directly. See [contributor guidance](../../../CONTRIBUTING.md).
 
+When the checked PR is ready and release authorization is still needed, identify the PR and production target, then say **“Reply 1 to deploy it.”** Treat the user's subsequent `1` as explicit merge and deployment authorization for that identified release, without another confirmation. Preserve all required checks and scope boundaries. If release is already authorized, proceed without asking.
+
 ## Deliver a reviewable change
 
 1. Inspect current state before editing: read repository instructions, check status/remotes/worktrees, fetch the intended base, and inspect recent/open PRs so already merged work is preserved. Start a clean branch from latest remote `main` unless the task specifies another base. Preserve user changes and existing worktrees. For Mac checkouts, use a verified local-only directory outside synced Documents/iCloud when cloud placeholders make files unreliable; verify files are readable before installing dependencies. Do not work directly on `main`.

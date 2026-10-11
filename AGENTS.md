@@ -26,3 +26,5 @@ Keep executable component registration and static presentation defaults in code.
 ## Project change workflow
 
 Follow [CONTRIBUTING.md](CONTRIBUTING.md) for every repository change: use a branch and PR, document the change, add relevant functionality/regression/security tests, and report actual validation. The reusable project workflow is [.agents/skills/pr/SKILL.md](.agents/skills/pr/SKILL.md), explicitly invoked as `$pr`; `/pr` is a request shorthand, not an installed slash command.
+
+When a completed, checked change is awaiting release authorization, make the next step easy: say **“Reply 1 to deploy it.”** Identify the PR and deployment target in the same message. A subsequent user reply of `1` authorizes merging and deploying that identified change through the normal release workflow; do not ask for confirmation again. This shortcut applies only to the clearly identified pending release and does not bypass required checks or authorize separate database, credential, or membership changes.
