@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
-import { connection, baselineCheck, backup, restoreLocal, migrationState } from './database.mjs';
+import { connection, baselineCheck, backup, restoreLocal, migrationState, adoptBaseline, deployMigrations } from './database.mjs';
 
 const c = connection(process.env.TEST_DATABASE_URL);
 assert.equal(c.local, true, 'Only a disposable local cluster is permitted');
@@ -67,6 +67,9 @@ try {
   });
   assert.notEqual(blocked('baseline').status, 0, 'missing backup directory must block baseline adoption');
   assert.equal(await migrationState(connection(target(names[0]))), 'unadopted', 'backup failure must not record the base');
+  process.env.BACKUP_DIR = backups;
+  await assert.rejects(adoptBaseline(connection(target(names[0])), { retainBackup: async () => { throw new Error('Synthetic cloud retention unavailable'); } }), /retention unavailable/);
+  assert.equal(await migrationState(connection(target(names[0]))), 'unadopted', 'retention failure must not adopt the baseline');
   console.log(run(['scripts/database.mjs', 'baseline'], names[0]).trim());
   let history = (await query(names[0], 'select migration_name from private._prisma_migrations')).rows;
   assert.deepEqual(history.map(r => r.migration_name), ['0_private_workspace']);
@@ -83,6 +86,9 @@ try {
   await query(names[0], `update private._prisma_migrations set checksum='${checksum}'`);
   assert.notEqual(blocked('deploy').status, 0, 'missing backup directory must block deployment');
   assert.equal(await migrationState(connection(target(names[0]))), 'baseline');
+  assert.equal((await query(names[0], "select to_regclass('private.site_admin') as name")).rows[0].name, null);
+  await assert.rejects(deployMigrations(connection(target(names[0])), { retainBackup: async () => { throw new Error('Synthetic cloud retention unavailable'); } }), /retention unavailable/);
+  assert.equal(await migrationState(connection(target(names[0]))), 'baseline', 'retention failure must not deploy');
   assert.equal((await query(names[0], "select to_regclass('private.site_admin') as name")).rows[0].name, null);
   console.log(run(['scripts/database.mjs', 'deploy'], names[0]).trim());
   assert.equal(await migrationState(connection(target(names[0]))), 'complete');

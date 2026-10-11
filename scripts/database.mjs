@@ -112,10 +112,12 @@ export async function restoreLocal(archive, c) {
   run(tool('pg_restore'), ['--exit-on-error', '--single-transaction', '--no-owner', '--no-password', '--dbname', c.database, archive], pgEnvironment(c));
   console.log('Restored into isolated local test database. Run application/RLS checks; hosted recovery is not certified.');
 }
-export async function adoptBaseline(c) {
+export async function adoptBaseline(c, { retainBackup = async () => {} } = {}) {
   authorizeWrite(c); await verifyReviewedMigrations();
   if (await migrationState(c) !== 'unadopted') throw new DatabaseToolError('Prisma history already exists; inspect status instead of re-baselining.');
-  await baselineCheck(c); await prismaConnectionCheck(c); await backup(c);
+  await baselineCheck(c); await prismaConnectionCheck(c);
+  const archive = await backup(c);
+  await retainBackup(archive);
   await withClient(c, async db => {
     if ((await db.query("select to_regclass('private._prisma_migrations') as table_name")).rows[0].table_name &&
         (await db.query('select 1 from private._prisma_migrations limit 1')).rowCount) throw new DatabaseToolError('Prisma history already exists; inspect status instead of re-baselining.');
@@ -123,10 +125,14 @@ export async function adoptBaseline(c) {
   await withReviewedMigrationSnapshot(config => prisma(['migrate', 'resolve', '--applied', '0_private_workspace'], c, config));
   console.log('Recorded only the verified existing base migration. Two-admin migration remains pending.'); return;
 }
-export async function deployMigrations(c) {
+export async function deployMigrations(c, { retainBackup = async () => {} } = {}) {
   authorizeWrite(c); await verifyReviewedMigrations();
   if (await migrationState(c) !== 'baseline') throw new DatabaseToolError('Only the reviewed baseline may be recorded before first deployment; inspect history and checksums.');
-  await baselineCheck(c); await prismaConnectionCheck(c); await backup(c);
+  await baselineCheck(c); await prismaConnectionCheck(c);
+  const archive = await backup(c);
+  await retainBackup(archive);
+  if (await migrationState(c) !== 'baseline') throw new DatabaseToolError('History changed during backup retention; stop for inspection.');
+  await baselineCheck(c);
   await withReviewedMigrationSnapshot(config => {
     prisma(['migrate', 'deploy'], c, config); prisma(['migrate', 'status'], c, config);
   });

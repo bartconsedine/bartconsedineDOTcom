@@ -27,6 +27,7 @@
     "server-only": "0.0.1"
   },
   "devDependencies": {
+    "@actions/artifact": "6.3.1",
     "@electric-sql/pglite": "0.5.8",
     "pg": "8.16.3",
     "prisma": "7.10.0"

@@ -187,3 +187,9 @@ A later read-only Prisma probe against the actual Direct endpoint, using a delib
 - Actual local wrapper passed a PTY test for hidden synthetic password entry, wrong-confirmation cancellation, terminal echo restoration and credential cleanup. Wrapper performs runtime check before password entry.
 - Independent source review found a build/source certification race; fixed by checking the copied build context and current source fingerprint before recording the immutable image. No further credential-transport or backup-order blocker was reported.
 - No hosted migration, administrative enrollment or real credential access was performed. A valid user-owned password and explicit ADOPT/DEPLOY confirmations remain required.
+
+### Cloud migration takeover — 11 October 2026
+
+User requested cloud execution. The new manual GitHub Actions workflow runs standard Prisma on Linux, preserving strict TLS and the reviewed migration guards. Before either write, a fresh verified logical archive and manifest are encrypted, retained as a GitHub artifact, downloaded, decrypted and compared. No Mac launcher is invoked; no migration SQL or membership policy was edited.
+
+Local validation: 61 tests pass, Prisma validation and production build pass. The expanded disposable PostgreSQL 17 drill passes fresh/incremental migration, logical backup/restore, RLS/grants/data and proves actual baseline adoption and deployment stop when cloud retention fails. YAML syntax and real GitHub artifact transport are separately checked in PR CI. Those checks do not certify hosted authentication, writes or recovery. Current hosted inspection still shows no Prisma ledger or admin table; Bart's verified identity exists, Meera's is absent, and no enrollment ran.
