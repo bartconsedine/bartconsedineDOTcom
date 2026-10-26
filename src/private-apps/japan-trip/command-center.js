@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { emptyPlan, MAX_BYTES, metrics, STATUSES, validatePlan } from './model';
 import './trip.css';
+import OptionExplorer from './option-explorer.js';
 
 const endpoint = '/api/admin/apps/japan-trip';
 const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
@@ -111,9 +112,11 @@ export default function JapanTrip() {
     {error && <p className="jp-alert" role="alert">{error}</p>}
     {message && <p className="jp-success" role="status">{message}</p>}
     {undo && <div className="jp-alert">Entry removed. <button disabled={saving} onClick={() => { const rows = [...plan[undo.group]]; rows.splice(undo.index, 0, undo.row); patch(undo.group, rows); setUndo(null); }}>Undo removal</button></div>}
-    <nav className="jp-tabs" aria-label="Trip sections">{['Overview', 'Itinerary', 'Bookings', 'Checklist', 'Trip settings'].map(name => <button key={name} aria-current={tab === name ? 'page' : undefined} onClick={() => setTab(name)}>{name}</button>)}</nav>
+    <nav className="jp-tabs" aria-label="Trip sections">{['Overview', 'Explore 10 options', 'Itinerary', 'Bookings', 'Checklist', 'Trip settings'].map(name => <button key={name} aria-current={tab === name ? 'page' : undefined} onClick={() => setTab(name)}>{name}</button>)}</nav>
     <fieldset className="jp-editor" disabled={saving}>
+      {tab === 'Explore 10 options' && <OptionExplorer plan={plan}/>}
       {tab === 'Overview' && <>
+        <section className="jp-panel"><p className="jp-kicker">COMPARE YOUR ROUTES</p><h3>Ten ways to spend your Japan trip</h3><p>Explore maps, daily timelines, riding days and the tradeoffs of each itinerary.</p><button onClick={() => setTab('Explore 10 options')}>Browse 10 itineraries</button></section>
         <div className="jp-metrics">{[[countDays ?? '—', 'Trip days'], [stats.riding, 'Full riding days'], [`${stats.booked}/${stats.total}`, 'Bookings confirmed'], [money(stats.forecast), stats.unpriced ? 'Known costs · USD' : 'Forecast · USD']].map(([value, label]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}</div>
         {!plan.days.length && !plan.bookings.length && <section className="jp-empty"><h3>Your trip starts here.</h3><p>Import your reviewed trip snapshot, or add your dates, flights and first decisions.</p><button onClick={() => fileInput.current?.click()}>Import plan</button><button onClick={() => setTab('Trip settings')}>Set trip dates</button></section>}
         <div className="jp-columns">
