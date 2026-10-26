@@ -19,7 +19,7 @@ export default function Home() {
       <section id="about" className="folio-about folio-width">
         <div className="folio-section-label"><span aria-hidden="true">01</span><h2>About</h2></div>
         <div className="folio-bio">
-          <p className="bio-lead">Bart leads AI for Engineering at Magnite, shaping how the company builds with and applies AI. He drives AI adoption across engineering, embeds intelligent agents into Magnite’s ad tech products, and develops internal tools that improve how people and teams work.</p>
+          <p className="bio-lead">Bart leads AI for Engineering at Magnite, helping teams put AI to work in the products they build and the way they build them. His work spans AI adoption across engineering, agents in Magnite’s ad tech products, and internal tools that make everyday work easier.</p>
           <p>His career spans digital advertising, software engineering, and business strategy. After beginning in ad tech and transitioning into software development, Bart earned his MBA at NYU and joined EY-Parthenon’s Software Strategy Group, conducting technical due diligence for private equity M&amp;A transactions. He assessed software architectures, engineering teams, and technology risk before joining Magnite as Chief of Staff to the CTO. That role grew into his current leadership of engineering AI initiatives.</p>
           <a className="folio-link" href="https://www.linkedin.com/in/bartconsedine">More on LinkedIn</a>
         </div>
