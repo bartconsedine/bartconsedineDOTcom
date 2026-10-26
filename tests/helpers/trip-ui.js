@@ -1,16 +1,20 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
+import * as options from '../../src/private-apps/japan-trip/options.js';
+import * as coast from '../../src/private-apps/japan-trip/coastline.js';
 import * as model from '../../src/private-apps/japan-trip/model.js';
 const require = createRequire(import.meta.url);
 const { transformSync } = require('next/dist/compiled/babel/core');
 
 // Executes the real JSX and event handlers while substituting only hooks/network.
 // This is a local UI fixture, never a production authentication or storage path.
-export function tripUi(fetcher, initial = []) {
+export function tripUi(fetcher, initial = []) { return componentUi('command-center.js', fetcher, initial); }
+export function explorerUi(plan) { return componentUi('option-explorer.js', null, [], { plan }); }
+function componentUi(file, fetcher, initial, props = {}) {
   const states = [...initial]; let index = 0;
   const effects = []; const effectSlots = new Set();
-  const { code } = transformSync(readFileSync(new URL('../../src/private-apps/japan-trip/command-center.js', import.meta.url), 'utf8'), {
+  const { code } = transformSync(readFileSync(new URL(`../../src/private-apps/japan-trip/${file}`, import.meta.url), 'utf8'), {
     babelrc: false, configFile: false,
     presets: [[require('next/dist/compiled/babel/preset-react'), { runtime: 'automatic' }]],
     plugins: [require('next/dist/compiled/babel/plugin-transform-modules-commonjs')],
@@ -24,11 +28,14 @@ export function tripUi(fetcher, initial = []) {
   runInNewContext(code, { module, exports: module.exports, fetch: fetcher, TextEncoder, URL, Blob, crypto: globalThis.crypto, window: { addEventListener() {}, removeEventListener() {} }, require: id => {
     if (id === 'react') return hooks;
     if (id === './model') return model;
+    if (id === './options.js') return options;
+    if (id === './coastline.js') return coast;
+    if (id === './option-explorer.js') return { default: () => null, __esModule: true };
     if (id.endsWith('.css')) return {};
     if (id === 'react/jsx-runtime') return require(id);
     throw new Error(`Unexpected dependency: ${id}`);
   } });
-  return { states, render() { index = 0; return module.exports.default(); }, async mount() { this.render(); effects.splice(0).forEach(effect => effect()); await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); return this.render(); } };
+  return { states, render() { index = 0; return module.exports.default(props); }, async mount() { this.render(); effects.splice(0).forEach(effect => effect()); await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); return this.render(); } };
 }
 
 export function nodes(tree) {
