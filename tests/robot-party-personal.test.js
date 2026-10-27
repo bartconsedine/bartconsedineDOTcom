@@ -89,3 +89,33 @@ test('personal link remains available to the owner when board storage fails and 
     }
   }
 });
+
+test('connected UI sends only to its private endpoint, recovers a lost save receipt, and shows authenticated replies', async () => {
+  const channelId = '11111111-1111-4111-8111-111111111111', connectionId = '22222222-2222-4222-8222-222222222222';
+  const requests = [], messages = [];
+  const ui = personalUi(async (url, options = {}) => {
+    requests.push({ url, options });
+    if (options.method === 'POST') {
+      const command = JSON.parse(options.body);
+      if (command.action === 'send') { messages.push({ id: command.id, body: command.body, sender: 'owner', delivery: 'queued' }); throw Error('Synthetic lost receipt'); }
+      assert.equal(command.action, 'dispatch'); return Response.json({ attempted: false });
+    }
+    return Response.json({ setupReady: true, state: 'connected', canSend: true, canQueue: true, identityVerified: true, channelId, connectionId, messages });
+  });
+  await ui.mount();
+  assert.match(text(ui.render()), /Private connection ready/);
+  nodes(ui.render()).find(node => node.type === 'textarea').props.onChange({ target: { value: 'Synthetic private message' } });
+  assert.equal(button(ui.render(), 'Send to your dot').props.disabled, false);
+  await button(ui.render(), 'Send to your dot').props.onClick();
+  assert.match(text(ui.render()), /Synthetic lost receipt/);
+  assert.equal(nodes(ui.render()).find(node => node.type === 'textarea').props.disabled, true);
+  await button(ui.render(), 'Check connection').props.onClick();
+  assert.equal(nodes(ui.render()).find(node => node.type === 'textarea').props.value, '');
+  assert.equal(nodes(ui.render()).find(node => node.type === 'textarea').props.disabled, false);
+  assert.equal(requests.filter(request => request.options.body && JSON.parse(request.options.body).action === 'send').length, 1);
+  messages.push({ id: 'reply', sender: 'dot', robot_id: connectionId, body: 'Synthetic private answer' });
+  await button(ui.render(), 'Check connection').props.onClick();
+  assert.match(text(ui.render()), /Synthetic private answer/);
+  assert.match(text(ui.render()), /Bound dot connection/);
+  assert.ok(requests.every(request => request.url === '/api/admin/robot-party/personal'));
+});

@@ -156,11 +156,20 @@ client verification, callback, resource, PKCE, scope, state, board or role.
 Duplicate and unknown parameters still fail closed. See the
 [OpenID Connect authorization request reference](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest).
 
-## Personal section (staged)
+## Personal section (prepared, default off)
 
-Owners can open `/admin/apps/robot-party/personal` independently of board storage.
-It currently shows an honest disconnected state and a temporary copyable draft;
-Send is disabled and no message is saved, queued or sent. Invited members cannot
-access its separately guarded page/API. See [personal chat requirements](PERSONAL_CHAT.md)
-for supported transport evidence, the proposed private authorization/storage
-boundary, exact approval prerequisites, and the end-to-end acceptance gate.
+`/admin/apps/robot-party/personal` contains the owner-only private conversation
+UI. Its transport is prepared behind `ROBOT_PARTY_PERSONAL_ENABLED=1` and an
+approved server encryption key; the default shows disconnected status and sends
+nothing. The prepared MCP Events path reuses the existing dot connection only
+after a separate explicit private grant to its verified connection ID. It stores
+private messages and an outbox separately from the board, delivers signed
+identifier events, and accepts authenticated private replies. Queued attempts
+run while the owner page is open and resume on its next visit. No generic model
+or imported dot history is used.
+
+The generated private migration remains outside the active inventory so it
+cannot join another app’s rollout. See [the exact activation plan](PERSONAL_CHAT.md)
+for its artifact, approval steps, actor responsibilities, installed-connector
+verification gate, and local/live test limits. No hosted setup, private grant,
+secret configuration, subscription, or production release has occurred.

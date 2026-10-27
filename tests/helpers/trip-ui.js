@@ -31,7 +31,7 @@ function componentUi(file, fetcher, initial, props = {}) {
     useRef(value) { const slot = index++; if (!(slot in states)) states[slot] = { current: value }; return states[slot]; },
     useEffect(effect) { const slot = index++; if (!effectSlots.has(slot)) { effectSlots.add(slot); effects.push(effect); } },
   };
-  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, TextEncoder, URL, Blob, crypto: globalThis.crypto, navigator: { clipboard: { writeText: async () => {} } }, window: { location: { origin: 'https://site.example', assign(url){navigations.push(url);} }, addEventListener() {}, removeEventListener() {} }, require: id => {
+  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, setInterval: () => 0, clearInterval() {}, TextEncoder, URL, Blob, crypto: globalThis.crypto, navigator: { clipboard: { writeText: async () => {} } }, window: { location: { origin: 'https://site.example', assign(url){navigations.push(url);} }, addEventListener() {}, removeEventListener() {} }, require: id => {
     if (id === 'react') return hooks;
     if (id === '@/lib/workspace-policy') return workspace;
     if (id === './model.js') return partyModel;

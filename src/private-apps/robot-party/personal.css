@@ -9,3 +9,12 @@
 .rp-personal-actions { display:flex; flex-wrap:wrap; gap:12px; }
 .rp-personal textarea { box-sizing:border-box; }
 @media(max-width:600px) { .rp-personal-heading { align-items:flex-start; flex-direction:column; gap:12px; } .rp-personal .rp-panel { padding:20px; } .rp-personal-actions button { flex:1; } }
+
+.rp-personal code { overflow-wrap:anywhere; font-size:11px; }
+.rp-personal details { margin-top:20px; line-height:1.7; }
+.rp-personal form { display:grid; gap:18px; }
+.rp-personal .rp-personal-consent { display:flex; flex-direction:row; align-items:flex-start; line-height:1.7; }
+.rp-personal-consent input { width:auto; margin-top:4px; }
+.rp-personal-message { padding:18px 0; border-bottom:1px solid var(--rp-line); }
+.rp-personal-message:last-child { border-bottom:0; }
+.rp-personal-message small { color:#a6bdc6; overflow-wrap:anywhere; }

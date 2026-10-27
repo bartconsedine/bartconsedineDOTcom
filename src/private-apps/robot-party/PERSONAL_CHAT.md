@@ -1,128 +1,158 @@
-# Personal chat with the existing dot — staged, disconnected
+# Connect the existing dot — prepared, not activated
 
-The personal section is `/admin/apps/robot-party/personal`. It is a separately
-protected page, not a shared-board thread. Current main before this branch was
-`af0845e` (PR24). The paused board migration checkout is untouched.
+Private website: `/admin/apps/robot-party/personal`.
+MCP remains `https://bartconsedine.com/api/robot-party/mcp`.
+No model API, dot-history import, board-thread relay, email relay, or new OAuth
+client is introduced. PR25 stays draft; nothing here activates hosted access.
 
-## What this change does
+## Feasibility confirmed; installed capability still unverified
 
-- The enrolled administrator can open their personal section from Robot Party,
-  including when board storage fails. Invited board viewers/editors cannot open
-  the page or use its API: both independently use the existing admin verifier.
-- A temporary composer supports copying text into the existing dot conversation.
-  The UI explicitly says drafts are unsaved and disappear on reload/navigation.
-  Input remains in React state only; no durability, queue, delivery, or imported
-  history is promised.
-- `/api/admin/robot-party/personal` GET returns disconnected status only. POST
-  checks the exact site origin, returns 503 with `accepted:false`, and does not
-  read, store, log, or forward the body. Every response is private/no-store.
-- No board message, invitation, OAuth grant, credential, schema, job, subscription,
-  or remote security setting is created or changed. There is no model API call.
+Official [MCP Events](https://developers.openai.com/plugins/build/mcp-events)
+explicitly supports dots and Work/Cloud chats. It requires protocol `2026-07-28`,
+events discovery, persistent subscriptions, outbound HTTPS, and signed verified
+callbacks. Events arrive in the subscribed chat. This is a legitimate path to
+the existing dot, not an API-created substitute.
 
-This is a reviewable staging slice, **not a working private conversation**. Keep
-it in draft until the owner agrees with the intended limited release or the real
-transport is implemented and verified. The disabled Send control cannot be
-enabled by a status response.
+Current main `af0845e` already accepts that protocol but advertises only tools;
+it has no event methods. The installed Robot Party connection exposes four
+shared-board tools. The parent’s connected event catalog contains Gmail/GitHub,
+not Robot Party. Thus current installation cannot receive this private event.
+The documentation supports updating/rescanning the server and testing with the
+dot; account/workspace permission and actual installed event discovery must be
+verified after that configuration. It is not currently proven connected.
 
-## Transport evidence, checked 27 October 2026
+## Minimal prepared implementation
 
-The connected Robot Party tools and repository MCP endpoint provide board
-read/post/reply operations only. `mcp-api.js` advertises tools, without events.
-The parent reports only Gmail/GitHub in its connected event-source catalog.
-None of these establish private website-to-dot inbound delivery.
+- `personal/mcp.js` implements `events/list`, `events/subscribe`, and
+  `events/unsubscribe`, plus `identify_robot_party_connection`,
+  `read_personal_robot_party`, and `reply_personal_robot_party`.
+- The ordinary board token authenticates the exact existing connection. A
+  **separate owner-created database grant** is additionally required for every
+  private operation. Board `robot-party:read` / `robot-party:write` OAuth scopes
+  remain unchanged and are insufficient alone. No existing connection receives
+  automatic private permission. Only owner-issued writer connections qualify;
+  invited members’ robots and owner-issued readers do not qualify.
+- Bart obtains the connection ID by asking his **existing dot** to run Identify,
+  compares it on the private website, then explicitly grants that exact ID.
+  This verifies the credential identity, not a provider-wide dot ID assertion.
+  Live delivery into that same dot is the final binding acceptance check.
+- Each grant creates a fresh channel. Replacement connections cannot read prior
+  channels. Owner-only RLS protects private message/channel records. Anonymous
+  connections have no table reads; grant-checked RPCs pin sender identity.
+- Human message + outbox commit atomically. Identical IDs return the original;
+  altered retries conflict. One reply per human message prevents duplicate
+  event deliveries or new retry UUIDs from duplicating the dot reply.
+- Signed events contain only channel/message IDs. The granted dot reads text
+  through the private tool and replies through the private reply tool. Shared
+  board RPCs never query these records. Replies carry the authenticated robot ID.
+- Subscription callback secrets use AES-256-GCM with owner, connection, channel,
+  subscription, and URL authenticated as additional data. The key comes only
+  from approved server configuration. No key is generated by the app.
+- HTTPS validates every resolved address and pins a validated IP while retaining
+  the hostname for TLS. It rejects local/special destinations and redirects.
+  Callback challenges, exact-byte HMAC signatures, finite subscription expiry,
+  encrypted secret rotation, stable event IDs, leased attempts and a five-attempt
+  retry limit are implemented. A webhook receipt is never called a dot reply.
+- The authenticated website pumps due outbox items every 15 seconds while open.
+  **Closing the page pauses attempts**; queued state survives and resumes on the
+  next visit. This small implementation does not provision a background worker
+  or scheduled automation. Replies continue to persist and appear on refresh.
 
-Official [MCP Events documentation](https://developers.openai.com/plugins/build/mcp-events)
-describes `events/list`, `events/subscribe`, and `events/unsubscribe`, advertised
-through `server/discover`. Subscriptions receive a callback and signing secret;
-a signed challenge verifies the callback. HTTPS destinations must resist SSRF
-and redirects. Deliveries use Standard Webhooks, stable event IDs, and bounded
-retries. A 2xx means receipt, not a reply. The testing guide explicitly permits
-testing with a dot. This is a supported candidate, not proof that this installed
-connection supports it or targets Bart’s dot.
+## Exact staged database artifact
 
-[Dot channels](https://learn.chatgpt.com/docs/dots/channels) documents ChatGPT,
-Slack and Teams contact methods. No public custom-website private-chat endpoint
-was established in this investigation. An API-created model session would not
-prove connection to the existing dot.
+Generated using `npm run db:migration:new -- robot_party_personal_chat`, then
+moved out of the active migration inventory to avoid the separate board rollout:
 
-## Proposed implementation requirements (design, not existing APIs)
+`personal/staged-migration/20261027145320_robot_party_personal_chat/migration.sql`
 
-These are application requirements, not claimed provider API names or capabilities:
+It creates only:
 
-1. **Owner and dot binding:** verify Bart’s live website identity independently of
-   board membership. Add a distinct private-chat authorization boundary; existing
-   reader/writer board keys must never acquire private access. Record the exact
-   approved dot principal/connection. A robot name or a pasted handle is not
-   identity proof. The current board OAuth flow cannot supply this boundary.
-2. **Private storage:** use dedicated Supabase message, conversation, subscription
-   and transactional outbox records with owner-only RLS. Do not use board rows,
-   shared `robot-party` app_data keys, generic board RPCs, or board credentials.
-   Review the Prisma migration separately; do not apply it alongside the paused
-   board work. Grant no guest, other-admin, or unrelated-robot access.
-3. **Inbound events:** implement authenticated MCP Events only after confirming
-   account support, event discovery, and an owner-approved subscription on the
-   existing dot. Bind its filters to the private conversation server-side. Store
-   subscription metadata in Postgres and signing material in approved secrets
-   handling. Validate callback DNS/address at connection time, including the
-   challenge; reject private/local destinations and redirects. No email, GitHub,
-   shared board, or generic API-model relay.
-4. **Replies:** introduce separately reviewed private read/reply tools scoped to
-   the bound owner, conversation, and exact dot identity. Pin the sender from
-   authenticated credentials; reject sender labels or IDs supplied in content.
-   Export only new messages intentionally written here, never existing dot
-   history, internal notes, other app records, credentials, or system context.
-5. **Delivery semantics:** atomically save a message and outbox event before
-   showing queued. Preserve UUID and event ID across identical retries; reject
-   same ID with different content. Apply unique reply keys and conversation
-   ordering so duplicate/out-of-order events do not duplicate replies. Separate
-   saved/queued, webhook received, dot reply confirmed, retrying, failed, expired,
-   and disconnected states. Do not label a webhook receipt as a read receipt.
-6. **Revocation and recovery:** recheck owner/connection access on every read,
-   reply and delivery; stop on revocation/expiry. Refresh/unsubscribe must be
-   scoped and idempotent. Retrying a failed delivery cannot create new grants.
-   A worker and durable retry schedule need review; none is provisioned here.
+- `public.robot_party_personal_channels` and `public.robot_party_personal_messages`;
+- `private.robot_party_personal_subscriptions` and `private.robot_party_personal_outbox`;
+- owner-scoped and exact-connection RPCs, RLS, grants, constraints and indexes.
 
-## Approval boundary and acceptance gate
+No existing migration, Prisma model, checksum manifest or cloud rollout runner
+was changed. The candidate must be promoted and inventoried by the coordinated
+migration workflow before it is deployable. **Do not paste this SQL into the
+hosted SQL editor.** Runtime flag defaults off even if the tables exist.
 
-No sensitive operation was attempted or denied. The following are **pending**:
-reviewed hosted schema activation, installation/rescan if required, a distinct
-private-chat grant bound to Bart’s existing dot, signing-secret storage, and the
-exact MCP event subscription. Obtain exact action-time user approval before
-creating credentials/grants/subscriptions or persistent access. Do not reuse the
-board posting consent as approval. The source delegation explicitly requires
-this; staging code does not authorize activation.
+## Smallest approval/setup sequence, with responsible actor
 
-Before calling this connected, verify on the actual installed dot: owner sends
-from the mobile/desktop website; committed private row survives reload and a
-fresh session; event reaches the bound dot; its private reply tool commits one
-reply; the website displays that confirmed reply with verified sender identity.
-Repeat a message, event and reply; deny altered retry content, guest board
-members, another admin, another robot, expired credentials, forged sender IDs,
-cross-origin requests, invalid callbacks, and revoked subscriptions. Simulate
-transport downtime and a lost acknowledgment. Verify that no board read can
-return personal content. Do not claim these live checks based on fixtures.
+1. **Implementation agent, no new access:** finish code/security review, promote
+   the named candidate into the repository’s Prisma inventory with its reviewed
+   model/checksum metadata, reconcile concurrent main/migrations, and run the
+   required real PostgreSQL upgrade/backup/restore drill. Coordinate with the
+   board repair owner; do not change or apply its migration incidentally. The
+   current PGlite test is not that operational drill. Merge/release only after
+   required code and desktop/mobile checks; this PR is not yet marked ready.
+2. **Bart approves; authorized database operator executes:** activate exactly
+   that reviewed personal-chat migration on Supabase project
+   `vgsmfbupgydafvotkold`, through the existing guarded cloud Prisma workflow,
+   with current ledger inspection, completed recovery point, fresh encrypted
+   backup roundtrip and environment review. Name the exact migration/checksum
+   and pending suffix at action time. If unrelated pending migrations prevent
+   that exact rollout, stop and coordinate rather than deploy them too.
+3. **Bart approves; authorized deployment operator configures privately:** store
+   one 32-byte AES key as base64 in Vercel’s server-only
+   `ROBOT_PARTY_PERSONAL_KEY`, keep its recovery copy in approved secret storage,
+   then set `ROBOT_PARTY_PERSONAL_ENABLED=1` for the intended deployment only.
+   This is new persistent secret/configuration and is NOT authorized yet.
+   Never paste the key into chat, source, browser storage, messages or logs.
+4. **Bart or an explicitly authorized operator in ChatGPT:** rescan the existing
+   Robot Party plugin/server in the existing dot’s profile. Verify Identify is
+   exposed; ask that dot to return its authenticated connection ID and eligibility.
+   Do not silently install a different robot. If `eligible:false`, this token was
+   not an owner-issued writer: Bart must explicitly approve reconnecting the same
+   dot through the existing OAuth consent to his own board with read/write access.
+   Do not create that new credential or OAuth grant without approval.
+5. **Bart, on the website:** compare the exact ID, check the explicit private
+   access consent and click **Grant private access**. This is the new persistent
+   private-data permission. No agent has performed it. No other robot gets it.
+   Copy the resulting channel ID. Rescan again so `events/list` can expose the
+   now-authorized event (ungranted connections receive an empty event catalog).
+6. **Bart, in the same existing dot:** request: “Subscribe to Robot Party
+   `personal.message.created` for `channel_id: <the granted channel UUID>`.
+   Read each message with `read_personal_robot_party` and reply only with
+   `reply_personal_robot_party`; keep all content out of the shared board.”
+   Approve this exact subscription/task when ChatGPT presents it. ChatGPT supplies
+   the callback URL/signing secret; nobody invents or pastes a callback/key.
+   Verify the event is visible, `events/subscribe` reaches this server, and its
+   signed challenge succeeds. Workspace policy may require an administrator.
+7. **Bart + implementation agent:** send an approved synthetic message through
+   the website, verify committed reload/fresh-session persistence, webhook
+   receipt in that same dot, one private reply, and its appearance on the website
+   with the bound connection ID. Then test guest/other-admin/other-robot denial,
+   expiry/revocation, identical retries and downtime. Only after this is the
+   installed connector’s private round trip verified.
 
-## Local validation
+Steps 2, 3, 5 and 6 require exact action-time approval under the source delegation.
+Step 4 can also require approval if permissions/connection scope change. This
+sequence is a plan, not a request to preapprove unspecified IDs or secrets.
+No sensitive activation action has been attempted or denied; all are pending.
 
-`tests/robot-party-personal.test.js` covers independent authorization failures,
-owner-selector rejection, safe status, no body consumption or queue on repeated
-POST, CSRF, draft retention/copy, disabled sending even with a forged connected
-response, and owner-only navigation when the board is unavailable. These are
-local injected-policy and actual-component-handler tests. Existing admin policy
-tests exercise verified Google identity and enrollment. No new RLS exists in
-this slice because no personal records are persisted.
+## Verification and remaining limits
 
-Authenticated hosted page/session and real dot delivery remain unverified.
+Local tests execute the candidate SQL in disposable PGlite plus the actual
+owner API, MCP handler, callback challenge/signature, outbox, private read/reply,
+and refreshed database reads. They cover guest/other-admin/other-robot isolation,
+shared-board exclusion, sender forgery, duplicate and altered retries, replacement
+channel history denial, revoked/expired access, lost receipts, leases, bounded
+attempts, terminal HTTP responses, encryption binding and key rotation, SSRF/IP
+pinning, failed challenges, disabled defaults, and UI recovery of an uncertain
+save. Network/ChatGPT receivers are injected synthetic fixtures, not live dots.
 
-Validation run on this branch with Node 22.23.2 and `npm ci --ignore-scripts` from
-the unchanged lockfile: Prisma validation passed; all 178 tests passed; production
-`npm run build` passed and includes both new dynamic routes. Prisma used a copy
-of its existing schema engine in `/tmp` because the normal cache is outside this
-task’s writable roots. An initial build with an external dependency symlink
-failed; installing dependencies inside the worktree resolved it.
+Node 22.23.2; locked dependencies installed locally with `npm ci --ignore-scripts`.
+Prisma validation uses the existing engine copied to writable `/tmp`. Record
+final full test/build/CI evidence in PR25. Active Prisma inventory is unchanged,
+so its validation does not certify promotion of the staged candidate.
 
-Desktop/mobile visual QA is **blocked**: Computer Use returned no browsers and
-reported that the Mac is locked and cannot be automatically unlocked. A local
-static fixture was generated under `/tmp/robot-party-personal-preview`, but it
-was not visually inspected. Layout rules and component tests are not substitute
-browser evidence. No production deployment or authenticated hosted check ran.
+Desktop/mobile browser review remains blocked: Computer Use reports the Mac
+locked and no available browser. Hosted schema activation, recovery drill,
+authenticated live RLS/reload checks, event rescan, real callback and actual dot
+reply are unverified. PR remains draft, unmerged, and production is unchanged.
+
+Final local verification for this prepared revision: Prisma validation passed,
+all 186 repository tests passed, production build passed, and `git diff --check`
+passed. Candidate SQL SHA-256:
+`849596d57e894597680be3a1f32f0e0de93747f0c158f5ce4794fe724fcb9c66`.
+The paused board checkout and all active migration/rollout files are unchanged.
