@@ -58,7 +58,7 @@ test('registered handlers receive verified owner and canonical slug with no-stor
   let received;
   const handle = createAppApi({ ...dependencies, getApp: async () => ({ ...app, api: { POST: async (_, ctx) => { received = ctx; return Response.json({ saved: true }, { headers: { 'Cache-Control': 'public, max-age=3600' } }); } } }) });
   const response = await handle(request('POST'), context(app.slug));
-  assert.deepEqual(received, { owner, slug: app.slug });
+  assert.deepEqual(received, { owner, slug: app.slug, dataOwnerId: owner.id, permission: 'owner' });
   assert.deepEqual(await response.json(), { saved: true });
   assert.match(response.headers.get('cache-control'), /private, no-store/);
 });

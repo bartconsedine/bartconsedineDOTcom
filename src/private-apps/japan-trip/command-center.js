@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { emptyPlan, MAX_BYTES, metrics, STATUSES, validatePlan } from './model';
 import './trip.css';
+import OptionExplorer from './option-explorer.js';
 
-const endpoint = '/api/admin/apps/japan-trip';
 const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
 const dateLabel = value => value ? new Date(`${value}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }) : 'Dates to decide';
 const newId = () => crypto.randomUUID();
@@ -15,7 +15,9 @@ function Notes({ label, value, onChange, maxLength = 3000 }) {
   return <label className="jp-field jp-wide"><span>{label}</span><textarea value={value} maxLength={maxLength} rows={3} onChange={event => onChange(event.target.value)}/></label>;
 }
 
-export default function JapanTrip() {
+export default function JapanTrip({ workspaceOwner, permission = 'owner' } = {}) {
+  const endpoint = '/api/admin/apps/japan-trip' + (workspaceOwner ? `?owner=${encodeURIComponent(workspaceOwner)}` : '');
+  const readOnly = permission === 'viewer';
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,7 +39,7 @@ export default function JapanTrip() {
       if (!response.ok) throw new Error('Could not load your plan. Check your sign-in and database connection, then retry.');
       const data = await response.json();
       const value = data.plan ? validatePlan(data.plan) : emptyPlan();
-      setPlan(value); setSavedAt(data.updatedAt); setDirty(Boolean(data.plan && !data.updatedAt));
+      setPlan(value); setSavedAt(data.updatedAt); setDirty(!readOnly && Boolean(data.plan && !data.updatedAt));
     } catch (failure) { setError(failure.message); }
     finally { setLoading(false); }
   }
@@ -50,6 +52,7 @@ export default function JapanTrip() {
   }, [dirty]);
 
   function change(next) {
+    if (readOnly) return;
     setPlan(next); setDirty(true); setMessage(''); setError('');
   }
   function patch(key, value) { change({ ...plan, [key]: value }); }
@@ -61,7 +64,7 @@ export default function JapanTrip() {
     patch(group, plan[group].filter(row => row.id !== id));
   }
   async function save() {
-    if (busy.current) return;
+    if (busy.current || readOnly) return;
     setError(''); setMessage('');
     try { validatePlan(plan); } catch (failure) { setError(failure.message); return; }
     busy.current = true; setSaving(true);
@@ -107,14 +110,17 @@ export default function JapanTrip() {
     </section>
     <div className="jp-toolbar">
       <p role="status">{saving ? 'Saving…' : dirty ? 'Unsaved changes' : savedAt ? `Saved ${new Date(savedAt).toLocaleString()}` : 'Start your plan or import a snapshot'}</p>
-      <button className="jp-primary" disabled={saving || !dirty} onClick={save}>{saving ? 'Saving…' : error && dirty ? 'Retry save' : 'Save changes'}</button>
+      <button className="jp-primary" disabled={saving || !dirty || readOnly} onClick={save}>{saving ? 'Saving…' : error && dirty ? 'Retry save' : 'Save changes'}</button>
     </div>
     {error && <p className="jp-alert" role="alert">{error}</p>}
     {message && <p className="jp-success" role="status">{message}</p>}
     {undo && <div className="jp-alert">Entry removed. <button disabled={saving} onClick={() => { const rows = [...plan[undo.group]]; rows.splice(undo.index, 0, undo.row); patch(undo.group, rows); setUndo(null); }}>Undo removal</button></div>}
-    <nav className="jp-tabs" aria-label="Trip sections">{['Overview', 'Itinerary', 'Bookings', 'Checklist', 'Trip settings'].map(name => <button key={name} aria-current={tab === name ? 'page' : undefined} onClick={() => setTab(name)}>{name}</button>)}</nav>
-    <fieldset className="jp-editor" disabled={saving}>
+    <nav className="jp-tabs" aria-label="Trip sections">{['Overview', 'Explore 10 options', 'Itinerary', 'Bookings', 'Checklist', 'Trip settings'].map(name => <button key={name} aria-current={tab === name ? 'page' : undefined} onClick={() => setTab(name)}>{name}</button>)}</nav>
+    {readOnly && <p className="jp-alert">View-only access · You can browse this shared plan. Only its owner and invited editors can save changes.</p>}
+    {tab === 'Explore 10 options' && <OptionExplorer plan={plan}/>}
+    <fieldset className="jp-editor" disabled={saving || readOnly}>
       {tab === 'Overview' && <>
+        <section className="jp-panel"><p className="jp-kicker">COMPARE YOUR ROUTES</p><h3>Ten ways to spend your Japan trip</h3><p>Explore maps, daily timelines, riding days and the tradeoffs of each itinerary.</p><button onClick={() => setTab('Explore 10 options')}>Browse 10 itineraries</button></section>
         <div className="jp-metrics">{[[countDays ?? '—', 'Trip days'], [stats.riding, 'Full riding days'], [`${stats.booked}/${stats.total}`, 'Bookings confirmed'], [money(stats.forecast), stats.unpriced ? 'Known costs · USD' : 'Forecast · USD']].map(([value, label]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}</div>
         {!plan.days.length && !plan.bookings.length && <section className="jp-empty"><h3>Your trip starts here.</h3><p>Import your reviewed trip snapshot, or add your dates, flights and first decisions.</p><button onClick={() => fileInput.current?.click()}>Import plan</button><button onClick={() => setTab('Trip settings')}>Set trip dates</button></section>}
         <div className="jp-columns">
@@ -147,6 +153,6 @@ export default function JapanTrip() {
       {importing && <section className="jp-import" role="region" aria-label="Review import"><h3>Review import: {importing.title}</h3><p>{dateLabel(importing.start)} – {dateLabel(importing.end)} · {importing.days.length} days · {importing.bookings.length} bookings · {importing.tasks.length} tasks</p><p>This replaces the current editor, including unsaved edits. The database changes only when you save.</p><button className="jp-primary" onClick={() => { change(importing); setImporting(null); setUndo(null); setTab('Overview'); }}>Use this plan</button><button onClick={() => setImporting(null)}>Cancel import</button></section>}
       <input ref={fileInput} type="file" accept="application/json,.json" aria-label="Import Japan plan JSON" className="sr-only" tabIndex={-1} onChange={readImport}/>
     </fieldset>
-    <footer className="jp-footer"><span>Private to your account · Save changes to keep your work</span>{plan.sourceUrl.startsWith('https://') && <a href={plan.sourceUrl} target="_blank" rel="noreferrer">Open canonical Sheet{plan.sourceReadAt ? ` · snapshot read ${dateLabel(plan.sourceReadAt)}` : ''}</a>}</footer>
+    <footer className="jp-footer"><span>{permission === 'owner' ? 'Your private app · Shared only with people you invite' : 'Shared app · Access is controlled by its owner'}</span>{plan.sourceUrl.startsWith('https://') && <a href={plan.sourceUrl} target="_blank" rel="noreferrer">Open canonical Sheet{plan.sourceReadAt ? ` · snapshot read ${dateLabel(plan.sourceReadAt)}` : ''}</a>}</footer>
   </div>;
 }

@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { authConfig, cookieOptions } from '@/lib/auth-config';
 import { serverClient } from '@/lib/supabase';
-import { verifyAdmin } from '@/lib/auth-policy';
+import { verifyWorkspace } from '@/lib/workspace-policy';
 
 export async function GET(request) {
   const config = authConfig();
@@ -21,7 +21,7 @@ export async function GET(request) {
     const supabase = await serverClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) return finish('/login?state=expired');
-    const admin = await verifyAdmin(supabase);
+    const admin = await verifyWorkspace(supabase);
     if (!admin.ok) {
       await supabase.auth.signOut({ scope: 'local' });
       return finish(`/login?state=${admin.reason}`);

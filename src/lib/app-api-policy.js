@@ -10,9 +10,10 @@ export function createAppApi({ checkAdmin, getApp, siteOrigin }) {
       else if (request.method === 'POST' && (!siteOrigin() || request.headers.get('origin') !== siteOrigin() || request.headers.get('sec-fetch-site') === 'cross-site')) response = json({ error: 'invalid_origin' }, 403);
       else {
         const { slug } = await params;
-        const app = await getApp(slug);
+        const app = await getApp(slug, new URL(request.url).searchParams.get('owner'));
         if (!app) response = json({ error: 'not_found' }, 404);
-        else if (app.api?.[request.method]) response = await app.api[request.method](request, { owner: access.user, slug: app.slug });
+        else if (request.method === 'POST' && app.access?.role === 'viewer') response = json({ error: 'read_only' }, 403);
+        else if (app.api?.[request.method]) response = await app.api[request.method](request, { owner: access.user, slug: app.slug, dataOwnerId: app.access?.ownerId ?? access.user.id, permission: app.access?.role ?? 'owner' });
         else if (request.method === 'GET') response = json({ app: { slug: app.slug, name: app.name, description: app.description } }, 200);
         else response = json({ error: 'method_not_allowed' }, 405);
       }

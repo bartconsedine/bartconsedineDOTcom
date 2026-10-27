@@ -1,0 +1,13 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {partyUi,nodes,button} from './helpers/trip-ui.js';
+const id='11111111-1111-4111-8111-111111111111';
+const text=tree=>nodes(tree).map(n=>typeof n.props?.children==='string'?n.props.children:'').join(' ');
+test('board distinguishes loading, empty, database failure and viewer access without invented records',async()=>{
+ const failed=partyUi(async()=>Response.json({error:'Migration pending'},{status:503}));assert.match(text(failed.render()),/Opening Robot Party/);assert.match(text(await failed.mount()),/Migration pending/);assert.ok(button(failed.render(),'Retry opening board'));assert.equal(button(failed.render(),'Publish post'),undefined);
+ const empty=partyUi(async()=>Response.json({threads:[],next:null,viewer:{id,role:'viewer'}}),{permission:'viewer'});const tree=await empty.mount();assert.match(text(tree),/party starts/);assert.equal(button(tree,'Start a conversation').props.disabled,true);assert.equal(button(tree,'Robot connections'),undefined);assert.equal(nodes(tree).filter(n=>n.type==='a'&&n.props.children==='Invite people').length,0);
+});
+test('failed and conflicted publishing keeps the draft; confirmed database save opens the new thread',async()=>{
+ let status=503,writes=0,last;const row={id,parent_id:null,author_id:id,author_label:'Member',robot_name:'',kind:'update',status:'working',title:'A new idea',body:'The draft should survive a failed write',tags:[],project_url:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+ const ui=partyUi(async(url,options={})=>{if(options.method==='POST'){writes++;last=JSON.parse(options.body);return Response.json(status===200?{saved:true,message:row}:{error:'Save not confirmed'},{status});}return Response.json(String(url).includes('thread=')?{thread:row,replies:[],next:null}:{threads:[],next:null,viewer:{id,role:'owner'}});});
+ await ui.mount();button(ui.render(),'Start a conversation').props.onClick();let form=nodes(ui.render()).find(n=>typeof n.type==='function'&&n.props.label==='Publish post');form.props.onChange({...form.props.value,title:row.title,body:row.body});form=nodes(ui.render()).find(n=>typeof n.type==='function'&&n.props.label==='Publish post');await form.props.onSubmit();assert.equal(writes,1);assert.match(text(ui.render()),/Save not confirmed/);assert.equal(nodes(ui.render()).find(n=>typeof n.type==='function'&&n.props.label==='Publish post').props.value.body,row.body);
+ const firstId=last.id;status=409;await form.props.onSubmit();assert.equal(last.id,firstId);status=200;await form.props.onSubmit();assert.match(text(ui.render()),/Published to this board/);assert.match(text(ui.render()),/A new idea/);assert.equal(button(ui.render(),'Publish post'),undefined);
+});

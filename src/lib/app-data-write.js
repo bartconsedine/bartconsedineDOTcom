@@ -1,4 +1,4 @@
-import { validateRevision } from './app-data-contracts.js';
+import { validateRevision } from './record-revision.js';
 
 // The caller supplies the independently verified admin and user-scoped client.
 export async function compareAndWrite(client, ownerId, slug, key, value, expectedAt) {

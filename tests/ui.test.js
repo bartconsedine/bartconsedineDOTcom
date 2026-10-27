@@ -32,8 +32,8 @@ function cleanMarkup(element) {
   assert.doesNotMatch(html, arrows, 'Rendered UI must not contain decorative arrows');
   return html;
 }
-const apps = [{ slug: 'sample', name: 'Sample app', description: 'A fixture', Component: () => React.createElement('p', null, 'App content') }];
-const auth = { requireAdmin: async () => {}, checkAdmin: async () => ({ ok: false }) };
+const apps = [{ slug: 'sample', name: 'Sample app', description: 'A fixture', href: '/admin/apps/sample', ownerId: 'owner', role: 'owner', access: {role:'owner',ownerId:'owner'}, Component: () => React.createElement('p', null, 'App content') }];
+const auth = { requireWorkspace: async () => ({isAdmin:true}), checkWorkspace: async () => ({ok:false}), requireAdmin: async () => {}, checkAdmin: async () => ({ ok: false }) };
 
 test('public text links keep destinations without decorative arrows', () => {
   const Home = component('app/page.js', { '@/components/work-grid': () => null });
@@ -57,7 +57,7 @@ test('admin navigation, sign-out POST, app cards and empty state keep working te
   appModule.listApps = async () => [];
   assert.match(cleanMarkup(await Home()), /Capture an app idea<\/a>/);
   const App = component('app/admin/apps/[slug]/page.js', { '@/lib/auth': auth, '@/lib/apps': { getApp: async () => apps[0] }, 'next/navigation': { notFound: () => { throw new Error('not found'); } } });
-  assert.match(cleanMarkup(await App({ params: Promise.resolve({ slug: 'sample' }) })), /href="\/admin">All apps<\/a>/);
+  assert.match(cleanMarkup(await App({ params: Promise.resolve({ slug: 'sample' }), searchParams: Promise.resolve({}) })), /href="\/admin">All apps<\/a>/);
 });
 
 test('Google sign-in keeps enabled, pending and unconfigured states with clean labels', async () => {
