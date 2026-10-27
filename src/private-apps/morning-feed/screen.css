@@ -1,0 +1,522 @@
+.morning {
+  --m-ink:#f6f0df;
+  --m-muted:#b0b7b6;
+  --m-line:#ffffff24;
+  --m-lime:#d9ed9c;
+  background:#142525;
+  color:var(--m-ink);
+  border:1px solid #354242;
+  border-radius:20px;
+  margin-top:24px;
+  padding:30px;
+  overflow-wrap:anywhere;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.morning * {
+  box-sizing:border-box;
+}
+.morning button,.morning a {
+  min-height:44px;
+}
+.morning button {
+  border:1px solid #ffffff40;
+  border-radius:999px;
+  padding:10px 17px;
+  background:transparent;
+  color:var(--m-ink);
+  font:inherit;
+  font-size:13px;
+}
+.morning button:hover:not(:disabled) {
+  background:#ffffff15;
+}
+.morning button:focus-visible,.morning a:focus-visible,.morning input:focus-visible,.morning textarea:focus-visible,.morning select:focus-visible,.morning summary:focus-visible {
+  outline:3px solid var(--m-lime);
+  outline-offset:3px;
+}
+.morning .morning-primary {
+  background:var(--m-lime);
+  color:#142525;
+  border-color:var(--m-lime);
+  font-weight:700;
+}
+.morning-top,.morning-actions,.morning-card-meta,.morning-section-head,.morning-card-footer,.morning-card-controls,.morning-footer,.morning-status {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  justify-content:space-between;
+}
+.morning-top {
+  flex-wrap:wrap;
+  padding-bottom:24px;
+  border-bottom:1px solid var(--m-line);
+}
+.morning-brand {
+  font-size:20px;
+  font-weight:700;
+  letter-spacing:-.8px;
+}
+.morning-brand>span {
+  font-size:30px;
+  color:var(--m-lime);
+  vertical-align:middle;
+  margin-right:6px;
+}
+.morning-tag {
+  font-size:9px;
+  letter-spacing:2px;
+  color:var(--m-muted);
+}
+.morning-actions {
+  flex-wrap:wrap;
+}
+.morning-hero {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:24px;
+  padding:44px 0 22px;
+  background:radial-gradient(ellipse at 90% 50%,#becf7d13,transparent 65%);
+}
+.morning .morning-kicker {
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:1.8px;
+  text-transform:uppercase;
+  color:var(--m-muted);
+  margin:0 0 16px;
+}
+.morning h2 {
+  font-size:clamp(32px,3.4vw,58px);
+  line-height:1.1;
+  letter-spacing:-2px;
+  font-weight:400;
+  margin:0;
+}
+.morning h2 em {
+  font-family:Georgia,serif;
+  font-weight:400;
+  color:var(--m-lime);
+}
+.morning-subtitle {
+  font-size:13px;
+  color:var(--m-muted);
+  line-height:1.8;
+  max-width:350px;
+}
+.morning-clock {
+  text-align:right;
+  flex-shrink:0;
+}
+.morning-clock strong {
+  display:block;
+  font-size:clamp(26px,3vw,54px);
+  letter-spacing:-2px;
+  font-weight:400;
+  font-variant-numeric:tabular-nums;
+}
+.morning-clock span {
+  display:block;
+  color:var(--m-muted);
+  font-size:10px;
+  letter-spacing:.7px;
+  margin-top:10px;
+}
+.morning-status {
+  min-height:60px;
+  margin-bottom:16px;
+}
+.morning-status p {
+  font-size:12px;
+  color:#dbe7ca;
+  line-height:1.6;
+}
+.morning-status [role=alert] {
+  color:#ffd0b3;
+}
+.morning-summary {
+  display:grid;
+  grid-template-columns:1.5fr 1fr;
+  gap:16px;
+}
+.morning-focus,.morning-progress {
+  border:1px solid var(--m-line);
+  border-radius:12px;
+  padding:24px;
+}
+.morning-focus {
+  background:#e9d7b9;
+  color:#253432;
+}
+.morning-focus .morning-kicker {
+  color:#52615a;
+}
+.morning-focus h3 {
+  font-family:Georgia,serif;
+  font-size:clamp(23px,2.1vw,36px);
+  font-weight:400;
+  line-height:1.3;
+  margin:0;
+  white-space:pre-wrap;
+}
+.morning-focus>p:last-child {
+  font-size:12px;
+  line-height:1.5;
+}
+.morning-progress strong {
+  font-size:38px;
+  font-weight:400;
+}
+.morning-progress strong span {
+  color:#738481;
+  font-size:22px;
+}
+.morning-progress>p:not(.morning-kicker) {
+  font-size:11px;
+  color:var(--m-muted);
+  line-height:1.6;
+}
+.morning progress {
+  width:100%;
+  height:5px;
+  border:0;
+  accent-color:var(--m-lime);
+  background:#394c47;
+  border-radius:3px;
+}
+.morning progress::-webkit-progress-bar {
+  background:#394c47;
+}
+.morning progress::-webkit-progress-value {
+  background:var(--m-lime);
+}
+.morning-section-head {
+  padding:30px 0 16px;
+}
+.morning-section-head h3 {
+  font-size:18px;
+  font-weight:400;
+  margin:0;
+}
+.morning-section-head>span {
+  font-size:10px;
+  color:var(--m-muted);
+}
+.morning-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+}
+.morning-card {
+  display:flex;
+  flex-direction:column;
+  border-radius:12px;
+  border:1px solid var(--m-line);
+  padding:23px;
+  background:#1c3030;
+}
+.morning-kind-briefing {
+  background:#2f353e;
+}
+.morning-kind-link {
+  background:#353a2e;
+}
+.morning-card-meta {
+  color:#b5bfb8;
+  font-size:9px;
+  letter-spacing:1px;
+  flex-wrap:wrap;
+}
+.morning-card h3 {
+  font-size:25px;
+  font-weight:400;
+  line-height:1.2;
+  margin:26px 0 12px;
+}
+.morning-card>p {
+  white-space:pre-wrap;
+  font-size:13px;
+  line-height:1.8;
+  color:#c0cac3;
+  margin:0 0 24px;
+}
+.morning-card-footer {
+  flex-wrap:wrap;
+  margin-top:auto;
+}
+.morning a {
+  display:inline-flex;
+  align-items:center;
+  font-size:12px;
+  color:var(--m-lime);
+}
+.morning-card button[aria-pressed=true] {
+  background:#d9ed9c;
+  color:#172a27;
+}
+.morning-empty {
+  padding:36px;
+  text-align:center;
+  border:1px dashed #829388;
+  border-radius:12px;
+  background:#ffffff03;
+}
+.morning-empty>span {
+  font-size:40px;
+  color:var(--m-lime);
+}
+.morning-empty h3 {
+  font-family:Georgia,serif;
+  font-size:29px;
+  font-weight:400;
+}
+.morning-empty p {
+  max-width:460px;
+  margin:0 auto 24px;
+  color:var(--m-muted);
+  font-size:13px;
+  line-height:1.8;
+}
+.morning-tv-help {
+  margin-top:30px;
+  padding:20px 0;
+  border-top:1px solid var(--m-line);
+  font-size:12px;
+  color:var(--m-muted);
+  line-height:1.9;
+}
+.morning-tv-help summary {
+  cursor:pointer;
+  color:var(--m-ink);
+  min-height:30px;
+}
+.morning-footer {
+  border-top:1px solid var(--m-line);
+  padding-top:20px;
+  flex-wrap:wrap;
+  font-size:8px;
+  letter-spacing:1.5px;
+  color:#a2aea5;
+  margin-top:16px;
+}
+.morning-editor {
+  border:1px solid #93a283;
+  border-radius:12px;
+  margin:0 0 24px;
+  padding:22px;
+  min-width:0;
+}
+.morning-editor legend {
+  font-family:Georgia,serif;
+  padding:0 8px;
+  font-size:22px;
+}
+.morning-editor label {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  font-size:12px;
+  line-height:1.7;
+  margin-bottom:16px;
+  min-width:0;
+}
+.morning-editor input,.morning-editor textarea,.morning-editor select {
+  width:100%;
+  min-width:0;
+  background:#102020;
+  border:1px solid #7e8a82;
+  color:var(--m-ink);
+  border-radius:6px;
+  padding:11px;
+  font:inherit;
+  font-size:16px;
+}
+.morning-editor textarea {
+  min-height:90px;
+  resize:vertical;
+}
+.morning-settings {
+  display:grid;
+  grid-template-columns:2fr 2fr 1fr;
+  gap:16px;
+}
+.morning-card-editor {
+  padding-top:22px;
+  margin-top:16px;
+  border-top:1px solid var(--m-line);
+}
+.morning-card-controls {
+  justify-content:flex-start;
+  margin-bottom:16px;
+  flex-wrap:wrap;
+}
+.morning-card-controls strong {
+  margin-right:auto;
+  font-size:12px;
+}
+.morning .morning-check {
+  flex-direction:row;
+  align-items:center;
+}
+.morning-check input {
+  width:20px;
+  height:20px;
+  accent-color:var(--m-lime);
+}
+.morning-feature {
+  margin-top:24px;
+  padding:36px;
+  border:1px solid var(--m-line);
+  border-radius:16px;
+  background:#ffffff06;
+  min-height:300px;
+}
+.morning-feature h3 {
+  font-size:clamp(32px,4vw,70px);
+  font-weight:400;
+  letter-spacing:-1px;
+  line-height:1.1;
+  margin:0 0 24px;
+}
+.morning-feature-body {
+  font-size:clamp(20px,2.1vw,36px);
+  line-height:1.65;
+  white-space:pre-wrap;
+  color:#d0d8ce;
+}
+.morning-slide-controls {
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:20px;
+  font-size:14px;
+  margin-top:16px;
+}
+.morning-display {
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  margin:0;
+  border:0;
+  border-radius:0;
+  padding:4vh 5vw;
+  overflow:auto;
+}
+.morning-display .morning-hero {
+  padding:3vh 0 1vh;
+}
+.morning-display .morning-hero h2 {
+  font-size:clamp(32px,4vw,72px);
+}
+.morning-display .morning-subtitle {
+  display:none;
+}
+.morning-display .morning-status {
+  min-height:28px;
+  margin:0;
+}
+.morning-display .morning-summary {
+  grid-template-columns:2fr 1fr;
+}
+.morning-display .morning-feature-body {
+  max-width:60ch;
+}
+.morning:fullscreen {
+  overflow:auto;
+}
+.morning-display .morning-footer {
+  font-size:12px;
+}
+@media(min-width:1600px) {
+  .morning-display .morning-top button,.morning-display .morning-status p {
+    font-size:18px;
+  }
+  .morning-display .morning-kicker {
+    font-size:15px;
+  }
+  .morning-display .morning-brand {
+    font-size:28px;
+  }
+  .morning-display .morning-focus h3 {
+    font-size:36px;
+  }
+}
+@media(max-width:850px) {
+  .morning-tag {
+    display:none;
+  }
+  .morning-hero {
+    align-items:flex-start;
+    flex-direction:column;
+    padding-top:30px;
+  }
+  .morning-clock {
+    text-align:left;
+  }
+  .morning-clock strong {
+    font-size:32px;
+  }
+  .morning-summary {
+    grid-template-columns:1fr;
+  }
+  .morning-settings {
+    grid-template-columns:1fr;
+  }
+  .morning-display .morning-hero {
+    flex-direction:row;
+  }
+  .morning-display .morning-summary {
+    grid-template-columns:1fr 1fr;
+  }
+}
+@media(max-width:540px) {
+  .morning {
+    padding:20px;
+    border-radius:12px;
+  }
+  .morning-grid {
+    grid-template-columns:1fr;
+  }
+  .morning-top {
+    gap:16px;
+  }
+  .morning-actions {
+    width:100%;
+    justify-content:flex-start;
+  }
+  .morning h2 {
+    font-size:35px;
+  }
+  .morning-summary {
+    gap:12px;
+  }
+  .morning-section-head {
+    align-items:flex-start;
+    gap:8px;
+    flex-direction:column;
+  }
+  .morning-empty {
+    padding:24px 16px;
+  }
+  .morning-display {
+    padding:20px;
+    border-radius:0;
+  }
+  .morning-display .morning-hero {
+    flex-direction:column;
+  }
+  .morning-display .morning-summary {
+    grid-template-columns:1fr;
+  }
+  .morning-feature {
+    padding:24px;
+  }
+  .morning-status {
+    align-items:flex-start;
+    flex-direction:column;
+    padding-bottom:16px;
+  }
+  .morning-editor {
+    padding:16px;
+  }
+}

@@ -36,3 +36,9 @@ On October 11, 2026, generated queries read Bart's saved plan from production, r
 ## Project board relational records
 
 Use `scripts/project-board-sql.mjs` for owner-scoped project/task reads and guarded per-row writes, following the same verified-project, fresh-read, requested-owner, protected-transfer and readback rules above. It rejects new/changed Google references; those require the browser API's live Google verification. See [the board contract](../src/private-apps/project-board/README.md). Do not use the whole-document app-data generator for these tables.
+
+## Morning signal
+
+The morning feed uses `morning-feed` / `screen-v1` with the shared `validateScreen` contract. Generate reads/writes with the same commands above, substituting `morning-feed` for `japan-trip`. Start absent records from `emptyScreen()`; preserve stable card IDs, card ordering, visibility and unrelated fields. The screen includes title, focus, time zone, slide interval and up to 24 ritual/briefing/link cards. See [the app README](../src/private-apps/morning-feed/README.md) for fields and limits.
+
+The morning API accepts `{ screen, expectedAt }`. All writers check the exact revision atomically. TV mode checks saved state every 30 seconds; ordinary editor views reload explicitly. Failed refreshes retain the previous snapshot with a visible stale notice. No external news, weather, calendar synchronization or device pairing is implied by saving a card. No new schema, enrollment or credentials are required. Local Postgres tests cover the new contract's roundtrip, stale writes, injection, identity denial and owner isolation; hosted acceptance remains unverified.
