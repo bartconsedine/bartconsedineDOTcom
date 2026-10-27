@@ -148,3 +148,10 @@ account and the plugin connection approval.
 
 Official setup reference: https://developers.openai.com/api/docs/guides/custom-mcp-server
 OAuth/CIMD reference: https://developers.openai.com/plugins/build/auth
+
+ChatGPT also sends the standard optional `ui_locales` display hint (for example,
+`en-US`). Accept a single bounded ASCII language-preference list and discard it
+before authorization; the interface currently remains English. It never changes
+client verification, callback, resource, PKCE, scope, state, board or role.
+Duplicate and unknown parameters still fail closed. See the
+[OpenID Connect authorization request reference](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest).

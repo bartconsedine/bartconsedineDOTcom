@@ -24,3 +24,15 @@ test('public token exchange accepts only code + S256 verifier for the exact reso
  assert.equal((await api(request({resource:'https://example.com'}))).status,400);assert.equal(calls,0);const response=await api(request());const token=await response.json();assert.match(token.access_token,/^rp_[A-Za-z0-9_-]{43}$/);assert.equal(token.token_type,'Bearer');assert.equal(token.scope,READ+' '+WRITE);assert.equal(args.p_challenge,challenge);assert.equal(args.p_token_hash,createHash('sha256').update(token.access_token).digest('hex'));assert.equal(response.headers.get('cache-control'),'private, no-store');
  assert.equal((await createTokenApi({origin:()=>origin,rpc:async()=>({error:{message:'invalid_grant'}})})(request())).status,400);
 });
+
+test('actual ChatGPT ui_locales hint reaches consent without changing authorization or relaxing duplicate and unknown parameter guards',async()=>{
+ const original=authorizationRequest(query(),origin);
+ for(const locale of ['en-US','fr-CA fr en','zh-Hant-TW','x-private']){const localized=query();localized.set('ui_locales',locale);assert.deepEqual(authorizationRequest(localized,origin),original);}
+ for(const locale of ['', 'en\nUS', '<script>', 'en_US', 'en  US', 'a'.repeat(257)]){const bad=query();bad.set('ui_locales',locale);assert.throws(()=>authorizationRequest(bad,origin));}
+ const duplicate=query();duplicate.append('ui_locales','en');duplicate.append('ui_locales','fr');assert.throws(()=>authorizationRequest(duplicate,origin));
+ const unknown=query();unknown.set('unsupported','hint');assert.throws(()=>authorizationRequest(unknown,origin));
+ let checked=false,written=false;const localized=query();localized.set('ui_locales','en-US');
+ const api=createConsentApi({origin:()=>origin,authorize:async()=>({ok:true,user:{id:owner},ownerId:owner,role:'owner'}),verify:async request=>{assert.deepEqual(request,original);checked=true;},rpc:async(_name,input)=>{assert.equal(input.p_role,'writer');assert.equal(input.p_resource,origin+'/api/robot-party/mcp');written=true;return{data:null};}});
+ const response=await api(new Request(origin+'/api/admin/robot-party/connect',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({owner,name:'My dot',authorization:localized.toString()})}));
+ assert.equal(response.status,200);assert.equal(checked,true);assert.equal(written,true);
+});

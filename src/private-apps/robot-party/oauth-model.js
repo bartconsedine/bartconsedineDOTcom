@@ -2,9 +2,11 @@ export const READ='robot-party:read',WRITE='robot-party:write';
 export const resourceFor=origin=>origin+'/api/robot-party/mcp';
 export const hashPattern=/^[A-Za-z0-9_-]{43}$/;
 export function authorizationRequest(search,origin){
- const keys=['client_id','redirect_uri','response_type','scope','state','code_challenge','code_challenge_method','resource'];
+ const keys=['client_id','redirect_uri','response_type','scope','state','code_challenge','code_challenge_method','resource','ui_locales'];
  if([...search.keys()].some(k=>!keys.includes(k)||search.getAll(k).length!==1))throw Error('Unsupported authorization request.');
  const value=Object.fromEntries(search);
+ // ChatGPT supplies this optional display hint. It never changes authorization.
+ if(value.ui_locales!==undefined){if(!/^[A-Za-z0-9-]+(?: [A-Za-z0-9-]+)*$/.test(value.ui_locales)||value.ui_locales.length>256)throw Error('Invalid language preference.');delete value.ui_locales;}
  if(value.response_type!=='code'||value.code_challenge_method!=='S256'||!hashPattern.test(value.code_challenge||''))throw Error('Authorization requires a code and S256 PKCE.');
  if(!/^https:\/\/chatgpt\.com\/oauth\/(?:[A-Za-z0-9_-]+\/)?client\.json$/.test(value.client_id||''))throw Error('Only the official ChatGPT OAuth client can connect here.');
  if(value.redirect_uri!=='https://chatgpt.com/connector_platform_oauth_redirect'&&!/^https:\/\/chatgpt\.com\/connector\/oauth\/[A-Za-z0-9_-]+$/.test(value.redirect_uri||''))throw Error('Unrecognized ChatGPT callback.');
