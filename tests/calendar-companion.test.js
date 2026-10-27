@@ -141,7 +141,8 @@ test('Google HTTP client paginates, uses private server requests and If-Match, n
 function harness() {
   let currentOwner = owner, denied = null, fail = false, connected = true, tick = 0;
   const rows = new Map(), google = fakeGoogle();
-  const api = createCalendarApi({ now: () => now, readAppData: async (slug, key) => { assert.equal(slug, SLUG); assert.equal(key, KEY); if (fail) throw Error('private storage details'); return rows.get(currentOwner.id) ?? null; }, compareAndWriteAppData: async (_slug, _key, value, expectedAt) => {
+  const api = createCalendarApi({ now: () => now, readAppData: async (slug, key, targetOwner) => { assert.equal(targetOwner, currentOwner.id); assert.equal(slug, SLUG); assert.equal(key, KEY); if (fail) throw Error('private storage details'); return rows.get(currentOwner.id) ?? null; }, compareAndWriteAppData: async (_slug, _key, value, expectedAt, targetOwner) => {
+    assert.equal(targetOwner, currentOwner.id);
     if (fail) throw Error('private storage details'); if ((rows.get(currentOwner.id)?.updated_at ?? null) !== expectedAt) return null;
     const updatedAt = new Date(now + ++tick).toISOString(); rows.set(currentOwner.id, { value: structuredClone(value), updated_at: updatedAt }); return updatedAt;
   }, googleSession: async () => { if (!connected) throw new CalendarError('Connect Google Calendar.', 428); return google; }, connectGoogle: async () => 'https://project.supabase.co/auth/v1/authorize' });
@@ -212,4 +213,16 @@ test('personal primary calendar is mandatory and receives every kind of new even
   assert.equal(google.rows.size, 0);
   google.calendars = async () => [{ id: 'other-writable', summary: 'Another calendar', accessRole: 'owner' }];
   await assert.rejects(snapshot(google, prefs, '2030-01', now), /personal Google account/);
+});
+
+
+test('workspace invitations cannot borrow another owner’s personal Google connection or preferences', async () => {
+  let touched = false;
+  const denied = async () => { touched = true; throw new Error('must not touch storage or Google'); };
+  const api = createCalendarApi({ readAppData: denied, compareAndWriteAppData: denied, googleSession: denied, connectGoogle: denied });
+  for (const access of [{ owner, dataOwnerId: 'other-owner', permission: 'editor' }, { owner, dataOwnerId: owner.id, permission: 'viewer' }]) {
+    assert.equal((await api.GET(new Request('https://site.example/api'), access)).status, 403);
+    assert.equal((await api.POST(new Request('https://site.example/api', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'connect' }) }), access)).status, 403);
+  }
+  assert.equal(touched, false);
 });

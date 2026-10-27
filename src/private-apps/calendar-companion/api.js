@@ -24,13 +24,14 @@ const exact = (body, keys) => { if (!body || typeof body !== 'object' || Array.i
 const result = error => { if (!(error instanceof CalendarError)) throw error; return Response.json({ error: error.message }, { status: error.status }); };
 
 export function createCalendarApi({ readAppData, compareAndWriteAppData, googleSession, connectGoogle, now = () => Date.now() }) {
-  async function preferences() {
-    const row = await readAppData(SLUG, KEY);
+  async function preferences(ownerId) {
+    const row = await readAppData(SLUG, KEY, ownerId);
     return { preferences: validatePreferences(row?.value ?? emptyPreferences()), updatedAt: row?.updated_at ?? null };
   }
   return {
-    async GET(request, { owner }) {
-      const saved = await preferences();
+    async GET(request, { owner, dataOwnerId, permission }) {
+      if ((dataOwnerId && dataOwnerId !== owner.id) || (permission && permission !== 'owner')) return Response.json({ error: 'Your personal calendar cannot be opened through another workspace owner.' }, { status: 403 });
+      const saved = await preferences(owner.id);
       let google;
       try {
         google = await googleSession(owner);
@@ -50,21 +51,22 @@ export function createCalendarApi({ readAppData, compareAndWriteAppData, googleS
         return Response.json({ ...saved, connection: error.status === 428 ? 'required' : 'error', error: error.message, calendars, events: [], loadedAt: null });
       }
     },
-    async POST(request, { owner }) {
+    async POST(request, { owner, dataOwnerId, permission }) {
       try {
+        if ((dataOwnerId && dataOwnerId !== owner.id) || (permission && permission !== 'owner')) throw new CalendarError('Your personal calendar cannot be changed through another workspace owner.', 403);
         const body = await bodyOf(request);
         if (body?.op === 'connect') { exact(body, ['op']); return Response.json({ url: await connectGoogle(owner) }); }
         if (body?.op === 'preferences') {
           exact(body, ['op', 'value', 'expectedAt']);
           let value, expectedAt;
           try { value = validatePreferences(body.value); expectedAt = validateRevision(body.expectedAt); } catch (e) { throw new CalendarError(e.message, 400); }
-          const updatedAt = await compareAndWriteAppData(SLUG, KEY, value, expectedAt);
+          const updatedAt = await compareAndWriteAppData(SLUG, KEY, value, expectedAt, owner.id);
           if (!updatedAt) throw new CalendarError('Preferences changed in another tab or chat. Download your draft, refresh, and reconcile.', 409);
           return Response.json({ saved: true, updatedAt });
         }
         if (body?.op === 'event') {
           exact(body, ['op', 'change']); validateEventChange(body.change);
-          const saved = await preferences();
+          const saved = await preferences(owner.id);
           const google = await googleSession(owner);
           return Response.json(await saveGoogleEvent(google, saved.preferences, owner, body.change, now()));
         }
