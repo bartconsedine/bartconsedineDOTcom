@@ -73,6 +73,7 @@ model RobotPartyRobot {
  owner_id String @db.Uuid
  created_by String @db.Uuid
  name String
+ grant_revision DateTime? @db.Timestamptz(6)
  token_hash String @unique
  role String
  expires_at DateTime @default(dbgenerated("now() + interval '90 days'")) @db.Timestamptz(6)

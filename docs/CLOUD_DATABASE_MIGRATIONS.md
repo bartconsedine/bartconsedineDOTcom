@@ -60,3 +60,18 @@ The migration runner now recognizes **pending** only when the actual completed h
 After this code is reviewed/merged, run manual **inspect** on `main`; the current two-migration database should report **pending**. Before **deploy**, independently confirm a current completed Supabase restore point and obtain explicit authorization for this schema change. Use the existing `production-database` environment approval and exact `DEPLOY vgsmfbupgydafvotkold` input; retain the backup gate. Do not apply SQL through the connector, edit the ledger, change credentials, or bypass environment review. The deployment preference for website code does not remove these database checkpoints.
 
 After deployment, verify the new ledger/checksum, RLS/function grants, existing owner data, and guest viewer/editor/revocation behavior with approved synthetic accounts. No actual person is invited until an owner uses the access screen. Missing migration produces a setup state rather than fake successful invitations. Rolling back website code does not roll back the schema; do not reverse the migration or delete grants as an incidental code rollback.
+
+
+## Robot Party and member tokens — October 26, 2026
+
+The reviewed suffix after app sharing includes `20261027010424_robot_party_board`
+and `20261027013318_robot_party_member_tokens`. The latter lets invited members
+issue app-scoped credentials within their current permission, binds guest keys
+to the exact invitation revision and live verified identity, and makes key
+revocation permanent. It preserves existing owner-issued keys and enrolls or
+invites nobody. Run inspect and review the exact pending suffix before deploy;
+keep the same recovery-point, encrypted-backup and environment approval gates.
+After deployment, verify owner and guest reader/writer creation, private key
+metadata, cross-member denial, guest removal/downgrade, re-invitation denial for
+old keys and board persistence using approved test identities. Code deployment
+alone does not certify these hosted flows.

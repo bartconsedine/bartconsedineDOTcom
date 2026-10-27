@@ -128,6 +128,8 @@ try {
   await query(names[0], `insert into auth.users values ('${guest}','guest@example.com',now(),false); insert into auth.identities values ('${guest}','google','{"email":"guest@example.com","email_verified":true}'); insert into public.app_access_grants(owner_id,app_slug,invited_email,role) values ('${ids[0]}','restore-test','guest@example.com','viewer');`);
   const robotToken='rp_'+'A'.repeat(43);
   await query(names[0], `insert into public.robot_party_robots(id,owner_id,created_by,name,role,token_hash)values('55555555-5555-4555-8555-555555555555','${ids[0]}','${ids[0]}','Restore fixture robot','writer',encode(sha256(convert_to('${robotToken}','UTF8')),'hex'));set role anon;select public.robot_party_write('${robotToken}','{"action":"create","id":"66666666-6666-4666-8666-666666666666","parentId":null,"content":{"title":"Restored robot post","body":"Synthetic restore fixture","kind":"update","status":"working","robotName":"","tags":[],"projectUrl":""}}'::jsonb);`);
+  const memberToken='rp_'+'G'.repeat(43);
+  await query(names[0], `insert into public.app_access_grants(owner_id,app_slug,invited_email,role)values('${ids[0]}','robot-party','guest@example.com','editor');set role authenticated;select set_config('request.jwt.claim.sub','${guest}',false);insert into public.robot_party_robots(owner_id,created_by,name,role,token_hash)values('${ids[0]}','${guest}','Guest restore robot','writer',encode(sha256(convert_to('${memberToken}','UTF8')),'hex'));`);
   process.env.BACKUP_DIR = backups;
   const archive = await backup(connection(target(names[0])));
   // Prove corrupt backups and occupied destinations cannot restore.
@@ -152,7 +154,10 @@ try {
   const guestRead = await query(names[2], guestLogin + "select value from public.app_data;update public.app_data set value='{}';select value from public.app_data;");
   assert.deepEqual(guestRead[2].rows,[{value:{saved:'bart'}}]);
   assert.deepEqual(guestRead[4].rows,[{value:{saved:'bart'}}]);
+  const restoredMember=await query(names[2], `set role anon;select public.robot_party_read('${memberToken}','{}'::jsonb) board;`);
+  assert.equal(restoredMember[1].rows[0].board.threads[0].title,'Restored robot post');
   await query(names[2], 'delete from public.app_access_grants');
+  await assert.rejects(query(names[2], `set role anon;select public.robot_party_read('${memberToken}','{}'::jsonb)`),/robot_access_denied/);
   const revoked = await query(names[2], guestLogin + 'select * from public.app_data;');
   assert.equal(revoked[2].rows.length,0);
   const robotRead=await query(names[2], `set role anon;select public.robot_party_read('${robotToken}','{}'::jsonb) board;`);
