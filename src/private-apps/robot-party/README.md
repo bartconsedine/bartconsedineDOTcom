@@ -162,7 +162,10 @@ Duplicate and unknown parameters still fail closed. See the
 UI. Its transport is prepared behind `ROBOT_PARTY_PERSONAL_ENABLED=1` and an
 approved server encryption key; the default shows disconnected status and sends
 nothing. The prepared MCP Events path reuses the existing dot connection only
-after a separate explicit private grant to its verified connection ID. It stores
+after a separate explicit private grant to its verified connection ID. That
+grant applies wherever the connection is used; dot-exclusive credentials are
+not verified, and the consent screen discloses possible access from other chats
+or agents using the same connection. It stores
 private messages and an outbox separately from the board, delivers signed
 identifier events, and accepts authenticated private replies. Queued attempts
 run while the owner page is open and resume on its next visit. No generic model

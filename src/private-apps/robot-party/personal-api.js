@@ -24,10 +24,11 @@ export function createPersonalApi({ authorize, siteOrigin, configuration = () =>
       const snapshot = async () => {
         const value = await storage.owner('snapshot', {});
         let verified = false;
-        if (value.channel && value.subscription) {
+        if (value.connectionActive === true && value.channel && value.subscription) {
           try { unseal(value.subscription, value.channel, config.key); verified = true; } catch { /* Invalid/rotated ciphertext cannot enable sending. */ }
         }
         return { setupReady: true, state: verified ? 'connected' : 'disconnected', canSend: verified, canQueue: verified, identityVerified: verified,
+          connectionActive: value.connectionActive === true, hasPendingDelivery: value.hasPendingDelivery === true,
           channelId: value.channel?.id ?? null, connectionId: value.channel?.robot_id ?? null,
           subscriptionExpiresAt: verified ? value.subscription.expires_at : null, messages: value.messages };
       };

@@ -116,6 +116,6 @@ test('connected UI sends only to its private endpoint, recovers a lost save rece
   messages.push({ id: 'reply', sender: 'dot', robot_id: connectionId, body: 'Synthetic private answer' });
   await button(ui.render(), 'Check connection').props.onClick();
   assert.match(text(ui.render()), /Synthetic private answer/);
-  assert.match(text(ui.render()), /Bound dot connection/);
+  assert.match(text(ui.render()), /Bound connection/);
   assert.ok(requests.every(request => request.url === '/api/admin/robot-party/personal'));
 });

@@ -62,7 +62,7 @@ create function private.robot_party_personal_owner(p_action text,p_input jsonb) 
 language plpgsql security definer set search_path='' as $$
 declare who uuid:=auth.uid(); c public.robot_party_personal_channels; r public.robot_party_robots;
  s private.robot_party_personal_subscriptions; m public.robot_party_personal_messages;
- o private.robot_party_personal_outbox; target uuid; lease uuid; rows jsonb;
+ o private.robot_party_personal_outbox; target uuid; lease uuid; rows jsonb; connection_active boolean:=false;
 begin
  if who is null or not private.is_site_admin() then raise exception using errcode='42501',message='personal_access_denied'; end if;
  if jsonb_typeof(p_input)<>'object' then raise exception using errcode='22023',message='Invalid input'; end if;
@@ -88,17 +88,18 @@ begin
  end if;
  if c.id is not null then
   select * into r from public.robot_party_robots where id=c.robot_id and owner_id=who and created_by=who and role='writer' and revoked_at is null and expires_at>clock_timestamp();
-  if not found then c.id:=null; end if;
+  connection_active:=found;
  end if;
- if c.id is not null then select * into s from private.robot_party_personal_subscriptions where channel_id=c.id and active and expires_at>clock_timestamp(); end if;
+ if connection_active then select * into s from private.robot_party_personal_subscriptions where channel_id=c.id and active and expires_at>clock_timestamp(); end if;
  if p_action='snapshot' then
   if p_input<>'{}'::jsonb then raise exception using errcode='22023',message='Invalid snapshot'; end if;
   select coalesce(jsonb_agg(to_jsonb(v) order by v.seq),'[]'::jsonb) into rows from(
    select msg.*,delivery_row.state delivery,delivery_row.attempts from public.robot_party_personal_messages msg left join private.robot_party_personal_outbox delivery_row on delivery_row.message_id=msg.id where msg.owner_id=who and msg.channel_id=c.id order by msg.seq desc limit 100
   )v;
-  return jsonb_build_object('channel',case when c.id is null then null else to_jsonb(c) end,'subscription',case when s.id is null then null else to_jsonb(s) end,'messages',rows);
+  return jsonb_build_object('channel',case when c.id is null then null else to_jsonb(c) end,'connectionActive',connection_active,'subscription',case when s.id is null then null else to_jsonb(s) end,'messages',rows,
+   'hasPendingDelivery',exists(select 1 from private.robot_party_personal_outbox where channel_id=c.id and state='queued'));
  end if;
- if c.id is null or s.id is null then raise exception using errcode='42501',message='personal_disconnected'; end if;
+ if c.id is null or not connection_active or s.id is null then raise exception using errcode='42501',message='personal_disconnected'; end if;
  if p_action='send' then
   if (select count(*) from jsonb_object_keys(p_input))<>3 or not p_input ?& array['id','channelId','body'] or jsonb_typeof(p_input->'body')<>'string' or length(btrim(p_input->>'body')) not between 1 and 8000 or (p_input->>'channelId')::uuid<>c.id then raise exception using errcode='22023',message='Invalid message'; end if;
   target:=(p_input->>'id')::uuid;

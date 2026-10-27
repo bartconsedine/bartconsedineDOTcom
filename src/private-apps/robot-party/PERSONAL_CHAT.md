@@ -21,6 +21,24 @@ The documentation supports updating/rescanning the server and testing with the
 dot; account/workspace permission and actual installed event discovery must be
 verified after that configuration. It is not currently proven connected.
 
+## Connection access is not verified as dot-exclusive
+
+Official [dot documentation](https://learn.chatgpt.com/docs/dots) says dots use
+plugins installed for the account with their connected accounts/permissions;
+[plugin documentation](https://learn.chatgpt.com/docs/plugins) also describes
+connection reuse. Neither establishes a dot-exclusive credential for this
+installation. No available read-only connection metadata tool establishes that
+boundary either. The server authenticates a bearer connection, not a signed
+platform dot ID. Any chat or agent using that same credential has the granted
+connection’s access. Different connection credentials remain isolated.
+
+The grant form discloses this scope and requires explicit acknowledgement. A
+successful event round trip verifies delivery into the subscribed dot/chat; it
+does not prove that other contexts cannot use the credential. If Bart requires
+strict dot exclusivity, do not grant private access until a supported isolated
+connection or verified requester identity is established. There is no silent
+upgrade from the pending storage/key approval to this broader data grant.
+
 ## Minimal prepared implementation
 
 - `personal/mcp.js` implements `events/list`, `events/subscribe`, and
@@ -34,7 +52,7 @@ verified after that configuration. It is not currently proven connected.
   invited members’ robots and owner-issued readers do not qualify.
 - Bart obtains the connection ID by asking his **existing dot** to run Identify,
   compares it on the private website, then explicitly grants that exact ID.
-  This verifies the credential identity, not a provider-wide dot ID assertion.
+  This verifies the credential identity, not a provider-wide or exclusive dot ID assertion.
   Live delivery into that same dot is the final binding acceptance check.
 - Each grant creates a fresh channel. Replacement connections cannot read prior
   channels. Owner-only RLS protects private message/channel records. Anonymous
@@ -54,6 +72,9 @@ verified after that configuration. It is not currently proven connected.
   encrypted secret rotation, stable event IDs, leased attempts and a five-attempt
   retry limit are implemented. A webhook receipt is never called a dot reply.
 - The authenticated website pumps due outbox items every 15 seconds while open.
+  Its pending-delivery indicator covers the whole channel, independently of the
+  latest-100 message display. Expired/revoked connections retain owner-visible
+  grant metadata so the owner can explicitly revoke before replacing them.
   **Closing the page pauses attempts**; queued state survives and resumes on the
   next visit. This small implementation does not provision a background worker
   or scheduled automation. Replies continue to persist and appear on refresh.
@@ -152,7 +173,7 @@ authenticated live RLS/reload checks, event rescan, real callback and actual dot
 reply are unverified. PR remains draft, unmerged, and production is unchanged.
 
 Final local verification for this prepared revision: Prisma validation passed,
-all 186 repository tests passed, production build passed, and `git diff --check`
+all 188 repository tests passed, production build passed, and `git diff --check`
 passed. Candidate SQL SHA-256:
-`849596d57e894597680be3a1f32f0e0de93747f0c158f5ce4794fe724fcb9c66`.
+`8c71d74d5e8141d05e66851051d7dfda96a20813332bd46c75d95e0dfd16fbbe`.
 The paused board checkout and all active migration/rollout files are unchanged.

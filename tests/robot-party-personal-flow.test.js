@@ -184,3 +184,73 @@ test('durable outbox leases, lost receipts, bounded retries, terminal responses,
     assert.ok(sub.id);
   } finally { await db.close(); }
 });
+
+test('outbox delivery resumes even when every queued message is outside the latest-100 history page', { timeout: 20000 }, async () => {
+  const db = await setup();
+  try {
+    const channelId = randomUUID(); await ownerCall(db, 'grant', { id: channelId, robotId: robot });
+    const rpc = async (_name, args) => { await asAnon(db); return { data: await robotCall(db, args.p_action, args.p_input, args.p_token) }; };
+    const personal = createPersonalMcp({ rpc, key, send: async (_url, body) => ({ status: 200, text: JSON.stringify({ challenge: JSON.parse(body).challenge }) }) });
+    await personal.events('events/subscribe', { name: 'personal.message.created', arguments: { channel_id: channelId }, delivery: { mode: 'webhook', url: 'https://callback.example/synthetic', secret } }, token);
+    await login(db, owner);
+    const oldest = randomUUID(); await ownerCall(db, 'send', { id: oldest, channelId, body: 'Synthetic hidden queued message' });
+    for (let n = 0; n < 100; n++) await ownerCall(db, 'send', { id: randomUUID(), channelId, body: 'Synthetic newer message ' + n });
+    await db.exec('reset role;'); await db.query("update private.robot_party_personal_outbox set state='received' where message_id<>$1", [oldest]); await login(db, owner);
+    const storage = { owner: (action, input) => ownerCall(db, action, input) }, events = [];
+    let completeDelivery; const delivered = new Promise(resolve => { completeDelivery = resolve; });
+    const api = createPersonalApi({ authorize: async () => ({ ok: true, user: { id: owner } }), siteOrigin: () => origin, configuration: () => ({ key }), storage,
+      deliver: async (store, encryption) => { const result = await dispatchOne(store, encryption, async (_url, body) => { events.push(JSON.parse(body).eventId); return { status: 204 }; }); completeDelivery(); return result; },
+    });
+    const before = await (await api(new Request(origin + '/api/admin/robot-party/personal'))).json();
+    assert.equal(before.messages.length, 100);
+    assert.ok(before.messages.every(message => message.delivery === 'received'));
+    assert.equal(before.hasPendingDelivery, true);
+    assert.ok(!before.messages.some(message => message.id === oldest));
+    const { personalUi } = await import('./helpers/trip-ui.js');
+    const ui = personalUi((url, options = {}) => api(new Request(origin + url, { ...options, headers: { ...options.headers, Origin: origin } })));
+    await ui.mount(); await delivered;
+    assert.deepEqual(events, [oldest]);
+    assert.equal((await ownerCall(db, 'snapshot')).hasPendingDelivery, false);
+    await login(db, other); assert.equal((await ownerCall(db, 'snapshot')).hasPendingDelivery, false);
+  } finally { await db.close(); }
+});
+
+test('expired or revoked approved connections remain owner-visible for explicit revocation before a fresh grant', async () => {
+  const db = await setup();
+  try {
+    const channelId = randomUUID(); await ownerCall(db, 'grant', { id: channelId, robotId: robot });
+    const rpc = async (_name, args) => { await asAnon(db); return { data: await robotCall(db, args.p_action, args.p_input, args.p_token) }; };
+    const personal = createPersonalMcp({ rpc, key, send: async (_url, body) => ({ status: 200, text: JSON.stringify({ challenge: JSON.parse(body).challenge }) }) });
+    await personal.events('events/subscribe', { name: 'personal.message.created', arguments: { channel_id: channelId }, delivery: { mode: 'webhook', url: 'https://callback.example/synthetic', secret } }, token);
+    await login(db, owner);
+    const storage = { owner: (action, input) => ownerCall(db, action, input) };
+    const api = createPersonalApi({ authorize: async () => ({ ok: true, user: { id: owner } }), siteOrigin: () => origin, configuration: () => ({ key }), storage });
+    assert.equal((await (await api(new Request(origin + '/api/admin/robot-party/personal'))).json()).canSend, true);
+    const { personalUi, nodes, button } = await import('./helpers/trip-ui.js');
+    for (const patch of ["revoked_at=clock_timestamp()", "created_at=now()-interval '91 days',expires_at=now()-interval '2 days'"]) {
+      await db.exec('reset role;begin;');
+      await db.exec('update public.robot_party_robots set ' + patch + " where id='" + robot + "'"); await login(db, owner);
+      const response = await api(new Request(origin + '/api/admin/robot-party/personal'));
+      const snapshot = await response.json();
+      assert.equal(snapshot.channelId, channelId);
+      assert.equal(snapshot.connectionId, robot);
+      assert.equal(snapshot.connectionActive, false);
+      assert.equal(snapshot.canSend, false);
+      assert.equal(snapshot.identityVerified, false);
+      assert.equal(snapshot.state, 'disconnected');
+      await db.exec('savepoint rejected_replacement;');
+      await assert.rejects(ownerCall(db, 'grant', { id: randomUUID(), robotId: secondRobot }), /personal_conflict/);
+      await db.exec('rollback to savepoint rejected_replacement;');
+      const ui = personalUi((url, options = {}) => api(new Request(origin + url, { ...options, headers: { ...options.headers, Origin: origin } })));
+      await ui.mount(); await button(ui.render(), 'Check connection').props.onClick();
+      assert.equal(button(ui.render(), 'Send to your dot').props.disabled, true);
+      assert.ok(nodes(ui.render()).some(node => node.type === 'p' && typeof node.props.children === 'string' && node.props.children.includes('expired, revoked, or no longer eligible')));
+      await button(ui.render(), 'Revoke this private channel').props.onClick();
+      assert.equal((await ownerCall(db, 'snapshot')).channel, null);
+      const replacement = randomUUID(); await ownerCall(db, 'grant', { id: replacement, robotId: secondRobot });
+      assert.equal((await ownerCall(db, 'snapshot')).channel.id, replacement);
+      await login(db, other); assert.equal((await ownerCall(db, 'snapshot')).channel, null);
+      await db.exec('reset role;rollback;');
+    }
+  } finally { await db.close(); }
+});
