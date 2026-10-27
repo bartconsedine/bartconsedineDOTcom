@@ -51,3 +51,9 @@ Use Node 22.23.2 and `npm run db:validate`, `npm test`, `npm run build`. Tests c
 Hosted consent, live Google read/create/edit/reload from a fresh session, a second household Google account, actual device notification delivery and deployed browser QA remain unverified until the authorized rollout and user consent. No real Google or hosted database records were written during development. This PR remains stacked on #12's guarded app-data infrastructure; merge that dependency and recheck the retargeted PR before authorized release.
 
 References: [Google event insertion](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert), [expanded events and pagination](https://developers.google.com/workspace/calendar/api/v3/reference/events/list), [Google etag preconditions](https://developers.google.com/workspace/calendar/api/guides/version-resources), [Google extended properties](https://developers.google.com/workspace/calendar/api/guides/extended-properties), [Supabase Google OAuth](https://supabase.com/docs/guides/auth/social-sign-in/auth-google).
+
+## Release integration — October 27, 2026
+
+Reconciled the calendar branch with current main and the merged app-data dependency, preserving Robot Party's allowlisted login continuation alongside the fixed calendar return cookie. Regression tests cover both destinations and reject external redirects. The original repository checkout remains untouched.
+
+Release validation exposed published vulnerabilities in the previously pinned Next.js 16.4.0. Updated to the official patched 16.4.1 release and compatible security patches for the existing development-only undici/fast-uri dependencies; npm audit reports zero vulnerabilities. See <https://nextjs.org/blog/nextjs-security-update-october-14-2026>. No authentication scope, credential, membership or schema change is included in this security update.
