@@ -2,6 +2,7 @@ import 'server-only';
 import { requireAdmin } from './auth';
 import { createAppRegistry } from './app-registry';
 import CalendarCompanion from '@/private-apps/calendar-companion/planner';
+import { googleSession, connectGoogle } from '@/private-apps/calendar-companion/google-session';
 import { createCalendarApi } from '@/private-apps/calendar-companion/api';
 import JapanTrip from '@/private-apps/japan-trip/command-center';
 import { createTripApi } from '@/private-apps/japan-trip/api';
@@ -16,8 +17,8 @@ const registry = createAppRegistry([{
   Component: JapanTrip, api: createTripApi({ readAppData, compareAndWriteAppData, startingPlan }),
 }, {
   slug: 'calendar-companion', name: 'Calendar companion',
-  description: 'Make time together. Plan ahead, book sitters and keep coverage visible.',
-  Component: CalendarCompanion, api: createCalendarApi({ readAppData, compareAndWriteAppData }),
+  description: 'Your Google calendars, family birthdays and sitter plans. More time for the good things.',
+  Component: CalendarCompanion, api: createCalendarApi({ readAppData, compareAndWriteAppData, googleSession, connectGoogle }),
 }], requireAdmin);
 
 export async function listApps() {

@@ -1,5 +1,7 @@
+import { authReturnPath } from '@/lib/auth-return';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { authConfig } from '@/lib/auth-config';
+import { authConfig, cookieOptions } from '@/lib/auth-config';
 import { serverClient } from '@/lib/supabase';
 import { verifyAdmin } from '@/lib/auth-policy';
 
@@ -24,6 +26,9 @@ export async function GET(request) {
       await supabase.auth.signOut({ scope: 'local' });
       return finish(`/login?state=${admin.reason}`);
     }
-    return finish('/admin');
+    const jar = await cookies();
+    const destination = authReturnPath(jar.get('bc-calendar-return')?.value);
+    jar.set('bc-calendar-return', '', { ...cookieOptions, path: '/auth/callback', maxAge: 0 });
+    return finish(destination);
   } catch { return finish('/login?state=unavailable'); }
 }

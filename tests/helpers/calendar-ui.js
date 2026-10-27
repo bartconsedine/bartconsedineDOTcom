@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
 import * as model from '../../src/private-apps/calendar-companion/model.js';
-import * as calendar from '../../src/private-apps/calendar-companion/calendar.js';
+import * as preferences from '../../src/private-apps/calendar-companion/preferences.js';
+import * as viewModel from '../../src/private-apps/calendar-companion/view-model.js';
 const require = createRequire(import.meta.url);
 const { transformSync } = require('next/dist/compiled/babel/core');
 
@@ -18,6 +19,7 @@ export function calendarUi(fetcher, initial = []) {
   });
   const module = { exports: {} };
   const hooks = {
+    useMemo(compute) { return compute(); },
     useState(value) { const slot = index++; if (!(slot in states)) states[slot] = value; return [states[slot], next => { states[slot] = typeof next === 'function' ? next(states[slot]) : next; }]; },
     useRef(value) { const slot = index++; if (!(slot in states)) states[slot] = { current: value }; return states[slot]; },
     useEffect(effect) { const slot = index++; if (!effectSlots.has(slot)) { effectSlots.add(slot); effects.push(effect); } },
@@ -25,7 +27,8 @@ export function calendarUi(fetcher, initial = []) {
   runInNewContext(code, { module, exports: module.exports, fetch: fetcher, TextEncoder, URL, Blob, crypto: globalThis.crypto, setInterval: () => 1, clearInterval() {}, setTimeout, Intl, window: { addEventListener() {}, removeEventListener() {}, confirm: () => true }, require: id => {
     if (id === 'react') return hooks;
     if (id === './model') return model;
-    if (id === './calendar') return calendar;
+    if (id === './preferences') return preferences;
+    if (id === './view-model') return viewModel;
     if (id.endsWith('.css')) return {};
     if (id === 'react/jsx-runtime') return require(id);
     throw new Error(`Unexpected dependency: ${id}`);

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { appDataSql } from '../scripts/app-data-sql.mjs';
-import { emptyPlanner } from '../src/private-apps/calendar-companion/model.js';
+import { emptyPreferences } from '../src/private-apps/calendar-companion/preferences.js';
 import { emptyPlan } from '../src/private-apps/japan-trip/model.js';
 import { compareAndWrite } from '../src/lib/app-data-write.js';
 
@@ -104,11 +104,11 @@ test('user-session writer uses atomic revision predicates and returns only confi
 });
 
 
-test('calendar document roundtrip uses real Postgres revision guards and owner RLS', async () => {
+test('calendar preferences roundtrip uses real Postgres revision guards and owner RLS', async () => {
   const db = await database();
   const scope = { slug: 'calendar-companion', email: 'bartconsedine@gmail.com' };
   try {
-    const value = { ...emptyPlanner(), ideas: ['Dinner together'] };
+    const value = { ...emptyPreferences(), ideas: ['Dinner together'] };
     const write = expectedAt => db.query(appDataSql({ ...scope, operation: 'write', value, expectedAt }));
     assert.equal((await write(null)).rows[0].saved, true);
     const read = () => db.query(appDataSql({ ...scope, operation: 'read' }));

@@ -23,6 +23,8 @@ Do not use localStorage, sessionStorage, IndexedDB, cookies, local JSON/CSV file
 
 A stateless calculation does not need to write every keystroke to the database. If the app promises saved inputs, results, drafts, or preferences, persist them in Supabase. A cache or optimistic UI may reflect database state but must be disposable and reconciled with it; never serve one user's private data from a shared cache.
 
+Calendar companion has an explicit user-approved exception: Google Calendar is the source of truth for its events, birthdays, sitter coverage and booking reminders. Supabase stores only owner-scoped planning preferences and ideas; live Google reads produce disposable views. Google calendar ACLs control event sharing. See its [integration contract](../src/private-apps/calendar-companion/README.md). This exception does not change storage requirements for other apps.
+
 For external integrations, store the app's imported snapshot, external identifiers, sync status, and last successful sync in Supabase. Show when data is stale. The external service still controls its own resources; do not imply a remote action succeeded merely because a local database row was written.
 
 ## Data and save behavior

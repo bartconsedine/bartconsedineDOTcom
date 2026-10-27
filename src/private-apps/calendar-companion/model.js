@@ -1,6 +1,5 @@
-export const SLUG = 'calendar-companion';
-export const KEY = 'planner-v1';
-export const MAX_BYTES = 180000;
+// Disposable calculation shape. Persist only preferences.js; events live in Google.
+const MAX_BYTES = 180000;
 export const COVERAGE = ['Needed', 'Asked', 'Confirmed', 'Not needed'];
 export const DAY = 86400000;
 export const emptyPlanner = () => ({ version: 1, settings: { timeZone: 'America/New_York', leadDays: 14, horizonWeeks: 6, preferredDay: 5, preferredTime: '19:00', durationHours: 3, bufferMinutes: 30, weeklyGoal: 1 }, plans: [], ideas: [] });
@@ -67,7 +66,7 @@ export function reminders(planner, now = Date.now()) {
     return { plan, due, days, urgent: days <= 3, overdue: due <= now, action: plan.coverage === 'Asked' ? 'Follow up with sitter' : 'Book a sitter' };
   }).sort((a, b) => a.due - b.due);
 }
-export function suggestions(planner, now = Date.now()) {
+export function suggestions(planner, now = Date.now(), busy = []) {
   const s = planner.settings, today = dayInZone(now, s.timeZone);
   const weekStart = addDays(today, -((new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7));
   const result = [];
@@ -84,7 +83,7 @@ export function suggestions(planner, now = Date.now()) {
       try { start = localInstant(day, s.preferredTime, s.timeZone); } catch { continue; }
       const end = start + s.durationHours * 3600000;
       const window = coverageWindow({ start: new Date(start).toISOString(), end: new Date(end).toISOString() }, s);
-      if (active.some(p => { const other = coverageWindow(p, s); return other.start < window.end && other.end > window.start; })) continue;
+      if (busy.some(other => other.start < window.end && other.end > window.start) || active.some(p => { const other = coverageWindow(p, s); return other.start < window.end && other.end > window.start; })) continue;
       result.push({ day, start: new Date(start).toISOString(), end: new Date(end).toISOString(), title: planner.ideas.length ? planner.ideas[(w + added) % planner.ideas.length] : 'Time together', week: first });
       added++;
     }
