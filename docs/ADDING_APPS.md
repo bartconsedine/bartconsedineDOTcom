@@ -37,6 +37,12 @@ For external integrations, store the app's imported snapshot, external identifie
 - For destructive actions, make the affected record and result clear and use confirmation or undo appropriate to the impact. Do not add permanent history or soft deletion unless the app needs it.
 - Database unavailability must produce an actionable failure state. Never silently switch to browser-only persistence, fabricated data, or an authentication bypass.
 
+## Chat is another editor
+
+Design apps so the UI visualizes and edits the same Supabase records that can be maintained from chat. For reviewed JSON apps, register a shared validator/key/size contract in `src/lib/app-data-contracts.js` and follow [chat data operations](CHAT_APP_DATA.md). Keep validation reusable outside React and server-only modules. App creation must include a documented agent read/write path; dedicated-table apps need equivalent scoped operations.
+
+Runtime data access still requires the signed-in user's session and owner RLS. The authenticated Supabase connector is a separate trusted administrative operator path, with explicit requested-owner scope, live identity/enrollment checks and guarded generated SQL. Do not expose its privileges in the website. Chat maintenance must preserve unrelated state, reject stale writes and reread confirmed changes. Browser writers for chat-enabled documents must also check the revision atomically; a read-then-blind-write is insufficient.
+
 ## Schema changes
 
 Reuse the existing Supabase project. Runtime data access uses user-scoped Supabase sessions; Prisma is the repository's migration tooling. Follow [the migration and backup runbook](DATABASE_MIGRATIONS_AND_BACKUPS.md) and [the cloud migration workflow](CLOUD_DATABASE_MIGRATIONS.md). Create migrations with `npm run db:migration:new -- descriptive_name`, keep applied migrations unchanged, and review the migration guards and upgrade tests required by the runbooks. Do not introduce a parallel Supabase migration history or bypass the guarded deployment with dashboard SQL or `db push`.
