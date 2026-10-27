@@ -67,4 +67,3 @@ test('SQL preparation rejects unknown apps, owners, missing revisions, invalid s
     assert.throws(() => appDataSql({ ...options, operation: 'write', value: emptyScreen(), expectedAt: null, ...changed }));
   }
 });
-
