@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { requireAdmin } from '@/lib/auth';
+import { requireWorkspace } from '@/lib/auth';
 import { listApps } from '@/lib/apps';
 import AdminNav from '@/components/admin-nav';
 
 export const metadata = { title: 'Workspace', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
 export default async function AdminLayout({ children }) {
-  await requireAdmin();
+  const workspace = await requireWorkspace();
   const apps = await listApps();
-  return <div className="admin-shell"><aside className="admin-sidebar"><Link className="wordmark" href="/">BC<span> / </span></Link><p className="eyebrow">PRIVATE WORKSPACE</p><AdminNav apps={apps}/><form action="/auth/signout" method="post"><button type="submit">Sign out</button></form></aside><main id="main" className="admin-main">{children}</main></div>;
+  return <div className="admin-shell"><aside className="admin-sidebar"><Link className="wordmark" href="/">BC<span> / </span></Link><p className="eyebrow">PRIVATE WORKSPACE</p><AdminNav apps={apps} isAdmin={workspace.isAdmin}/><form action="/auth/signout" method="post"><button type="submit">Sign out</button></form></aside><main id="main" className="admin-main">{children}</main></div>;
 }

@@ -127,12 +127,14 @@ export async function adoptBaseline(c, { retainBackup = async () => {} } = {}) {
 }
 export async function deployMigrations(c, { retainBackup = async () => {} } = {}) {
   authorizeWrite(c); await verifyReviewedMigrations();
-  if (await migrationState(c) !== 'baseline') throw new DatabaseToolError('Only the reviewed baseline may be recorded before first deployment; inspect history and checksums.');
-  await baselineCheck(c); await prismaConnectionCheck(c);
+  const before = await migrationState(c);
+  if (!['baseline', 'pending'].includes(before)) throw new DatabaseToolError('Only a reviewed migration prefix may be deployed; inspect history and checksums.');
+  if (before === 'baseline') await baselineCheck(c);
+  await prismaConnectionCheck(c);
   const archive = await backup(c);
   await retainBackup(archive);
-  if (await migrationState(c) !== 'baseline') throw new DatabaseToolError('History changed during backup retention; stop for inspection.');
-  await baselineCheck(c);
+  if (await migrationState(c) !== before) throw new DatabaseToolError('History changed during backup retention; stop for inspection.');
+  if (before === 'baseline') await baselineCheck(c);
   await withReviewedMigrationSnapshot(config => {
     prisma(['migrate', 'deploy'], c, config); prisma(['migrate', 'status'], c, config);
   });
@@ -148,7 +150,9 @@ export async function migrationState(c) {
     if (rows.some(row => !row.finished_at || row.rolled_back_at || row.checksum !== reviewedMigrations[row.migration_name])) return 'attention';
     const names = rows.map(row => row.migration_name);
     if (isDeepStrictEqual(names, ['0_private_workspace'])) return 'baseline';
-    if (isDeepStrictEqual(names, ['0_private_workspace', '20261009203911_two_admin_membership'])) return 'complete';
+    const expected = Object.keys(reviewedMigrations).sort();
+    if (isDeepStrictEqual(names, expected)) return 'complete';
+    if (names.length > 1 && names.length < expected.length && isDeepStrictEqual(names, expected.slice(0, names.length))) return 'pending';
     return 'attention';
   });
 }
