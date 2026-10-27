@@ -100,3 +100,25 @@ apply SQL manually or reuse the previous run's confirmation as a backup bypass.
 After reviewing the calendar dependency stack and merging authorized code, use manual **inspect** to establish the actual ledger prefix. For the separately authorized schema activation, reconfirm a completed recovery point, obtain the normal production-database approval, and run the existing **deploy** checkpoint with its fresh encrypted backup gate. Verify both tables' owner RLS and FK, function invoker security/grants, timestamps/revisions and ledger checksum. Never skip earlier pending migrations or assume earlier checkpoint prose describes the current ledger. No new credential or enrollment is required by this migration.
 
 Then verify authenticated project/task create → save → reload/fresh session, stale revision rejection, second-admin/guest denial, and live Google reference selection. In the board, use **Review iMCP setup → Add setup project** to explicitly persist the requested checklist. Software installation and data permissions remain separate decisions. See [board operations and local verification limits](../src/private-apps/project-board/README.md).
+
+### Activate only the approved Robot Party OAuth prefix
+
+When later apps have merged but their database changes are not authorized, select
+`deploy-robot-party` with `DEPLOY-ROBOT-PARTY vgsmfbupgydafvotkold` and the existing
+recovery confirmation. This is a fixed rollout of
+`20261027015049_robot_party_dot_oauth` from the exact five completed prerequisite
+migrations. It rejects missing, changed, failed, already-applied or extra history.
+The whole source inventory remains checksum-verified; Prisma receives only the
+six reviewed prefix migrations. Project Board and any later migration remain
+unapplied. Inspect still reports `pending` afterward: that is expected and does
+not mean the later apps are active. Verify the exact completed OAuth ledger row,
+RLS and grants independently before connecting a dot.
+
+The main-only environment review, completed restore point, fresh full backup,
+encrypted artifact upload/download verification and normal Prisma deployment
+remain mandatory. The scoped runner rechecks its exact predecessor after backup
+retention and exact resulting prefix after Prisma. Do not retry after STOP
+without inspecting actual history. Do not mark later migrations applied or edit
+SQL/checksums. A separately authorized future ordinary `deploy` applies the
+remaining suffix through the same gates. Logical backup recovery remains governed
+by the recovery runbook; this option does not automate hosted rollback.

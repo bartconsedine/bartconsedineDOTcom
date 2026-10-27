@@ -10,7 +10,7 @@ import { backupKey, retainCloudBackup } from './cloud-backup.mjs';
 export function cloudInputs(env, platform = process.platform) {
   if(platform!=='linux' || env.GITHUB_ACTIONS!=='true' || env.GITHUB_REPOSITORY!=='bartconsedine/bartconsedineDOTcom' || env.GITHUB_REF!=='refs/heads/main' || env.GITHUB_EVENT_NAME!=='workflow_dispatch') throw new Error('Only manual cloud execution on main is allowed.');
   const operation=env.INPUT_OPERATION;
-  if(!['inspect','adopt','deploy'].includes(operation)) throw new Error('Unsupported action.');
+  if(!['inspect','adopt','deploy','deploy-robot-party'].includes(operation)) throw new Error('Unsupported action.');
   if(!env.SUPABASE_DATABASE_PASSWORD || !isAbsolute(env.RUNNER_TEMP || '')) throw new Error('Private cloud configuration is missing.');
   if(operation!=='inspect' && (env.INPUT_CONFIRMATION!==`${operation.toUpperCase()} vgsmfbupgydafvotkold` || env.INPUT_RECOVERY_CONFIRMED!=='true')) throw new Error('Exact action and recovery confirmation are required.');
   return {operation,c:connection(connectionFromPassword(env.SUPABASE_DATABASE_PASSWORD,'session')),key:operation==='inspect'?null:backupKey(env.CLOUD_BACKUP_KEY)};
@@ -32,10 +32,10 @@ export async function runCloudMigration(env, { platform=process.platform, loadDa
     try {
       process.env.BACKUP_DIR=directory;process.env.CONFIRM_HOSTED_MIGRATION='vgsmfbupgydafvotkold';
       const retainBackup=async archive=>{artifactId=await retain(archive,directory,key,artifact,`database-backup-${operation}-${env.GITHUB_RUN_ID}-${env.GITHUB_RUN_ATTEMPT}`);retained=true;};
-      if(operation==='adopt') await db.adoptBaseline(c,{retainBackup}); else await db.deployMigrations(c,{retainBackup});
+      if(operation==='adopt') await db.adoptBaseline(c,{retainBackup}); else await db.deployMigrations(c,{retainBackup,...(operation==='deploy-robot-party'?{profile:'robot-party'}:{})});
       if(!retained || !Number.isSafeInteger(artifactId) || artifactId<=0) throw new Error('Backup retention was not verified.');
       const after=await db.migrationState(c);
-      if(after!==(operation==='adopt'?'baseline':'complete')) throw new Error('Post-write migration state differs.');
+      if(after!==(operation==='adopt'?'baseline':operation==='deploy-robot-party'?'pending':'complete')) throw new Error('Post-write migration state differs.');
       return {ok:true,operation,state:after,artifactId};
     } finally {
       if(previous.backup===undefined)delete process.env.BACKUP_DIR;else process.env.BACKUP_DIR=previous.backup;

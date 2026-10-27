@@ -3,13 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: One checkpoint only
+        description: One checkpoint; deploy applies all pending, deploy-robot-party applies only the fixed Robot Party prefix
         required: true
         type: choice
-        options: [inspect, adopt, deploy]
+        options: [inspect, adopt, deploy, deploy-robot-party]
         default: inspect
       confirmation:
-        description: For writes, type ADOPT vgsmfbupgydafvotkold or DEPLOY vgsmfbupgydafvotkold
+        description: For writes, type the uppercase action plus vgsmfbupgydafvotkold (e.g. DEPLOY-ROBOT-PARTY vgsmfbupgydafvotkold)
         type: string
         required: false
       recovery_confirmed:

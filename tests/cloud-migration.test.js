@@ -74,3 +74,15 @@ test('an exact pending prefix can be inspected and deployed only after retained 
   const failed=await runCloudMigration(input,{platform:'linux',loadDatabase:async()=>db,loadArtifact:async()=>({}),retain:async()=>{throw new Error('offline');}});assert.equal(failed.ok,false);assert.equal(writes,0);assert.equal(state,'pending');
   const saved=await runCloudMigration(input,{platform:'linux',loadDatabase:async()=>db,loadArtifact:async()=>({}),retain:async()=>88});assert.equal(saved.ok,true);assert.equal(saved.state,'complete');assert.equal(writes,1);
 });
+
+test('scoped Robot Party dispatch passes only the fixed plan, keeps later migrations pending and requires retention', async()=>{
+  for (const retained of [false,true]) {
+    let wrote=false;
+    const input={...env,INPUT_OPERATION:'deploy-robot-party',INPUT_CONFIRMATION:'DEPLOY-ROBOT-PARTY vgsmfbupgydafvotkold',INPUT_RECOVERY_CONFIRMED:'true',CLOUD_BACKUP_KEY:randomBytes(32).toString('base64')};
+    const db={prismaConnectionCheck:async()=>{},migrationState:async()=>'pending',deployMigrations:async(_c,{retainBackup,profile})=>{assert.equal(profile,'robot-party');await retainBackup('/synthetic/archive.dump');wrote=true;}};
+    const result=await runCloudMigration(input,{platform:'linux',loadDatabase:async()=>db,loadArtifact:async()=>({}),retain:async()=>{if(!retained)throw new Error('offline');return 89;}});
+    assert.equal(result.ok,retained);assert.equal(wrote,retained);
+    if(retained)assert.equal(result.state,'pending');
+    assert.equal((await runCloudMigration({...input,INPUT_CONFIRMATION:'DEPLOY vgsmfbupgydafvotkold'},{platform:'linux',loadDatabase:()=>assert.fail('wrong named confirmation')})).ok,false);
+  }
+});

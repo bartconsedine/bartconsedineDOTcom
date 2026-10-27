@@ -3,7 +3,7 @@ description: Run standard Prisma on Linux after retaining an encrypted verified 
 inputs:
   operation:
     required: true
-    description: inspect, adopt or deploy
+    description: inspect, adopt, deploy or deploy-robot-party
   confirmation:
     required: false
     description: Exact named project and action confirmation
