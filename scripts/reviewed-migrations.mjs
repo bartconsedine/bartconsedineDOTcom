@@ -8,6 +8,7 @@ import { DatabaseToolError } from './database-connection.mjs';
 // Update only in the PR that reviews a new migration. Never auto-regenerate pins
 // from the working tree or change an already applied migration to match history.
 export const reviewedMigrations = Object.freeze({
+  '20261027015049_robot_party_dot_oauth': '6a6e328aaa03fddc4685f5497ca80a273c1d45a0f697d68fa81735ce413baeb4',
   '20261027013318_robot_party_member_tokens': '3ce24d7d9d2c2854104e16472204c1d4cd0becbd35135f5e4b7e66e7a2aa7cfc',
   '20261027010424_robot_party_board': 'c428eda948b436352622c89fbf32f78ea19ce2921a3435dc93be2cc742127e7d',
   '20261026235556_app_sharing': '94f3bae66c6e05e215d92a502fcfd5f5d9f7f6788371f5af71b6651c38356935',

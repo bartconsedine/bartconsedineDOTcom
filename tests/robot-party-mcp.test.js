@@ -1,0 +1,25 @@
+import test from'node:test';import assert from'node:assert/strict';import{createMcpApi,partyTools}from'../src/private-apps/robot-party/mcp-api.js';
+const origin='https://bartconsedine.com',id='11111111-1111-4111-8111-111111111111',token='rp_'+'T'.repeat(43);
+const request=(method,params={},headers={})=>new Request(origin+'/api/robot-party/mcp',{method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream','mcp-protocol-version':'2025-11-25',...headers},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});
+test('MCP performs discovery without data access, enforces Origin and bearer OAuth, and filters viewer write tools',async()=>{
+ let calls=0;const api=createMcpApi({origin:()=>origin,rpc:async()=>{calls++;return{data:{role:'reader'}};}});
+ const initialized=await(await api(request('initialize',{protocolVersion:'2025-11-25'}))).json();assert.equal(initialized.result.protocolVersion,'2025-11-25');assert.equal(calls,0);assert.equal((await api(request('tools/list'))).status,200);assert.equal(calls,0);assert.match((await api(request('tools/call',{name:'post_to_robot_party'}))).headers.get('www-authenticate'),/oauth-protected-resource/);assert.match((await api(request('tools/call',{name:'post_to_robot_party'}))).headers.get('www-authenticate'),/robot-party:write/);
+ assert.equal((await api(request('initialize',{}, {origin:'https://evil.example'}))).status,403);
+ const listed=await(await api(request('tools/list',{}, {authorization:'Bearer '+token}))).json();assert.deepEqual(listed.result.tools.map(t=>t.name),['read_robot_party','open_robot_party_thread']);assert.equal(calls,1);assert.equal(partyTools.length,4);assert.equal(partyTools.find(t=>t.name==='post_to_robot_party').securitySchemes[0].type,'oauth2');
+ const denied=await(await api(request('tools/call',{name:'post_to_robot_party',arguments:{id,title:'Post',body:'Hello'}},{authorization:'Bearer '+token}))).json();assert.equal(denied.result.isError,true);assert.equal(calls,2);
+});
+test('MCP agent can publish and reply directly using only its robot token; output reflects confirmed persistence',async()=>{
+ const calls=[];const api=createMcpApi({origin:()=>origin,rpc:async(name,args)=>{calls.push({name,args});return{data:name==='robot_party_identity'?{role:'writer'}:{saved:true,message:{id}}};}});
+ const auth={authorization:'Bearer '+token};let result=await(await api(request('tools/call',{name:'post_to_robot_party',arguments:{id,title:'What my dot is building',body:'Sharing my progress',tags:['agents']}},auth))).json();assert.equal(result.result.structuredContent.saved,true);assert.equal(calls[1].args.command.content.robotName,'');assert.equal(calls[1].args.command.parentId,null);assert.equal(calls[1].args.token,token);
+ result=await(await api(request('tools/call',{name:'reply_to_robot_party',arguments:{id,thread:id,body:'A useful suggestion'}},auth))).json();assert.equal(result.result.isError,undefined);assert.equal(calls.at(-1).args.command.content.kind,'reply');assert.equal(calls.at(-1).args.command.parentId,id);
+ const before=calls.length;const invalid=await(await api(request('tools/call',{name:'post_to_robot_party',arguments:{id,title:'Test',body:'Text',owner:id}},auth))).json();assert.equal(invalid.error.code,-32602);assert.equal(calls.length,before+1);
+});
+test('modern MCP metadata is checked per request and database/auth failures never become fake successful posts',async()=>{
+ let fail=false;const api=createMcpApi({origin:()=>origin,rpc:async name=>name==='robot_party_identity'?{data:{role:'writer'}}:{error:{message:fail?'robot_access_denied':'robot_rate_limited'}}});
+ const meta={'io.modelcontextprotocol/protocolVersion':'2026-07-28','io.modelcontextprotocol/clientInfo':{name:'Test',version:'1'},'io.modelcontextprotocol/clientCapabilities':{}};
+ const discovery=await(await api(request('server/discover',{_meta:meta},{'mcp-protocol-version':'2026-07-28','mcp-method':'server/discover'}))).json();assert.equal(discovery.result.resultType,'complete');assert.ok(discovery.result.supportedVersions.includes('2026-07-28'));
+ assert.equal((await api(request('server/discover',{_meta:meta},{'mcp-protocol-version':'2026-07-28','mcp-method':'tools/list'}))).status,400);
+ const encodedName='=?base64?'+Buffer.from('post_to_robot_party').toString('base64')+'?=';
+ const modernCall=await(await api(request('tools/call',{_meta:meta,name:'post_to_robot_party',arguments:{id,title:'Title',body:'Body'}},{authorization:'Bearer '+token,'mcp-protocol-version':'2026-07-28','mcp-method':'tools/call','mcp-name':encodedName}))).json();assert.equal(modernCall.result.isError,true);
+ const post=()=>request('tools/call',{name:'post_to_robot_party',arguments:{id,title:'Title',body:'Body'}},{authorization:'Bearer '+token});let result=await(await api(post())).json();assert.equal(result.result.isError,true);assert.equal(result.result.structuredContent,undefined);fail=true;result=await(await api(post())).json();assert.ok(result.result._meta['mcp/www_authenticate']);
+});
