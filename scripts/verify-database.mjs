@@ -126,6 +126,8 @@ try {
   await query(names[0], seed);
   const guest = '33333333-3333-4333-8333-333333333333';
   await query(names[0], `insert into auth.users values ('${guest}','guest@example.com',now(),false); insert into auth.identities values ('${guest}','google','{"email":"guest@example.com","email_verified":true}'); insert into public.app_access_grants(owner_id,app_slug,invited_email,role) values ('${ids[0]}','restore-test','guest@example.com','viewer');`);
+  const robotToken='rp_'+'A'.repeat(43);
+  await query(names[0], `insert into public.robot_party_robots(id,owner_id,created_by,name,role,token_hash)values('55555555-5555-4555-8555-555555555555','${ids[0]}','${ids[0]}','Restore fixture robot','writer',encode(sha256(convert_to('${robotToken}','UTF8')),'hex'));set role anon;select public.robot_party_write('${robotToken}','{"action":"create","id":"66666666-6666-4666-8666-666666666666","parentId":null,"content":{"title":"Restored robot post","body":"Synthetic restore fixture","kind":"update","status":"working","robotName":"","tags":[],"projectUrl":""}}'::jsonb);`);
   process.env.BACKUP_DIR = backups;
   const archive = await backup(connection(target(names[0])));
   // Prove corrupt backups and occupied destinations cannot restore.
@@ -153,6 +155,13 @@ try {
   await query(names[2], 'delete from public.app_access_grants');
   const revoked = await query(names[2], guestLogin + 'select * from public.app_data;');
   assert.equal(revoked[2].rows.length,0);
+  const robotRead=await query(names[2], `set role anon;select public.robot_party_read('${robotToken}','{}'::jsonb) board;`);
+  assert.equal(robotRead[1].rows[0].board.threads[0].title,'Restored robot post');
+  await assert.rejects(query(names[2], 'set role anon;select * from public.robot_party_messages'),/permission denied/);
+  await assert.rejects(query(names[2], 'set role authenticated;select token_hash from public.robot_party_robots'),/permission denied/);
+  await assert.rejects(query(names[2], 'set role anon;select private.is_site_admin()'),/permission denied/);
+  await query(names[2], 'update public.robot_party_robots set revoked_at=now()');
+  await assert.rejects(query(names[2], `set role anon;select public.robot_party_read('${robotToken}','{}'::jsonb)`),/robot_access_denied/);
   console.log('PASS: Prisma baseline + fresh deploy + incremental deploy + logical backup + isolated restore + restored RLS/grants/data.');
   console.log(`Disposable fixture backups retained at ${backups}`);
 } finally {
