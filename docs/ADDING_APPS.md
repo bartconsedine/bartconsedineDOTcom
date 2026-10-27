@@ -81,3 +81,22 @@ Before considering an app complete:
 6. Report what was checked locally versus against the hosted service. Passing mocked tests or a build does not establish real persistence, live authorization, or a deployed migration. If setup blocks a live check, keep that check explicitly unverified.
 
 For example, a simple checklist can use one owner-scoped JSON record when replacing the whole checklist is acceptable. A tracker with independently edited entries, reporting queries, or simultaneous users should use dedicated rows. In both cases, confirmed records and editable settings come from Supabase after reload.
+
+## Inviting people to an app
+
+The workspace supports two distinct roles: enrolled **site administrators** manage their own apps and invitations; **guests** can only open apps explicitly shared with their verified Google email. Use `/admin/access` (or the app’s **Invite people / manage access** link) to grant **Can view** or **Can edit**, copy a link, change a permission, or revoke it. Creating a grant does not send email. The owner sends the copied link; it is a navigation link, not a bearer credential. The recipient signs in with the exact invited Google account and sees only their allowed apps. Invitations remain until revoked. Administrators can share their own records, not another administrator’s records.
+
+Invitations share the owner’s **entire app dataset**, including notes, costs, confirmation codes and other fields the app contains. They do not create copies or make a guest an administrator. A viewer can read; an editor can read and write. Guests cannot manage grants. Revocation blocks future requests and database operations, including with an existing session; it cannot remove information already read or copied.
+
+These rules update the earlier admin-only route conventions:
+
+- Workspace pages, login/callback, app lists and navigation use `requireWorkspace` / `checkWorkspace`. Site management pages and `/api/admin/access` continue using `requireAdmin` / `checkAdmin`.
+- `listApps()` returns only authorized app/owner contexts. Use the returned `href`, not a constructed slug-only link. A shared app URL includes `?owner=<uuid>` to identify whose data to open. This UUID is an untrusted selector, never authorization.
+- `getApp(slug, ownerId)` rechecks verified identity and current grants. The shared app API passes `dataOwnerId` and `permission` separately from `owner` (the authenticated actor, retained for compatibility). It rejects viewer POSTs before dispatch.
+- Components receive `workspaceOwner` and `permission`. Propagate the owner selector on API requests; server/data helpers reauthorize it independently. Keep presentation navigation usable for viewers while disabling editing controls. Never use a client permission flag as the security boundary.
+- `readAppData(slug,key,ownerId)` and `compareAndWriteAppData(slug,key,value,expectedAt,ownerId)` use the actor’s Supabase session with RLS and the resolved data owner. Every JSON save must check the exact database revision atomically; a stale write returns conflict. `app_data` record identity is immutable; updates advance the revision in the database.
+- New dedicated tables must implement the same owner/app grant semantics explicitly. An app’s registry entry alone does not share arbitrary tables or Storage. Do not show a Share control for an app whose private resources do not support it. The currently registered Japan app uses only the supported `app_data` path.
+
+`public.app_access_grants` stores `(owner_id,app_slug,invited_email)`, viewer/editor role and revision. Only the owning enrolled administrator can manage these rows. A guest can discover only grants addressed to their live verified identity, and data policies require both a current active owner and a matching grant. Supabase private helpers run with fixed empty search paths and explicit function grants; public `my_app_grants` is an invoker wrapper. No runtime service-role key, user-metadata authorization, browser storage or new auth provider is used.
+
+The reviewed migration is `20261026235556_app_sharing`. Before it is applied, existing administrators can continue using their own apps; guests fail closed and the access manager displays a setup error. Ordinary database/auth outages never create guest access or fabricated grants. Apply schema changes only through the guarded cloud migration workflow and its fresh encrypted-backup gate. No live invitations are created by the migration.

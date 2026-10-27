@@ -1,9 +1,9 @@
-import { checkAdmin } from '@/lib/auth';
+import { checkWorkspace } from '@/lib/auth';
 import { authConfig } from '@/lib/auth-config';
 import { getApp } from '@/lib/apps';
 import { createAppApi } from '@/lib/app-api-policy';
 
 export const dynamic = 'force-dynamic';
-const handle = createAppApi({ checkAdmin, getApp, siteOrigin: () => authConfig()?.siteUrl });
+const handle = createAppApi({ checkAdmin: checkWorkspace, getApp, siteOrigin: () => authConfig()?.siteUrl });
 export const GET = handle;
 export const POST = handle;

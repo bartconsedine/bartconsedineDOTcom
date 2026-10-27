@@ -7,7 +7,8 @@ import { project } from './database-connection.mjs';
 const states = {
   unadopted: 'No Prisma history is recorded. Verify recovery prerequisites, then adopt the existing baseline.',
   baseline: 'Only the existing baseline is recorded. The reviewed two-admin migration remains pending.',
-  complete: 'Both reviewed migrations are recorded complete. Stop here and verify hosted security before separate enrollment.',
+  pending: 'An exact reviewed migration prefix is recorded. New reviewed migrations remain pending.',
+  complete: 'All reviewed migrations are recorded complete. Stop here and verify hosted security before separate enrollment.',
   attention: 'Unexpected, failed, or rolled-back migration history. Stop for inspection; do not reset or resolve blindly.',
 };
 const stopped = (code, message) => ({ ok: false, message: `[migration/${code}] ${message} No later step ran; inspect state before retrying.` });
@@ -31,7 +32,7 @@ export async function runMigrationHandoff(action, env = process.env, load = () =
     const state = await db.migrationState(c);
     if (!Object.hasOwn(states, state) || state === 'attention') return stopped('HISTORY', states.attention);
     if (action === 'state') return { ok: true, message: `[migration/STATE] ${states[state]} No schema write was performed.` };
-    if ((action === 'adopt' && state !== 'unadopted') || (action === 'deploy' && state !== 'baseline')) return stopped('HISTORY', states[state]);
+    if ((action === 'adopt' && state !== 'unadopted') || (action === 'deploy' && !['baseline','pending'].includes(state))) return stopped('HISTORY', states[state]);
     stage = action;
     // Explicit functions only. Both retain the existing write interlock and
     // perform a NEW verified backup before their Prisma write. No enrollment API.

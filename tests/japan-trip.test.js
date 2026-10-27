@@ -10,7 +10,7 @@ function booking(overrides = {}) {
 }
 function plan() { return { ...emptyPlan(), start: '2030-01-10', end: '2030-01-20', budget: 3000, bookings: [booking()] }; }
 const context = { params: Promise.resolve({ slug: SLUG }) };
-const request = (value, headers = {}) => new Request(`https://site.example/api/admin/apps/${SLUG}`, { method: 'POST', headers: { origin: 'https://site.example', 'content-type': 'application/json', ...headers }, body: typeof value === 'string' ? value : JSON.stringify(value) });
+const request = (value, headers = {}) => new Request(`https://site.example/api/admin/apps/${SLUG}`, { method: 'POST', headers: { origin: 'https://site.example', 'content-type': 'application/json', ...headers }, body: typeof value === 'string' ? value : JSON.stringify({ plan: value, expectedAt: null }) });
 
 test('trip validates empty and complete plans; rejects ownership, unsafe links, invalid dates, amounts, duplicate IDs and status spoofing', () => {
   assert.deepEqual(validatePlan(emptyPlan()), emptyPlan());
@@ -44,7 +44,7 @@ function harness() {
   const rows = new Map();
   const api = createTripApi({
     readAppData: async (slug, key) => { assert.equal(slug, SLUG); assert.equal(key, KEY); if (failRead) throw new Error('database private error'); return rows.get(owner) ?? null; },
-    writeAppData: async (slug, key, value) => { assert.equal(slug, SLUG); assert.equal(key, KEY); if (failWrite) throw new Error('database private error'); rows.set(owner, { value: structuredClone(value), updated_at: '2030-01-01T00:00:00Z' }); },
+    compareAndWriteAppData: async (slug, key, value, expectedAt) => { assert.equal(slug, SLUG); assert.equal(key, KEY); if (failWrite) throw new Error('database private error'); if ((rows.get(owner)?.updated_at ?? null) !== expectedAt) return null; rows.set(owner, { value: structuredClone(value), updated_at: '2030-01-01T00:00:00Z' }); return '2030-01-01T00:00:00Z'; },
   });
   const handle = createAppApi({ checkAdmin: async () => access ? ({ ok: true, user: { id: owner } }) : ({ ok: false, status: 401, reason: 'unauthenticated' }), getApp: async () => ({ slug: SLUG, api }), siteOrigin: () => 'https://site.example' });
   return { handle, rows, setOwner: value => { owner = value; }, deny: () => { access = false; }, failRead: () => { failRead = true; }, failWrite: () => { failWrite = true; } };
@@ -54,7 +54,7 @@ const get = h => h.handle(new Request(`https://site.example/api/admin/apps/${SLU
 test('confirmed save survives a fresh GET and each owner sees only their own plan', async () => {
   const h = harness();
   assert.equal((await (await get(h)).json()).plan, null);
-  assert.deepEqual(await (await h.handle(request(plan()), context)).json(), { saved: true });
+  assert.deepEqual(await (await h.handle(request(plan()), context)).json(), { saved: true, updatedAt: '2030-01-01T00:00:00Z' });
   assert.deepEqual((await (await get(h)).json()).plan, plan());
   h.setOwner('admin-b'); assert.equal((await (await get(h)).json()).plan, null);
   await h.handle(request({ ...plan(), title: 'Other trip' }), context);
@@ -102,4 +102,16 @@ test('original flight starter is scoped to Bart and never overwrites saved data 
   assert.equal(saved.plan.title, 'Saved custom trip'); assert.equal(saved.updatedAt, record.updated_at);
   const unavailable = createTripApi({ readAppData: async () => { throw new Error('read failed'); }, startingPlan });
   await assert.rejects(unavailable.GET(null, { owner: bart }), /read failed/);
+});
+
+test('stale browser saves, missing revisions and racing initial saves cannot overwrite chat edits', async () => {
+  const h = harness();
+  assert.equal((await h.handle(request(plan()), context)).status, 200);
+  assert.equal((await h.handle(request({ ...plan(), title: 'Stale editor' }), context)).status, 409);
+  const latest = await (await get(h)).json();
+  const raw = body => request(JSON.stringify(body));
+  assert.equal((await h.handle(raw(plan()), context)).status, 400, 'legacy blind replacements denied');
+  assert.equal((await h.handle(raw({ plan: plan(), expectedAt: 'invalid' }), context)).status, 400);
+  assert.equal((await h.handle(raw({ plan: { ...plan(), title: 'Reconciled' }, expectedAt: latest.updatedAt }), context)).status, 200);
+  assert.equal((await (await get(h)).json()).plan.title, 'Reconciled');
 });

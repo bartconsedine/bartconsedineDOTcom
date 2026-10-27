@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
+import * as workspace from '../../src/lib/workspace-policy.js';
 import * as options from '../../src/private-apps/japan-trip/options.js';
 import * as coast from '../../src/private-apps/japan-trip/coastline.js';
 import * as model from '../../src/private-apps/japan-trip/model.js';
@@ -9,7 +10,8 @@ const { transformSync } = require('next/dist/compiled/babel/core');
 
 // Executes the real JSX and event handlers while substituting only hooks/network.
 // This is a local UI fixture, never a production authentication or storage path.
-export function tripUi(fetcher, initial = []) { return componentUi('command-center.js', fetcher, initial); }
+export function tripUi(fetcher, initial = [], props = {}) { return componentUi('command-center.js', fetcher, initial, props); }
+export function accessUi(fetcher) { return componentUi('../../app/admin/access/access-manager.js', fetcher, []); }
 export function explorerUi(plan) { return componentUi('option-explorer.js', null, [], { plan }); }
 function componentUi(file, fetcher, initial, props = {}) {
   const states = [...initial]; let index = 0;
@@ -25,8 +27,9 @@ function componentUi(file, fetcher, initial, props = {}) {
     useRef(value) { const slot = index++; if (!(slot in states)) states[slot] = { current: value }; return states[slot]; },
     useEffect(effect) { const slot = index++; if (!effectSlots.has(slot)) { effectSlots.add(slot); effects.push(effect); } },
   };
-  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, TextEncoder, URL, Blob, crypto: globalThis.crypto, window: { addEventListener() {}, removeEventListener() {} }, require: id => {
+  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, TextEncoder, URL, Blob, crypto: globalThis.crypto, navigator: { clipboard: { writeText: async () => {} } }, window: { location: { origin: 'https://site.example' }, addEventListener() {}, removeEventListener() {} }, require: id => {
     if (id === 'react') return hooks;
+    if (id === '@/lib/workspace-policy') return workspace;
     if (id === './model') return model;
     if (id === './options.js') return options;
     if (id === './coastline.js') return coast;
