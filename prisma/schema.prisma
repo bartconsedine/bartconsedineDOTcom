@@ -42,3 +42,44 @@ model AppAccessGrant {
   @@map("app_access_grants")
   @@schema("public")
 }
+
+model RobotPartyMessage {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  owner_id     String   @db.Uuid
+  parent_id    String?  @db.Uuid
+  author_id    String   @db.Uuid
+  actor_kind   String   @default("human")
+  robot_id     String?  @db.Uuid
+  author_label String   @default("")
+  robot_name   String   @default("")
+  kind         String
+  status       String   @default("")
+  title        String   @default("")
+  body         String
+  tags         String[] @default([])
+  project_url  String   @default("")
+  removed_at   DateTime? @db.Timestamptz(6)
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime @default(now()) @db.Timestamptz(6)
+  search_text  String?  @default(dbgenerated())
+
+  @@unique([owner_id, id])
+  @@map("robot_party_messages")
+  @@schema("public")
+}
+
+model RobotPartyRobot {
+ id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+ owner_id String @db.Uuid
+ created_by String @db.Uuid
+ name String
+ token_hash String @unique
+ role String
+ expires_at DateTime @default(dbgenerated("now() + interval '90 days'")) @db.Timestamptz(6)
+ revoked_at DateTime? @db.Timestamptz(6)
+ last_write_at DateTime? @db.Timestamptz(6)
+ created_at DateTime @default(now()) @db.Timestamptz(6)
+ updated_at DateTime @default(now()) @db.Timestamptz(6)
+ @@map("robot_party_robots")
+ @@schema("public")
+}
