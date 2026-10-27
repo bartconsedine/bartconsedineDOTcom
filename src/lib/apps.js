@@ -2,6 +2,9 @@ import 'server-only';
 import { requireWorkspace, checkAppAccess } from './auth';
 import { visibleApps } from './workspace-policy';
 import { createAppRegistry } from './app-registry';
+import CalendarCompanion from '@/private-apps/calendar-companion/planner';
+import { googleSession, connectGoogle } from '@/private-apps/calendar-companion/google-session';
+import { createCalendarApi } from '@/private-apps/calendar-companion/api';
 import RobotParty from '@/private-apps/robot-party/board';
 import { createBoardApi } from '@/private-apps/robot-party/api';
 import { boardStorage } from '@/private-apps/robot-party/storage';
@@ -20,6 +23,10 @@ const registry = createAppRegistry([{
   slug: 'japan-trip', name: 'Japan command center',
   description: 'Tokyo streets, Hokkaido snow. Your itinerary, bookings and next decisions in one place.',
   Component: JapanTrip, api: createTripApi({ readAppData, compareAndWriteAppData, startingPlan }),
+}, {
+  slug: 'calendar-companion', name: 'Calendar companion',
+  description: 'Your Google calendars, family birthdays and sitter plans. More time for the good things.',
+  Component: CalendarCompanion, api: createCalendarApi({ readAppData, compareAndWriteAppData, googleSession, connectGoogle }),
 }], requireWorkspace);
 
 export async function listApps() {

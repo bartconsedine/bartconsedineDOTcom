@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { appDataSql } from '../scripts/app-data-sql.mjs';
+import { emptyPreferences } from '../src/private-apps/calendar-companion/preferences.js';
 import { emptyPlan } from '../src/private-apps/japan-trip/model.js';
 import { compareAndWrite } from '../src/lib/app-data-write.js';
 
@@ -99,5 +100,27 @@ test('user-session writer uses atomic revision predicates and returns only confi
     assert.equal(await save(wife, next), null);
     await db.exec('drop table public.app_data;');
     await assert.rejects(save(bart, next), /Unable to save/);
+  } finally { await db.close(); }
+});
+
+
+test('calendar preferences roundtrip uses real Postgres revision guards and owner RLS', async () => {
+  const db = await database();
+  const scope = { slug: 'calendar-companion', email: 'bartconsedine@gmail.com' };
+  try {
+    const value = { ...emptyPreferences(), ideas: ['Dinner together'] };
+    const write = expectedAt => db.query(appDataSql({ ...scope, operation: 'write', value, expectedAt }));
+    assert.equal((await write(null)).rows[0].saved, true);
+    const read = () => db.query(appDataSql({ ...scope, operation: 'read' }));
+    const saved = (await read()).rows[0];
+    assert.deepEqual(saved.value, value);
+    assert.equal((await write(null)).rows[0].saved, false);
+    assert.equal((await write(saved.updated_at)).rows[0].saved, true);
+    assert.equal((await write(saved.updated_at)).rows[0].saved, false);
+    assert.equal((await db.query(appDataSql({ ...scope, email: 'mjshah8@gmail.com', operation: 'read' }))).rows[0].value, null);
+    await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub','${wife}',false);`);
+    assert.equal((await db.query("select * from public.app_data where app_slug='calendar-companion'")).rows.length, 0);
+    const denied = await db.query("update public.app_data set value='{}' where app_slug='calendar-companion' returning *");
+    assert.equal(denied.rows.length, 0);
   } finally { await db.close(); }
 });
