@@ -29,3 +29,16 @@ model SiteAdmin {
   @@map("site_admin")
   @@schema("private")
 }
+
+model AppAccessGrant {
+  owner_id      String   @db.Uuid
+  app_slug      String
+  invited_email String
+  role          String
+  updated_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@id([owner_id, app_slug, invited_email])
+  @@index([invited_email], map: "app_grants_recipient")
+  @@map("app_access_grants")
+  @@schema("public")
+}

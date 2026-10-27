@@ -23,9 +23,9 @@ export async function runCloudMigration(env, { platform=process.platform, loadDa
     const db=await loadDatabase();
     await db.prismaConnectionCheck(c);
     const before=await db.migrationState(c);
-    if(!['unadopted','baseline','complete'].includes(before)) throw new Error('Migration history needs inspection.');
+    if(!['unadopted','baseline','pending','complete'].includes(before)) throw new Error('Migration history needs inspection.');
     if(operation==='inspect') return {ok:true,operation,state:before,artifactId:null};
-    if(before!==(operation==='adopt'?'unadopted':'baseline')) throw new Error('Wrong migration state.');
+    if(operation === 'adopt' ? before !== 'unadopted' : !['baseline', 'pending'].includes(before)) throw new Error('Wrong migration state.');
     directory=await mkdtemp(join(env.RUNNER_TEMP,'bart-cloud-migration-'));await chmod(directory,0o700);
     const previous={backup:process.env.BACKUP_DIR,confirmation:process.env.CONFIRM_HOSTED_MIGRATION};
     const artifact=await loadArtifact();let artifactId;let retained=false;

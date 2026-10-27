@@ -67,7 +67,7 @@ test('both approved admins have CRUD only on their own app data', async () => {
       assert.equal(rows.length, 1); assert.equal(rows[0].owner_id, id);
       const other = id === bart ? wife : bart;
       await assert.rejects(db.exec(`insert into public.app_data(owner_id,app_slug,key) values('${other}','test-app','spoofed')`), /row-level security/);
-      await assert.rejects(db.exec(`update public.app_data set owner_id='${other}'`), /row-level security/);
+      await assert.rejects(db.exec(`update public.app_data set owner_id='${other}'`), /row-level security|identity is immutable/);
     }
     await login(db, stranger);
     assert.equal(await allowed(db), false);

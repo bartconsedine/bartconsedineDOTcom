@@ -1,3 +1,4 @@
+import { reviewedMigrations, verifyReviewedMigrations } from './reviewed-migrations.mjs';
 // Requires a dedicated disposable local PostgreSQL cluster. Never uses DATABASE_URL.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -14,7 +15,7 @@ assert.equal(c.local, true, 'Only a disposable local cluster is permitted');
 const admin = new pg.Client({ connectionString: c.url.href });
 await admin.connect();
 const suffix = randomBytes(6).toString('hex');
-const names = [`migration_test_${suffix}`, `fresh_test_${suffix}`, `restore_test_${suffix}`];
+const names = [`migration_test_${suffix}`, `fresh_test_${suffix}`, `restore_test_${suffix}`, `incremental_test_${suffix}`];
 const backups = await mkdtemp(join(tmpdir(), 'prisma-recovery-fixture-')); await chmod(backups, 0o700);
 const guardFixture = await realpath(await mkdtemp(join(tmpdir(), 'prisma-guard-fixture-')));
 const target = name => { const url = new URL(c.url); url.pathname = `/${name}`; return url.href; };
@@ -25,7 +26,7 @@ const run = (args, name) => {
 };
 const rejectEditedSql = async action => {
   const migrations = join(guardFixture, 'prisma/migrations');
-  for (const name of ['20990101000000_extra', '20261009203911_two_admin_membership', '0_private_workspace']) {
+  for (const name of ['20990101000000_extra', ...Object.keys(reviewedMigrations)]) {
     const folder = join(migrations, name);
     const file = join(folder, 'migration.sql');
     const extra = name === '20990101000000_extra';
@@ -93,17 +94,38 @@ try {
   console.log(run(['scripts/database.mjs', 'deploy'], names[0]).trim());
   assert.equal(await migrationState(connection(target(names[0]))), 'complete');
   history = (await query(names[0], 'select migration_name from private._prisma_migrations where finished_at is not null order by migration_name')).rows;
-  assert.equal(history.length, 2);
+  assert.equal(history.length, Object.keys(reviewedMigrations).length);
   assert.equal((await query(names[0], "select relrowsecurity from pg_class where oid='private._prisma_migrations'::regclass")).rows[0].relrowsecurity, true);
   await assert.rejects(query(names[0], 'set role authenticated; select * from private._prisma_migrations'), /permission denied/);
   run(['node_modules/prisma/build/index.js', 'migrate', 'deploy'], names[1]);
   run(['node_modules/prisma/build/index.js', 'migrate', 'status'], names[1]);
+  // Reproduce the deployed two-migration installation with the real Prisma CLI,
+  // then test only the new migration through the guarded incremental path.
+  await query(names[3], fixture);
+  const legacy = join(guardFixture, 'legacy'); await mkdir(legacy);
+  const legacyMigrations = join(legacy, 'migrations'); await mkdir(legacyMigrations);
+  const verified = await verifyReviewedMigrations();
+  await writeFile(join(legacyMigrations, 'migration_lock.toml'), verified['migration_lock.toml']);
+  for (const migration of Object.keys(reviewedMigrations).sort().slice(0, 2)) {
+    await mkdir(join(legacyMigrations, migration));
+    await writeFile(join(legacyMigrations, migration, 'migration.sql'), verified[migration + '/migration.sql']);
+  }
+  const legacyConfig = join(legacy, 'prisma.config.ts');
+  await writeFile(legacyConfig, 'export default {schema:' + JSON.stringify(fileURLToPath(new URL('../prisma/schema.prisma',import.meta.url))) + ',migrations:{path:' + JSON.stringify(legacyMigrations) + '},datasource:{url:process.env.DATABASE_URL}};');
+  run(['node_modules/prisma/build/index.js','migrate','deploy','--config',legacyConfig], names[3]);
+  assert.equal(await migrationState(connection(target(names[3]))), 'pending');
+  await assert.rejects(deployMigrations(connection(target(names[3])), {retainBackup:async()=>{throw new Error('Synthetic retention unavailable');}}), /retention unavailable/);
+  assert.equal(await migrationState(connection(target(names[3]))), 'pending');
+  console.log(run(['scripts/database.mjs','deploy'],names[3]).trim());
+  assert.equal(await migrationState(connection(target(names[3]))), 'complete');
   const ids = ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222'];
   const seed = `insert into auth.users values ('${ids[0]}','bartconsedine@gmail.com',now(),false),('${ids[1]}','mjshah8@gmail.com',now(),false);
     insert into auth.identities select id,'google',jsonb_build_object('email',email,'email_verified',true) from auth.users;
     insert into private.site_admin(user_id,email) select id,email from auth.users;
     insert into public.app_data(owner_id,app_slug,key,value) values ('${ids[0]}','restore-test','note','{"saved":"bart"}'),('${ids[1]}','restore-test','note','{"saved":"wife"}');`;
   await query(names[0], seed);
+  const guest = '33333333-3333-4333-8333-333333333333';
+  await query(names[0], `insert into auth.users values ('${guest}','guest@example.com',now(),false); insert into auth.identities values ('${guest}','google','{"email":"guest@example.com","email_verified":true}'); insert into public.app_access_grants(owner_id,app_slug,invited_email,role) values ('${ids[0]}','restore-test','guest@example.com','viewer');`);
   process.env.BACKUP_DIR = backups;
   const archive = await backup(connection(target(names[0])));
   // Prove corrupt backups and occupied destinations cannot restore.
@@ -115,7 +137,7 @@ try {
   await assert.rejects(restoreLocal(archive, connection(target(names[2]))), /not empty/);
   await query(names[2], 'drop table occupied');
   await restoreLocal(archive, connection(target(names[2])));
-  assert.equal((await query(names[2], 'select * from private._prisma_migrations')).rowCount, 2);
+  assert.equal((await query(names[2], 'select * from private._prisma_migrations')).rowCount, Object.keys(reviewedMigrations).length);
   for (const [index, id] of ids.entries()) {
     const restored = await query(names[2], `set role authenticated; select set_config('request.jwt.claim.sub','${id}',false); select public.is_site_admin() allowed; select value from public.app_data;`);
     assert.equal(restored[2].rows[0].allowed, true);
@@ -124,6 +146,13 @@ try {
   }
   const denied = await query(names[2], "set role authenticated; select set_config('request.jwt.claim.sub','',false); select * from public.app_data;");
   assert.equal(denied[2].rowCount, 0);
+  const guestLogin = `set role authenticated;select set_config('request.jwt.claim.sub','${guest}',false);`;
+  const guestRead = await query(names[2], guestLogin + "select value from public.app_data;update public.app_data set value='{}';select value from public.app_data;");
+  assert.deepEqual(guestRead[2].rows,[{value:{saved:'bart'}}]);
+  assert.deepEqual(guestRead[4].rows,[{value:{saved:'bart'}}]);
+  await query(names[2], 'delete from public.app_access_grants');
+  const revoked = await query(names[2], guestLogin + 'select * from public.app_data;');
+  assert.equal(revoked[2].rows.length,0);
   console.log('PASS: Prisma baseline + fresh deploy + incremental deploy + logical backup + isolated restore + restored RLS/grants/data.');
   console.log(`Disposable fixture backups retained at ${backups}`);
 } finally {

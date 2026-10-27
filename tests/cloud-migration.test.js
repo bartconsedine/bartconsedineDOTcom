@@ -65,3 +65,12 @@ test('JavaScript action never forwards raw child stdout/stderr or malformed resu
     }
   } finally {await rm(root,{recursive:true,force:true});}
 });
+
+test('an exact pending prefix can be inspected and deployed only after retained backup', async()=>{
+  let state='pending', writes=0;
+  const db={prismaConnectionCheck:async()=>{},migrationState:async()=>state,deployMigrations:async(_c,{retainBackup})=>{await retainBackup('/synthetic/archive.dump');writes++;state='complete';}};
+  const inspect=await runCloudMigration(env,{platform:'linux',loadDatabase:async()=>db});assert.equal(inspect.state,'pending');assert.equal(writes,0);
+  const input={...env,INPUT_OPERATION:'deploy',INPUT_CONFIRMATION:'DEPLOY vgsmfbupgydafvotkold',INPUT_RECOVERY_CONFIRMED:'true',CLOUD_BACKUP_KEY:randomBytes(32).toString('base64')};
+  const failed=await runCloudMigration(input,{platform:'linux',loadDatabase:async()=>db,loadArtifact:async()=>({}),retain:async()=>{throw new Error('offline');}});assert.equal(failed.ok,false);assert.equal(writes,0);assert.equal(state,'pending');
+  const saved=await runCloudMigration(input,{platform:'linux',loadDatabase:async()=>db,loadArtifact:async()=>({}),retain:async()=>88});assert.equal(saved.ok,true);assert.equal(saved.state,'complete');assert.equal(writes,1);
+});
