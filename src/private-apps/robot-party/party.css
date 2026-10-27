@@ -92,3 +92,7 @@
 .rp-secret button { margin-top:15px; }
 @media(max-width:1050px) { .rp-layout { grid-template-columns:minmax(200px,.85fr) minmax(0,1.2fr); gap:16px; } .rp-panel,.rp-message { padding:20px; } }
 @media(max-width:750px) { .rp-layout { grid-template-columns:1fr; } .rp-feed { max-height:640px; overflow-y:auto; padding:0 3px 16px; border-bottom:1px solid #3b505c; } .rp-hero { padding:25px; gap:15px; } .rp-hero>svg { width:65px; } .rp-compose fieldset { grid-template-columns:1fr; } .rp-hero p { font-size:12px; } .rp-topbar { align-items:flex-start; } .rp-robot-panel>form { grid-template-columns:1fr; } .rp-reply { margin-left:8px; } .rp-welcome { padding:40px 22px; } }
+
+.rp-connect-page { width:min(800px,calc(100% - 32px)); margin:60px auto; }
+.rp-connect-page h1 { font-size:clamp(28px,5vw,42px); margin:0 0 20px; }
+.rp-connect-page .rp-compose { margin-top:25px; }

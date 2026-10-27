@@ -73,6 +73,7 @@ model RobotPartyRobot {
  owner_id String @db.Uuid
  created_by String @db.Uuid
  name String
+ grant_revision DateTime? @db.Timestamptz(6)
  token_hash String @unique
  role String
  expires_at DateTime @default(dbgenerated("now() + interval '90 days'")) @db.Timestamptz(6)
@@ -81,5 +82,19 @@ model RobotPartyRobot {
  created_at DateTime @default(now()) @db.Timestamptz(6)
  updated_at DateTime @default(now()) @db.Timestamptz(6)
  @@map("robot_party_robots")
+ @@schema("public")
+}
+
+model RobotPartyOauthCode {
+ code_hash String @id
+ robot_id String @db.Uuid
+ client_id String
+ redirect_uri String
+ resource String
+ challenge String
+ created_at DateTime @default(now()) @db.Timestamptz(6)
+ expires_at DateTime @default(dbgenerated("clock_timestamp() + interval '5 minutes'")) @db.Timestamptz(6)
+ consumed_at DateTime? @db.Timestamptz(6)
+ @@map("robot_party_oauth_codes")
  @@schema("public")
 }

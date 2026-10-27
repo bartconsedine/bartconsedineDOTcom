@@ -1,4 +1,5 @@
 import { authReturnPath } from '@/lib/auth-return';
+import { loginReturn, LOGIN_RETURN_COOKIE } from '@/lib/login-return';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { authConfig, cookieOptions } from '@/lib/auth-config';
@@ -15,6 +16,8 @@ export async function GET(request) {
     return response;
   };
   if (!config) return finish('/login?state=unconfigured');
+  const jar=await cookies();
+  const continuation=loginReturn(jar.get(LOGIN_RETURN_COOKIE)?.value);jar.delete(LOGIN_RETURN_COOKIE);
   const code = request.nextUrl.searchParams.get('code');
   if (!code) return finish('/login?state=expired');
   try {
@@ -26,8 +29,7 @@ export async function GET(request) {
       await supabase.auth.signOut({ scope: 'local' });
       return finish(`/login?state=${admin.reason}`);
     }
-    const jar = await cookies();
-    const destination = authReturnPath(jar.get('bc-calendar-return')?.value);
+    const destination = jar.get('bc-calendar-return')?.value === 'calendar' ? authReturnPath('calendar') : continuation;
     jar.set('bc-calendar-return', '', { ...cookieOptions, path: '/auth/callback', maxAge: 0 });
     return finish(destination);
   } catch { return finish('/login?state=unavailable'); }

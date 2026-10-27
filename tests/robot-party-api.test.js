@@ -25,10 +25,20 @@ test('robot API requires bearer capability, rejects owner override, never substi
  for(const [message,status] of [['robot_access_denied',401],['robot_read_only',403],['robot_conflict',409],['robot_rate_limited',429]])assert.equal((await createRobotApi(async()=>({error:{message}}))(req(command,auth))).status,status);
  const help=await api(new Request('https://example.com/api/robot-party?help=1'));assert.equal(help.status,200);assert.match((await help.json()).contentPolicy,/untrusted/);
 });
-test('robot management requires admin and same origin; only a one-time key is returned while storage receives a hash',async()=>{
- let stored;const api=createRobotsApi({checkAdmin:async()=>({ok:true,user:{id}}),siteOrigin:()=> 'https://example.com',storage:{create:async(owner,data)=>{stored=data;return {id};},list:async()=>[]}});
+test('robot management requires app access and same origin; only a one-time key is returned while storage receives a hash',async()=>{
+ let stored;const api=createRobotsApi({authorize:async()=>({ok:true,user:{id},ownerId:id,role:'owner'}),siteOrigin:()=> 'https://example.com',storage:{create:async(owner,data)=>{stored=data;return {id};},list:async()=>[]}});
  const body={action:'create',id,name:'Party bot',role:'writer'};
  assert.equal((await api(req(body))).status,403);assert.equal(stored,undefined);
  const response=await api(req(body,{origin:'https://example.com'}));const data=await response.json();assert.equal(response.status,200);assert.match(data.token,/^rp_[A-Za-z0-9_-]{43}$/);assert.match(stored.hash,/^[a-f0-9]{64}$/);assert.equal(stored.token,undefined);assert.notEqual(stored.hash,data.token);
- assert.equal((await createRobotsApi({checkAdmin:async()=>({ok:false,reason:'forbidden',status:403})})(req(body))).status,403);
+ assert.equal((await createRobotsApi({authorize:async()=>({ok:false,reason:'forbidden',status:403})})(req(body))).status,403);
+});
+test('member token endpoint scopes every operation to authorized board and denies viewer writer delegation',async()=>{
+ let calls=0,selected;const access={ok:true,user:{id:'33333333-3333-4333-8333-333333333333'},ownerId:id,role:'viewer'};
+ const api=createRobotsApi({authorize:async owner=>{selected=owner;return owner===id?access:{ok:false,status:404,reason:'not_found'};},siteOrigin:()=> 'https://example.com',storage:{list:async context=>{assert.equal(context.ownerId,id);calls++;return[];},create:async(context,input)=>{assert.equal(context.user.id,access.user.id);calls++;return{id:input.id};},revoke:async()=>{calls++;return null;}}});
+ const request=(body,owner=id)=>new Request('https://example.com/api/admin/robot-party/robots?owner='+owner,{method:body?'POST':'GET',headers:{origin:'https://example.com','content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+ assert.equal((await api(request())).status,200);assert.equal(selected,id);assert.equal(calls,1);
+ const body={action:'create',id,name:'Member robot',role:'writer'};assert.equal((await api(request(body))).status,403);assert.equal(calls,1);assert.equal((await api(request({...body,role:'reader'}))).status,200);assert.equal(calls,2);
+ assert.equal((await api(request(body,'22222222-2222-4222-8222-222222222222'))).status,404);assert.equal(calls,2);
+ assert.equal((await api(new Request('https://example.com/api/admin/robot-party/robots?owner='+id+'&owner='+id))).status,400);
+ assert.equal((await api(request({action:'revoke',id,expectedAt:'2026-10-27T00:00:00.000001+00:00'}))).status,409);
 });
