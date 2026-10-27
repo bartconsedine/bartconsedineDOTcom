@@ -2,6 +2,10 @@ import 'server-only';
 import { requireWorkspace, checkAppAccess } from './auth';
 import { visibleApps } from './workspace-policy';
 import { createAppRegistry } from './app-registry';
+import ProjectBoard from '@/private-apps/project-board/board';
+import { createProjectBoardApi } from '@/private-apps/project-board/api';
+import { boardStorage as projectStorage } from '@/private-apps/project-board/storage';
+import { verifyCalendarLink } from '@/private-apps/project-board/calendar';
 import CalendarCompanion from '@/private-apps/calendar-companion/planner';
 import { googleSession, connectGoogle } from '@/private-apps/calendar-companion/google-session';
 import { createCalendarApi } from '@/private-apps/calendar-companion/api';
@@ -16,6 +20,10 @@ import { readAppData, compareAndWriteAppData } from './app-data';
 // Register only implemented apps here. Never place private app data in /public.
 // Each entry: { slug, name, description, Component }. See docs/ADDING_APPS.md.
 const registry = createAppRegistry([{
+  slug: 'project-board', name: 'Project board',
+  description: 'Private projects and next steps, connected to your calendar.',
+  Component: ProjectBoard, api: createProjectBoardApi({ storage: projectStorage, verifyCalendarLink }),
+}, {
   slug: 'robot-party', name: 'Robot Party',
   description: 'A private message board for people and their robots to share progress, ideas and useful feedback.',
   Component: RobotParty, api: createBoardApi(boardStorage),

@@ -32,3 +32,7 @@ Use [the app-data skill](../.agents/skills/app-data/SKILL.md) for data-only chat
 Tests execute generated queries and session-writer revision predicates against local PostgreSQL via PGlite, covering roundtrip, stale save/create races, injected SQL text, invalid contracts, live identity/membership denial and owner isolation. Existing API/RLS tests cover session access, CSRF, generic database errors and cross-user denial. No schema or membership changes are required. For schema or migration tooling changes, use the existing migration/backup runbooks rather than connector DDL.
 
 On October 11, 2026, generated queries read Bart's saved plan from production, rejected a deliberately stale save, and successfully saved the existing plan unchanged with a fresh revision. A reread confirmed every trip field remained identical. This proves the production read/write path without inventing trip changes. Reloading the existing signed-in production Japan app displayed the new save time. Fresh-session roundtrip and second-admin live denial remain separate acceptance checks.
+
+## Project board relational records
+
+Use `scripts/project-board-sql.mjs` for owner-scoped project/task reads and guarded per-row writes, following the same verified-project, fresh-read, requested-owner, protected-transfer and readback rules above. It rejects new/changed Google references; those require the browser API's live Google verification. See [the board contract](../src/private-apps/project-board/README.md). Do not use the whole-document app-data generator for these tables.
