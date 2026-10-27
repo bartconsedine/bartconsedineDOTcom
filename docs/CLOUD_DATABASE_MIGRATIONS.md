@@ -92,3 +92,11 @@ five-minute single-use OAuth codes and scoped consent/exchange functions. Obtain
 explicit approval for this additional migration, inspect the exact pending
 suffix, reconfirm recovery availability and use the same guarded deploy. Do not
 apply SQL manually or reuse the previous run's confirmation as a backup bypass.
+
+## Project board migration — prepared October 27, 2026
+
+`20261027080423_project_board` adds private owner-only project/task tables, row revisions and an atomic optional starter import. It does not insert data, grant app sharing, enroll users or modify Google Calendar. Its reviewed checksum is pinned alongside the existing migration history. This migration has not been executed against hosted Supabase by the board implementation task.
+
+After reviewing the calendar dependency stack and merging authorized code, use manual **inspect** to establish the actual ledger prefix. For the separately authorized schema activation, reconfirm a completed recovery point, obtain the normal production-database approval, and run the existing **deploy** checkpoint with its fresh encrypted backup gate. Verify both tables' owner RLS and FK, function invoker security/grants, timestamps/revisions and ledger checksum. Never skip earlier pending migrations or assume earlier checkpoint prose describes the current ledger. No new credential or enrollment is required by this migration.
+
+Then verify authenticated project/task create → save → reload/fresh session, stale revision rejection, second-admin/guest denial, and live Google reference selection. In the board, use **Review iMCP setup → Add setup project** to explicitly persist the requested checklist. Software installation and data permissions remain separate decisions. See [board operations and local verification limits](../src/private-apps/project-board/README.md).

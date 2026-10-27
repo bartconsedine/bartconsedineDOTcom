@@ -98,3 +98,36 @@ model RobotPartyOauthCode {
  @@map("robot_party_oauth_codes")
  @@schema("public")
 }
+
+model ProjectBoardProject {
+  owner_id String @default(dbgenerated("auth.uid()")) @db.Uuid
+  id String @db.Uuid
+  title String
+  description String @default("")
+  source_url String @default("")
+  created_at DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  revision Int @default(1)
+  @@id([owner_id, id])
+  @@map("project_board_projects")
+  @@schema("public")
+}
+model ProjectBoardTask {
+  owner_id String @default(dbgenerated("auth.uid()")) @db.Uuid
+  id String @db.Uuid
+  project_id String @db.Uuid
+  title String
+  description String @default("")
+  status String @default("backlog")
+  priority String @default("medium")
+  due_date DateTime? @db.Date
+  source_url String @default("")
+  calendar_id String?
+  event_id String?
+  created_at DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  updated_at DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  revision Int @default(1)
+  @@id([owner_id, id])
+  @@map("project_board_tasks")
+  @@schema("public")
+}
