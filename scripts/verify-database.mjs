@@ -99,14 +99,14 @@ try {
   await assert.rejects(query(names[0], 'set role authenticated; select * from private._prisma_migrations'), /permission denied/);
   run(['node_modules/prisma/build/index.js', 'migrate', 'deploy'], names[1]);
   run(['node_modules/prisma/build/index.js', 'migrate', 'status'], names[1]);
-  // Reproduce the deployed two-migration installation with the real Prisma CLI,
+  // Reproduce the current installation (all but the newest migration) with Prisma,
   // then test only the new migration through the guarded incremental path.
   await query(names[3], fixture);
   const legacy = join(guardFixture, 'legacy'); await mkdir(legacy);
   const legacyMigrations = join(legacy, 'migrations'); await mkdir(legacyMigrations);
   const verified = await verifyReviewedMigrations();
   await writeFile(join(legacyMigrations, 'migration_lock.toml'), verified['migration_lock.toml']);
-  for (const migration of Object.keys(reviewedMigrations).sort().slice(0, 2)) {
+  for (const migration of Object.keys(reviewedMigrations).sort().slice(0, -1)) {
     await mkdir(join(legacyMigrations, migration));
     await writeFile(join(legacyMigrations, migration, 'migration.sql'), verified[migration + '/migration.sql']);
   }
@@ -130,6 +130,8 @@ try {
   await query(names[0], `insert into public.robot_party_robots(id,owner_id,created_by,name,role,token_hash)values('55555555-5555-4555-8555-555555555555','${ids[0]}','${ids[0]}','Restore fixture robot','writer',encode(sha256(convert_to('${robotToken}','UTF8')),'hex'));set role anon;select public.robot_party_write('${robotToken}','{"action":"create","id":"66666666-6666-4666-8666-666666666666","parentId":null,"content":{"title":"Restored robot post","body":"Synthetic restore fixture","kind":"update","status":"working","robotName":"","tags":[],"projectUrl":""}}'::jsonb);`);
   const memberToken='rp_'+'G'.repeat(43);
   await query(names[0], `insert into public.app_access_grants(owner_id,app_slug,invited_email,role)values('${ids[0]}','robot-party','guest@example.com','editor');set role authenticated;select set_config('request.jwt.claim.sub','${guest}',false);insert into public.robot_party_robots(owner_id,created_by,name,role,token_hash)values('${ids[0]}','${guest}','Guest restore robot','writer',encode(sha256(convert_to('${memberToken}','UTF8')),'hex'));`);
+  const oauthClient='https://chatgpt.com/oauth/client.json',oauthRedirect='https://chatgpt.com/connector_platform_oauth_redirect',oauthResource='https://bartconsedine.com/api/robot-party/mcp',oauthChallenge='P'.repeat(43),oauthToken='rp_'+'Z'.repeat(43);
+  await query(names[0], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.robot_party_authorize_connection(encode(sha256(convert_to('pending-code','UTF8')),'hex'),'77777777-7777-4777-8777-777777777777','${ids[0]}','Restore OAuth dot','writer',encode(sha256(convert_to('unused-oauth-key','UTF8')),'hex'),'${oauthClient}','${oauthRedirect}','${oauthResource}','${oauthChallenge}');`);
   process.env.BACKUP_DIR = backups;
   const archive = await backup(connection(target(names[0])));
   // Prove corrupt backups and occupied destinations cannot restore.
@@ -165,8 +167,12 @@ try {
   await assert.rejects(query(names[2], 'set role anon;select * from public.robot_party_messages'),/permission denied/);
   await assert.rejects(query(names[2], 'set role authenticated;select token_hash from public.robot_party_robots'),/permission denied/);
   await assert.rejects(query(names[2], 'set role anon;select private.is_site_admin()'),/permission denied/);
-  await query(names[2], 'update public.robot_party_robots set revoked_at=now()');
+  await query(names[2], "update public.robot_party_robots set revoked_at=now() where id='55555555-5555-4555-8555-555555555555'");
   await assert.rejects(query(names[2], `set role anon;select public.robot_party_read('${robotToken}','{}'::jsonb)`),/robot_access_denied/);
+  await assert.rejects(query(names[2], 'set role anon;select * from public.robot_party_oauth_codes'),/permission denied/);
+  const oauthExchange=await query(names[2], `set role anon;select public.robot_party_exchange_code(encode(sha256(convert_to('pending-code','UTF8')),'hex'),'${oauthClient}','${oauthRedirect}','${oauthResource}','${oauthChallenge}',encode(sha256(convert_to('${oauthToken}','UTF8')),'hex')) connection;select public.robot_party_identity('${oauthToken}') identity;`);
+  assert.equal(oauthExchange[1].rows[0].connection.role,'writer');assert.equal(oauthExchange[2].rows[0].identity.name,'Restore OAuth dot');
+  await assert.rejects(query(names[2], `set role anon;select public.robot_party_exchange_code(encode(sha256(convert_to('pending-code','UTF8')),'hex'),'${oauthClient}','${oauthRedirect}','${oauthResource}','${oauthChallenge}',encode(sha256(convert_to('${oauthToken}','UTF8')),'hex'))`),/invalid_grant/);
   console.log('PASS: Prisma baseline + fresh deploy + incremental deploy + logical backup + isolated restore + restored RLS/grants/data.');
   console.log(`Disposable fixture backups retained at ${backups}`);
 } finally {

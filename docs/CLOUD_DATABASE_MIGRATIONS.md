@@ -75,3 +75,20 @@ After deployment, verify owner and guest reader/writer creation, private key
 metadata, cross-member denial, guest removal/downgrade, re-invitation denial for
 old keys and board persistence using approved test identities. Code deployment
 alone does not certify these hosted flows.
+
+## Robot Party activation and dot OAuth — October 26, 2026
+
+User approval for sharing, board and member tokens plus a current restore point
+was received in chat. Inspect `40434891657` passed pending; guarded deploy
+`40435539864` applied exactly those three migrations from main `7dbd22a` after
+verified encrypted backup artifact `12704221864`. Hosted ledger checksums match;
+all three public tables have RLS, anon has no board table SELECT, and authenticated
+clients cannot select robot token hashes. No invitation, credential or admin
+membership was created. Authenticated live flows remain to be accepted.
+
+The subsequent reviewed `20261027015049_robot_party_dot_oauth` migration is a
+separate incremental change for the ChatGPT dot connector. It adds hashed,
+five-minute single-use OAuth codes and scoped consent/exchange functions. Obtain
+explicit approval for this additional migration, inspect the exact pending
+suffix, reconfirm recovery availability and use the same guarded deploy. Do not
+apply SQL manually or reuse the previous run's confirmation as a backup bypass.

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
 import React from 'react';
+import {loginReturn} from '../src/lib/login-return.js';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 // Render real JSX with Next's bundled compiler; isolate framework/auth boundaries.
@@ -70,6 +71,6 @@ test('Google sign-in keeps enabled, pending and unconfigured states with clean l
   assert.match(cleanMarkup(React.createElement(Form, { configured: true })), /disabled="".*Opening Google…<\/button>/);
   status.pending = false;
   assert.match(cleanMarkup(React.createElement(Form, { configured: false })), /disabled=""/);
-  const Login = component('app/login/page.js', { '@/lib/auth': auth, '@/lib/auth-config': { authConfig: () => ({}) }, './login-form': Form, 'next/navigation': { redirect: () => { throw new Error('redirect'); } } });
+  const Login = component('app/login/page.js', { '@/lib/auth': auth, '@/lib/auth-config': { authConfig: () => ({}) }, '@/lib/login-return': {loginReturn}, './login-form': Form, 'next/navigation': { redirect: () => { throw new Error('redirect'); } } });
   assert.match(cleanMarkup(await Login({ searchParams: Promise.resolve({ state: 'signedout' }) })), /href="\/">Back to the public site<\/a>/);
 });

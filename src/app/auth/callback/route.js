@@ -1,3 +1,5 @@
+import { loginReturn, LOGIN_RETURN_COOKIE } from '@/lib/login-return';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { authConfig } from '@/lib/auth-config';
 import { serverClient } from '@/lib/supabase';
@@ -13,6 +15,8 @@ export async function GET(request) {
     return response;
   };
   if (!config) return finish('/login?state=unconfigured');
+  const jar=await cookies();
+  const continuation=loginReturn(jar.get(LOGIN_RETURN_COOKIE)?.value);jar.delete(LOGIN_RETURN_COOKIE);
   const code = request.nextUrl.searchParams.get('code');
   if (!code) return finish('/login?state=expired');
   try {
@@ -24,6 +28,6 @@ export async function GET(request) {
       await supabase.auth.signOut({ scope: 'local' });
       return finish(`/login?state=${admin.reason}`);
     }
-    return finish('/admin');
+    return finish(continuation);
   } catch { return finish('/login?state=unavailable'); }
 }
