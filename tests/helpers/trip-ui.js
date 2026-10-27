@@ -12,6 +12,7 @@ const { transformSync } = require('next/dist/compiled/babel/core');
 // Executes the real JSX and event handlers while substituting only hooks/network.
 // This is a local UI fixture, never a production authentication or storage path.
 export function connectUi(fetcher, props) { return componentUi('../robot-party/connect-form.js', fetcher, [], props); }
+export function personalUi(fetcher, props = {}) { return componentUi('../robot-party/personal-chat.js', fetcher, [], props); }
 export function partyUi(fetcher, props = {}) { return componentUi('../robot-party/board.js', fetcher, [], props); }
 export function tripUi(fetcher, initial = [], props = {}) { return componentUi('command-center.js', fetcher, initial, props); }
 export function accessUi(fetcher) { return componentUi('../../app/admin/access/access-manager.js', fetcher, []); }

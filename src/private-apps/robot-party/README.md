@@ -155,3 +155,12 @@ before authorization; the interface currently remains English. It never changes
 client verification, callback, resource, PKCE, scope, state, board or role.
 Duplicate and unknown parameters still fail closed. See the
 [OpenID Connect authorization request reference](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest).
+
+## Personal section (staged)
+
+Owners can open `/admin/apps/robot-party/personal` independently of board storage.
+It currently shows an honest disconnected state and a temporary copyable draft;
+Send is disabled and no message is saved, queued or sent. Invited members cannot
+access its separately guarded page/API. See [personal chat requirements](PERSONAL_CHAT.md)
+for supported transport evidence, the proposed private authorization/storage
+boundary, exact approval prerequisites, and the end-to-end acceptance gate.
