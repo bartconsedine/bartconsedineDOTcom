@@ -23,6 +23,8 @@ Do not use localStorage, sessionStorage, IndexedDB, cookies, local JSON/CSV file
 
 A stateless calculation does not need to write every keystroke to the database. If the app promises saved inputs, results, drafts, or preferences, persist them in Supabase. A cache or optimistic UI may reflect database state but must be disposable and reconciled with it; never serve one user's private data from a shared cache.
 
+Calendar companion has an explicit user-approved exception: Google Calendar is the source of truth for its events, birthdays, sitter coverage and booking reminders. Supabase stores only owner-scoped planning preferences and ideas; live Google reads produce disposable views. Google calendar ACLs control event sharing. See its [integration contract](../src/private-apps/calendar-companion/README.md). This exception does not change storage requirements for other apps.
+
 For external integrations, store the app's imported snapshot, external identifiers, sync status, and last successful sync in Supabase. Show when data is stale. The external service still controls its own resources; do not imply a remote action succeeded merely because a local database row was written.
 
 ## Data and save behavior
@@ -36,6 +38,12 @@ For external integrations, store the app's imported snapshot, external identifie
 - Show loading, empty, saving, saved, and error states where applicable. Failed saves must preserve recoverable input in the current UI and offer a retry. If using optimistic updates, reconcile success and roll back or clearly mark failures. Do not promise durable drafts until they have been saved.
 - For destructive actions, make the affected record and result clear and use confirmation or undo appropriate to the impact. Do not add permanent history or soft deletion unless the app needs it.
 - Database unavailability must produce an actionable failure state. Never silently switch to browser-only persistence, fabricated data, or an authentication bypass.
+
+## Chat is another editor
+
+Design apps so the UI visualizes and edits the same Supabase records that can be maintained from chat. For reviewed JSON apps, register a shared validator/key/size contract in `src/lib/app-data-contracts.js` and follow [chat data operations](CHAT_APP_DATA.md). Keep validation reusable outside React and server-only modules. App creation must include a documented agent read/write path; dedicated-table apps need equivalent scoped operations.
+
+Runtime data access still requires the signed-in user's session and owner RLS. The authenticated Supabase connector is a separate trusted administrative operator path, with explicit requested-owner scope, live identity/enrollment checks and guarded generated SQL. Do not expose its privileges in the website. Chat maintenance must preserve unrelated state, reject stale writes and reread confirmed changes. Browser writers for chat-enabled documents must also check the revision atomically; a read-then-blind-write is insufficient.
 
 ## Schema changes
 

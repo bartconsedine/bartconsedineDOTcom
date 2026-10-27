@@ -60,3 +60,43 @@ The migration runner now recognizes **pending** only when the actual completed h
 After this code is reviewed/merged, run manual **inspect** on `main`; the current two-migration database should report **pending**. Before **deploy**, independently confirm a current completed Supabase restore point and obtain explicit authorization for this schema change. Use the existing `production-database` environment approval and exact `DEPLOY vgsmfbupgydafvotkold` input; retain the backup gate. Do not apply SQL through the connector, edit the ledger, change credentials, or bypass environment review. The deployment preference for website code does not remove these database checkpoints.
 
 After deployment, verify the new ledger/checksum, RLS/function grants, existing owner data, and guest viewer/editor/revocation behavior with approved synthetic accounts. No actual person is invited until an owner uses the access screen. Missing migration produces a setup state rather than fake successful invitations. Rolling back website code does not roll back the schema; do not reverse the migration or delete grants as an incidental code rollback.
+
+
+## Robot Party and member tokens — October 26, 2026
+
+The reviewed suffix after app sharing includes `20261027010424_robot_party_board`
+and `20261027013318_robot_party_member_tokens`. The latter lets invited members
+issue app-scoped credentials within their current permission, binds guest keys
+to the exact invitation revision and live verified identity, and makes key
+revocation permanent. It preserves existing owner-issued keys and enrolls or
+invites nobody. Run inspect and review the exact pending suffix before deploy;
+keep the same recovery-point, encrypted-backup and environment approval gates.
+After deployment, verify owner and guest reader/writer creation, private key
+metadata, cross-member denial, guest removal/downgrade, re-invitation denial for
+old keys and board persistence using approved test identities. Code deployment
+alone does not certify these hosted flows.
+
+## Robot Party activation and dot OAuth — October 26, 2026
+
+User approval for sharing, board and member tokens plus a current restore point
+was received in chat. Inspect `40434891657` passed pending; guarded deploy
+`40435539864` applied exactly those three migrations from main `7dbd22a` after
+verified encrypted backup artifact `12704221864`. Hosted ledger checksums match;
+all three public tables have RLS, anon has no board table SELECT, and authenticated
+clients cannot select robot token hashes. No invitation, credential or admin
+membership was created. Authenticated live flows remain to be accepted.
+
+The subsequent reviewed `20261027015049_robot_party_dot_oauth` migration is a
+separate incremental change for the ChatGPT dot connector. It adds hashed,
+five-minute single-use OAuth codes and scoped consent/exchange functions. Obtain
+explicit approval for this additional migration, inspect the exact pending
+suffix, reconfirm recovery availability and use the same guarded deploy. Do not
+apply SQL manually or reuse the previous run's confirmation as a backup bypass.
+
+## Project board migration — prepared October 27, 2026
+
+`20261027080423_project_board` adds private owner-only project/task tables, row revisions and an atomic optional starter import. It does not insert data, grant app sharing, enroll users or modify Google Calendar. Its reviewed checksum is pinned alongside the existing migration history. This migration has not been executed against hosted Supabase by the board implementation task.
+
+After reviewing the calendar dependency stack and merging authorized code, use manual **inspect** to establish the actual ledger prefix. For the separately authorized schema activation, reconfirm a completed recovery point, obtain the normal production-database approval, and run the existing **deploy** checkpoint with its fresh encrypted backup gate. Verify both tables' owner RLS and FK, function invoker security/grants, timestamps/revisions and ledger checksum. Never skip earlier pending migrations or assume earlier checkpoint prose describes the current ledger. No new credential or enrollment is required by this migration.
+
+Then verify authenticated project/task create → save → reload/fresh session, stale revision rejection, second-admin/guest denial, and live Google reference selection. In the board, use **Review iMCP setup → Add setup project** to explicitly persist the requested checklist. Software installation and data permissions remain separate decisions. See [board operations and local verification limits](../src/private-apps/project-board/README.md).

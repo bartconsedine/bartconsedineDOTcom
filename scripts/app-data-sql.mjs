@@ -2,8 +2,7 @@
 // It never connects to a database, loads secrets, or stores authoritative app data.
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
-import { appDataContract } from '../src/lib/app-data-contracts.js';
-import { validateRevision } from '../src/lib/record-revision.js';
+import { appDataContract, validateRevision } from '../src/lib/app-data-contracts.js';
 
 export const PROJECT_ID = 'vgsmfbupgydafvotkold';
 const owners = new Set(['bartconsedine@gmail.com', 'mjshah8@gmail.com']);
