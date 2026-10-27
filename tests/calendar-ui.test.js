@@ -79,3 +79,14 @@ test('dirty preferences disable event creation until an atomic preference save s
   assert.equal(posted.op, 'preferences'); assert.equal(posted.value.settings.leadDays, 21); assert.equal(posted.expectedAt, null);
   assert.equal(Object.hasOwn(posted.value, 'plans'), false);
 });
+
+test('personal calendar is pinned in preferences and the event form has no alternate destination picker', async () => {
+  const ui = calendarUi(async () => response(snapshot()));
+  await ui.mount(); button(ui.render(), 'Planning rhythm').props.onClick();
+  const destination = field(ui.render(), 'All new entries go to your personal calendar');
+  assert.equal(destination.props.children.props.readOnly, true);
+  assert.ok(nodes(ui.render()).some(n => n.type === 'input' && n.props.type === 'checkbox' && n.props.checked && n.props.disabled));
+  button(ui.render(), '+ Family birthday').props.onClick();
+  assert.equal(field(ui.render(), 'Your personal Google calendar').props.children.props.readOnly, true);
+  assert.equal(field(ui.render(), 'Google calendar'), undefined);
+});

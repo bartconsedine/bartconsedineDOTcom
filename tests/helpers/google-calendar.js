@@ -2,7 +2,7 @@ import { CalendarError } from '../../src/private-apps/calendar-companion/google-
 
 export function fakeGoogle() {
   const rows = new Map(); let tick = 0, failKind = null;
-  const log = [], primary = { id: 'family@example.com', summary: 'Family', accessRole: 'owner', primary: true, timeZone: 'America/New_York', backgroundColor: '#c3dec0' };
+  const log = [], primary = { id: 'family@example.com', summary: 'Personal', accessRole: 'owner', primary: true, timeZone: 'America/New_York', backgroundColor: '#c3dec0' };
   const rowKey = (calendar, id) => `${calendar}:${id}`;
   const getRow = (calendar, id) => {
     const row = rows.get(rowKey(calendar, id));

@@ -34,11 +34,12 @@ export async function availableCalendars(google) {
   return (await google.calendars()).filter(c => !c.deleted && ['reader', 'writer', 'owner'].includes(c.accessRole)).map(c => ({ id: c.id, name: c.summaryOverride ?? c.summary ?? c.id, role: c.accessRole, primary: c.primary === true, color: /^#[0-9a-f]{6}$/i.test(c.backgroundColor ?? '') ? c.backgroundColor : '#a9c6dc', timeZone: c.timeZone }));
 }
 export function selectedCalendars(calendars, prefs) {
-  const fallback = calendars.find(c => c.primary) ?? calendars[0];
-  const ids = prefs.readCalendars.length ? prefs.readCalendars : fallback ? [fallback.id] : [];
+  const personal = calendars.find(c => c.primary && ['owner', 'writer'].includes(c.role));
+  if (!personal) throw new CalendarError('Reconnect with your personal Google account; its primary calendar must be available.', 403);
+  const ids = [...new Set([personal.id, ...prefs.readCalendars])];
+  if (ids.length > 5) throw new CalendarError('Keep your personal calendar and up to four additional availability calendars.', 400);
   if (ids.some(id => !calendars.some(c => c.id === id))) throw new CalendarError('A selected calendar is no longer accessible. Update calendar choices.', 409);
-  const write = prefs.writeCalendar || calendars.find(c => c.primary && ['owner', 'writer'].includes(c.role))?.id || '';
-  return { ids, write };
+  return { ids, write: personal.id };
 }
 export async function snapshot(google, prefs, month, now = Date.now()) {
   if (!/^\d{4}-\d{2}$/.test(month) || !Number.isFinite(Date.parse(`${month}-01T00:00:00Z`)) || new Date(`${month}-01T00:00:00Z`).toISOString().slice(0, 7) !== month) throw new CalendarError('Invalid calendar month.', 400);
@@ -72,6 +73,7 @@ export function publicEvent(event, calendarId) {
 async function writable(google, id) {
   const list = await availableCalendars(google);
   if (!list.some(c => c.id === id && ['writer', 'owner'].includes(c.role))) throw new CalendarError('Choose a Google calendar you can edit.', 403);
+  if (!list.some(c => c.id === id && c.primary)) throw new CalendarError('Plans, birthdays and sitter entries must use your personal Google calendar.', 403);
 }
 async function ensureChild(google, calendar, id, payload, group) {
   let current;

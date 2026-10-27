@@ -200,3 +200,16 @@ test('calendar day cells use exclusive end dates and correct ordering across Goo
   const otherMonth = await snapshot(google, emptyPreferences(), '2025-01', now);
   assert.ok(otherMonth.events.some(e => e.id === 'earlier'), 'past-month navigation still loads the forward planning year');
 });
+
+test('personal primary calendar is mandatory and receives every kind of new event regardless of legacy destination preferences', async () => {
+  const google = fakeGoogle(), original = google.calendars;
+  google.calendars = async () => [...await original(), { id: 'other-writable', summary: 'Another calendar', accessRole: 'owner' }];
+  const prefs = { ...emptyPreferences(), readCalendars: ['read-only'], writeCalendar: 'other-writable' };
+  const view = await snapshot(google, prefs, '2030-01', now);
+  assert.equal(view.writeCalendar, 'family@example.com');
+  assert.ok(view.selected.includes('family@example.com'));
+  for (const input of [birthday(), change()]) await assert.rejects(saveGoogleEvent(google, prefs, owner, { ...input, calendarId: 'other-writable' }, now), /personal Google calendar/);
+  assert.equal(google.rows.size, 0);
+  google.calendars = async () => [{ id: 'other-writable', summary: 'Another calendar', accessRole: 'owner' }];
+  await assert.rejects(snapshot(google, prefs, '2030-01', now), /personal Google account/);
+});
