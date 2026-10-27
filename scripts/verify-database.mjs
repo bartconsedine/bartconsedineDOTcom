@@ -1,4 +1,4 @@
-import { reviewedMigrations, verifyReviewedMigrations } from './reviewed-migrations.mjs';
+import { reviewedMigrations, verifyReviewedMigrations, robotPartyMigrationPlan } from './reviewed-migrations.mjs';
 // Requires a dedicated disposable local PostgreSQL cluster. Never uses DATABASE_URL.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -99,14 +99,14 @@ try {
   await assert.rejects(query(names[0], 'set role authenticated; select * from private._prisma_migrations'), /permission denied/);
   run(['node_modules/prisma/build/index.js', 'migrate', 'deploy'], names[1]);
   run(['node_modules/prisma/build/index.js', 'migrate', 'status'], names[1]);
-  // Reproduce the current installation (all but the newest migration) with Prisma,
-  // then test only the new migration through the guarded incremental path.
+  // Reproduce the approved pre-OAuth installation, activate only Robot Party,
+  // then prove a later ordinary deployment can apply the remaining suffix.
   await query(names[3], fixture);
   const legacy = join(guardFixture, 'legacy'); await mkdir(legacy);
   const legacyMigrations = join(legacy, 'migrations'); await mkdir(legacyMigrations);
   const verified = await verifyReviewedMigrations();
   await writeFile(join(legacyMigrations, 'migration_lock.toml'), verified['migration_lock.toml']);
-  for (const migration of Object.keys(reviewedMigrations).sort().slice(0, -1)) {
+  for (const migration of robotPartyMigrationPlan.slice(0, -1)) {
     await mkdir(join(legacyMigrations, migration));
     await writeFile(join(legacyMigrations, migration, 'migration.sql'), verified[migration + '/migration.sql']);
   }
@@ -116,6 +116,14 @@ try {
   assert.equal(await migrationState(connection(target(names[3]))), 'pending');
   await assert.rejects(deployMigrations(connection(target(names[3])), {retainBackup:async()=>{throw new Error('Synthetic retention unavailable');}}), /retention unavailable/);
   assert.equal(await migrationState(connection(target(names[3]))), 'pending');
+  await assert.rejects(deployMigrations(connection(target(names[3])), {profile:'robot-party', retainBackup:async()=>{throw new Error('Synthetic retention unavailable');}}), /retention unavailable/);
+  assert.equal((await query(names[3], "select to_regclass('public.robot_party_oauth_codes') name")).rows[0].name, null);
+  await deployMigrations(connection(target(names[3])), {profile:'robot-party'});
+  assert.equal(await migrationState(connection(target(names[3]))), 'pending');
+  assert.deepEqual((await query(names[3], 'select migration_name from private._prisma_migrations order by migration_name')).rows.map(r=>r.migration_name), [...robotPartyMigrationPlan]);
+  assert.equal((await query(names[3], "select to_regclass('public.project_board_projects') name")).rows[0].name, null);
+  assert.equal((await query(names[3], "select to_regclass('public.robot_party_oauth_codes') name")).rows[0].name, 'robot_party_oauth_codes');
+  await assert.rejects(deployMigrations(connection(target(names[3])), {profile:'robot-party'}), /exact Robot Party activation plan/);
   console.log(run(['scripts/database.mjs','deploy'],names[3]).trim());
   assert.equal(await migrationState(connection(target(names[3]))), 'complete');
   const ids = ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222'];

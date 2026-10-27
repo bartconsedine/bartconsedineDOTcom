@@ -7,7 +7,7 @@ import { resolve, join, isAbsolute, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { connection, DatabaseToolError, project, pgEnvironment, prismaEnvironment, subprocessEnvironment, nodePgSsl } from './database-connection.mjs';
-import { reviewedMigrations, verifyReviewedMigrations, withReviewedMigrationSnapshot } from './reviewed-migrations.mjs';
+import { reviewedMigrations, verifyReviewedMigrations, withReviewedMigrationSnapshot, migrationPlan, matchesRobotPartyHistory } from './reviewed-migrations.mjs';
 import { runLinuxPrisma } from './prisma-linux-runtime.mjs';
 import { prismaFailure } from './prisma-diagnostics.mjs';
 
@@ -125,8 +125,11 @@ export async function adoptBaseline(c, { retainBackup = async () => {} } = {}) {
   await withReviewedMigrationSnapshot(config => prisma(['migrate', 'resolve', '--applied', '0_private_workspace'], c, config));
   console.log('Recorded only the verified existing base migration. Two-admin migration remains pending.'); return;
 }
-export async function deployMigrations(c, { retainBackup = async () => {} } = {}) {
+export async function deployMigrations(c, { retainBackup = async () => {}, profile = 'full' } = {}) {
   authorizeWrite(c); await verifyReviewedMigrations();
+  migrationPlan(profile);
+  if (profile === 'robot-party' && !c.local && process.platform !== 'linux') throw new DatabaseToolError('Scoped hosted activation requires the guarded Linux workflow.');
+  if (profile === 'robot-party') await assertRobotPartyHistory(c, false);
   const before = await migrationState(c);
   if (!['baseline', 'pending'].includes(before)) throw new DatabaseToolError('Only a reviewed migration prefix may be deployed; inspect history and checksums.');
   if (before === 'baseline') await baselineCheck(c);
@@ -134,11 +137,20 @@ export async function deployMigrations(c, { retainBackup = async () => {} } = {}
   const archive = await backup(c);
   await retainBackup(archive);
   if (await migrationState(c) !== before) throw new DatabaseToolError('History changed during backup retention; stop for inspection.');
+  if (profile === 'robot-party') await assertRobotPartyHistory(c, false);
   if (before === 'baseline') await baselineCheck(c);
   await withReviewedMigrationSnapshot(config => {
     prisma(['migrate', 'deploy'], c, config); prisma(['migrate', 'status'], c, config);
-  });
+  }, undefined, profile);
+  if (profile === 'robot-party') await assertRobotPartyHistory(c, true);
   console.log('Reviewed Prisma migrations applied; verify database security before enrollment/release.'); return;
+}
+
+async function assertRobotPartyHistory(c, complete) {
+  await withClient(c, async db => {
+    const { rows } = await db.query('select migration_name, checksum, finished_at, rolled_back_at from private._prisma_migrations order by migration_name');
+    if (!matchesRobotPartyHistory(rows, complete)) throw new DatabaseToolError('History does not match the exact Robot Party activation plan.');
+  });
 }
 
 // Read-only first-adoption state. Do not expose ledger logs (which can contain SQL).

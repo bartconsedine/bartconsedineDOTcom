@@ -16,6 +16,23 @@ export const reviewedMigrations = Object.freeze({
   '0_private_workspace': 'c9273dddc08696f5f8bbf0b8e762366faa41d4b0ddf84ac25989cc00351852bd',
   '20261009203911_two_admin_membership': '09cecac105386c936a6453454457594ef17c5cddb87f8c2282d73d9489c183a2',
 });
+// This fixed prefix matches the separately approved Robot Party OAuth rollout.
+// No arbitrary target, exclusion list, or out-of-order history is accepted.
+export const robotPartyMigrationPlan = Object.freeze([
+  '0_private_workspace', '20261009203911_two_admin_membership',
+  '20261026235556_app_sharing', '20261027010424_robot_party_board',
+  '20261027013318_robot_party_member_tokens', '20261027015049_robot_party_dot_oauth',
+]);
+export function migrationPlan(profile = 'full') {
+  if (profile === 'full') return Object.keys(reviewedMigrations).sort();
+  if (profile === 'robot-party') return [...robotPartyMigrationPlan];
+  throw new DatabaseToolError('Unknown reviewed migration plan.');
+}
+export function matchesRobotPartyHistory(rows, complete = false) {
+  const expected = robotPartyMigrationPlan.slice(0, complete ? undefined : -1);
+  return rows.length === expected.length && rows.every((row, index) =>
+    row.migration_name === expected[index] && row.checksum === reviewedMigrations[row.migration_name] && row.finished_at && !row.rolled_back_at);
+}
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = join(root, 'prisma/migrations');
 const fail = () => { throw new DatabaseToolError('Reviewed migration files are missing, changed, or unexpected. Stop for code review.'); };
@@ -50,13 +67,15 @@ export async function verifyReviewedMigrations(directory = source) {
 
 // Prisma executes a private snapshot of the verified bytes, never a working-tree
 // directory that another editor could change while a backup is running.
-export async function withReviewedMigrationSnapshot(run, directory = source) {
-  const files = await verifyReviewedMigrations(directory);
+export async function withReviewedMigrationSnapshot(run, directory = source, profile = 'full') {
+  const selected = migrationPlan(profile);
+  const inventory = await verifyReviewedMigrations(directory);
+  const files = Object.fromEntries(Object.entries(inventory).filter(([name]) => name === 'migration_lock.toml' || selected.includes(name.split('/')[0])));
   const staging = await mkdtemp(join(tmpdir(), 'bart-reviewed-migrations-'));
   try {
     const migrations = join(staging, 'migrations');
     await mkdir(migrations, { mode: 0o700 });
-    for (const name of Object.keys(reviewedMigrations)) await mkdir(join(migrations, name), { mode: 0o700 });
+    for (const name of selected) await mkdir(join(migrations, name), { mode: 0o700 });
     for (const [name, bytes] of Object.entries(files)) await writeFile(join(migrations, name), bytes, { mode: 0o400, flag: 'wx' });
     const config = join(staging, 'prisma.config.ts');
     // Only file paths are persisted. The normalized connection remains in the
