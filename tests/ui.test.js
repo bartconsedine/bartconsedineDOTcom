@@ -33,7 +33,7 @@ function cleanMarkup(element) {
   return html;
 }
 const apps = [{ slug: 'sample', name: 'Sample app', description: 'A fixture', href: '/admin/apps/sample', ownerId: 'owner', role: 'owner', access: {role:'owner',ownerId:'owner'}, Component: () => React.createElement('p', null, 'App content') }];
-const auth = { requireWorkspace: async () => ({isAdmin:true}), checkWorkspace: async () => ({ok:false}), requireAdmin: async () => {}, checkAdmin: async () => ({ ok: false }) };
+const auth = { requireWorkspace: async () => ({isAdmin:true,user:{id:'owner'}}), checkWorkspace: async () => ({ok:false}), requireAdmin: async () => {}, checkAdmin: async () => ({ ok: false }) };
 
 test('public text links keep destinations without decorative arrows', () => {
   const Home = component('app/page.js', { '@/components/work-grid': () => null });
