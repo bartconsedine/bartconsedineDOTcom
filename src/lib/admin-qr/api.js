@@ -13,6 +13,8 @@ export async function qrCall(rpc, action, secret, data = {}) {
 export function providerUrl(value, config, approval) {
   try {
     const url = new URL(value), auth = new URL(config.url);
+    const keys = ['provider','redirect_to','code_challenge','code_challenge_method','prompt'];
+    if (url.username || url.password || url.hash || [...url.searchParams.keys()].some(key => !keys.includes(key) || url.searchParams.getAll(key).length !== 1) || (url.searchParams.has('prompt') && url.searchParams.get('prompt') !== 'select_account')) return null;
     return url.origin === auth.origin && url.pathname === '/auth/v1/authorize' &&
       url.searchParams.get('provider') === 'google' &&
       url.searchParams.get('redirect_to') === `${config.siteUrl}/auth/qr/relay?request=${approval}` &&
