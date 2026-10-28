@@ -201,3 +201,9 @@ The local `/Users/bartconsedine/Documents/Codex/2026-10-09/task-2/private-databa
 ## Cloud execution checkpoint — 11 October 2026
 
 The user now requires migration execution in the cloud. Use [the cloud workflow runbook](CLOUD_DATABASE_MIGRATIONS.md), which supersedes the Mac-launcher execution instructions above. GitHub-hosted Linux runs standard Prisma with the same target, TLS, reviewed SQL, schema/history and fresh-backup guards. Its retention callback must finish an encrypted artifact upload/download/decryption comparison before either history adoption or deployment can write. Both failures and unexpected state require read-only investigation before retrying. Admin enrollment remains separate.
+
+## Morning signal TV pairing (prepared October 28, 2026)
+
+`20261028223639_morning_tv_pairing` adds a private RLS-enabled hashed-credential table and a constrained capability RPC for QR approval and read-only feed access. See [the TV operating guide](../src/private-apps/morning-feed/tv/README.md) for lifetimes, owner verification, revocation and rollout. The new SHA-256 pin extends the full reviewed plan; existing migration bytes and the fixed Robot Party activation profile are unchanged. The recovery drill now restores a paired TV credential and verifies read access, table denial and owner revocation.
+
+Read-only hosted ledger inspection found only the six migrations through Robot Party OAuth applied. A full deploy would also apply the earlier pending project-board migration before TV pairing. Neither pending migration has been authorized/applied by this feature request. Review the complete pending set and obtain separate hosted-schema authorization before using the existing guarded deployment/backup workflow. Do not skip files, mark migrations applied, or run connector SQL to bypass that review.
