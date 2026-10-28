@@ -1,3 +1,4 @@
+import { historyPage } from '../tldr/model.js';
 import { randomBytes, createHash } from 'node:crypto';
 import { boundedText } from '../../robot-party/oauth-api.js';
 export const TV_COOKIE = 'bc-morning-tv';
@@ -17,7 +18,7 @@ async function call(rpc, action, secret, other = null) {
   if (!data || typeof data !== 'object') throw Error();
   return data;
 }
-export function createTvApi({ rpc, origin, cookie, setCookie, qr }) {
+export function createTvApi({ rpc, origin, cookie, setCookie, qr, getTldr }) {
   const credentials = async () => {
     const parts = (await cookie() || '').split('.');
     return parts.length === 2 && parts.every(validSecret) ? parts : null;
@@ -29,8 +30,17 @@ export function createTvApi({ rpc, origin, cookie, setCookie, qr }) {
     return { ...data, code: confirmationCode(parts[1]), approvalUrl: url, qr: await qr(url) };
   }
   return {
-    async GET() {
-      try { const parts = await credentials(); return reply(parts ? await state(parts) : { status: 'unpaired' }); }
+    async GET(request) {
+      try {
+        const parts = await credentials();
+        const current = parts ? await state(parts) : { status: 'unpaired' };
+        if (request && new URL(request.url).searchParams.get('feed') === 'tldr') {
+          if (current.status !== 'connected') return reply({ status: current.status }, 401);
+          let page; try { page = historyPage(request); } catch { return reply({ error: 'Invalid issue page.' }, 400); }
+          return reply(await getTldr(page));
+        }
+        return reply(current);
+      }
       catch { return reply({ error: 'TV connection unavailable. Retry; pairing setup may still be pending.' }, 503); }
     },
     async POST(request) {
