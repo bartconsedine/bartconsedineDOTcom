@@ -1,0 +1,37 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {PGlite} from '@electric-sql/pglite';
+import {readFile,readdir} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+const owner='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222',guest='33333333-3333-4333-8333-333333333333';
+const sid='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',otherSid='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const device='D'.repeat(43),approval='A'.repeat(43),hash=x=>createHash('sha256').update(x).digest('hex');
+const login=(db,id='',session='')=>db.exec(`reset role;set role ${id?'authenticated':'anon'};select set_config('request.jwt.claim.sub','${id}',false);select set_config('request.jwt.claims','${JSON.stringify({sub:id,session_id:session})}',false);`);
+const call=async(db,action,secret=device,data={})=>(await db.query('select public.admin_qr($1,$2,$3) value',[action,secret,JSON.stringify(data)])).rows[0].value;
+async function database(){const db=new PGlite();await db.exec('create role anon;create role authenticated;');await db.exec(await readFile('tests/fixtures/auth.sql','utf8'));await db.exec(`insert into auth.users values('${owner}','bartconsedine@gmail.com',now(),false),('${other}','mjshah8@gmail.com',now(),false),('${guest}','guest@example.com',now(),false);insert into auth.identities select id,'google',jsonb_build_object('email',email,'email_verified',true) from auth.users;insert into auth.sessions values('${sid}','${owner}'),('${otherSid}','${other}');`);for(const name of(await readdir('prisma/migrations')).filter(n=>n!=='migration_lock.toml').sort())await db.exec(await readFile(`prisma/migrations/${name}/migration.sql`,'utf8'));await db.exec(`insert into private.site_admin(user_id,email)select id,email from auth.users where id<>'${guest}';insert into public.app_data(owner_id,app_slug,key,value) values('${owner}','morning-feed','screen-v1','{"mine":true}'),('${other}','morning-feed','screen-v1','{"other":true}');`);return db;}
+async function start(db){await login(db);return call(db,'start',device,{approval,label:'Living room TV',url:'https://auth.example/auth/v1/authorize'});}
+async function connect(db){await start(db);await login(db,owner);await call(db,'approve',approval);await call(db,'relay',approval,{code:'single-use-code'});await login(db);assert.equal((await call(db,'claim')).code,'single-use-code');await login(db,owner,sid);await call(db,'complete');}
+test('real SQL: target-bound one-time relay, distinct owner session, persistent full admin and owner isolation, remote revoke',async()=>{const db=await database();try{
+ await start(db);await assert.rejects(call(db,'approve',approval),/qr_denied/);await login(db,guest);await assert.rejects(call(db,'approve',approval),/qr_denied/);
+ await login(db,owner);const info=await call(db,'inspect',approval);assert.equal(info.label,'Living room TV');assert.equal(info.confirmation,hash(approval).slice(0,8).toUpperCase());await call(db,'approve',approval);await assert.rejects(call(db,'approve',approval),/qr_expired/);
+ await login(db,other);await assert.rejects(call(db,'relay',approval,{code:'wrong-account'}),/qr_denied/);await login(db,owner);await call(db,'relay',approval,{code:'only-this-target-verifier-can-exchange'});await assert.rejects(call(db,'relay',approval,{code:'replay'}),/qr_denied/);
+ await login(db);await assert.rejects(call(db,'claim','X'.repeat(43)),/qr_expired/);assert.equal((await call(db,'claim')).owner,owner);await assert.rejects(call(db,'claim'),/qr_expired/);
+ await login(db,other,otherSid);await assert.rejects(call(db,'complete'),/qr_denied/);await login(db,owner,sid);assert.equal((await call(db,'complete')).connected,true);await assert.rejects(call(db,'complete'),/qr_expired/);
+ assert.equal((await db.query('select public.is_site_admin() ok')).rows[0].ok,true);assert.equal((await db.query('select * from public.app_data')).rows.length,1);
+ await db.query("update public.app_data set value='{\"changed\":true}' where owner_id=$1",[owner]);await assert.rejects(db.query("insert into public.app_data(owner_id,app_slug,key,value)values($1,'secret','x','{}')",[other]),/row-level security/);
+ await login(db,owner,sid);assert.equal((await db.query('select * from public.app_data')).rows[0].value.changed,true);
+ await login(db,other,otherSid);assert.deepEqual((await call(db,'list',null)).devices,[]);await call(db,'revoke',hash(device));await login(db,owner,sid);assert.equal((await db.query('select public.is_site_admin() ok')).rows[0].ok,true);
+ await login(db,owner);await call(db,'revoke',hash(device));await login(db,owner,sid);assert.equal((await db.query('select public.is_site_admin() ok')).rows[0].ok,false);assert.equal((await db.query('select * from public.app_data')).rows.length,0);assert.deepEqual((await db.query('select * from public.my_app_grants()')).rows,[]);await assert.rejects(call(db,'approve',approval),/qr_denied/);await assert.rejects(db.exec('select * from private.admin_qr_requests'),/permission denied/);
+ await login(db,owner);assert.equal((await db.query('select public.is_site_admin() ok')).rows[0].ok,true);
+ }finally{await db.close();}});
+test('real SQL: cancellation, expiry, membership/identity loss, device-only sign-out and removed Auth session fail closed',async()=>{const db=await database();try{
+ await start(db);await call(db,'cancel');await login(db,owner);await assert.rejects(call(db,'approve',approval),/qr_expired/);
+ await db.exec('reset role;delete from private.admin_qr_requests');await start(db);await login(db,owner);await call(db,'decline',approval);await assert.rejects(call(db,'approve',approval),/qr_expired/);
+ await db.exec('reset role;delete from private.admin_qr_requests');await start(db);await db.exec("reset role;update private.admin_qr_requests set deadline=now()-interval '1 second'");await login(db,owner);await assert.rejects(call(db,'approve',approval),/qr_expired/);
+ await db.exec('reset role;delete from private.admin_qr_requests');await connect(db);
+ await db.exec("reset role;update private.admin_qr_requests set expires_at=now()-interval '1 second'");await login(db,owner,sid);assert.equal((await db.query('select public.is_site_admin() ok')).rows[0].ok,false);
+ await db.exec("reset role;update private.admin_qr_requests set expires_at=now()+interval '1 day';delete from private.site_admin where user_id='"+owner+"'");await login(db,owner,sid);assert.equal((await db.query('select public.is_site_admin() ok')).rows[0].ok,false);
+ await db.exec("reset role;insert into private.site_admin(user_id,email)values('"+owner+"','bartconsedine@gmail.com');update auth.identities set identity_data='{}' where user_id='"+owner+"'");await login(db,owner,sid);assert.equal((await db.query('select public.is_site_admin() ok')).rows[0].ok,false);
+ await db.exec("reset role;update auth.identities set identity_data=jsonb_build_object('email','bartconsedine@gmail.com','email_verified',true) where user_id='"+owner+"';delete from auth.sessions where id='"+sid+"'");await login(db,owner,sid);assert.equal((await db.query('select public.is_site_admin() ok')).rows[0].ok,false);
+ await db.exec("reset role;insert into auth.sessions values('"+sid+"','"+owner+"')");await login(db,owner,sid);await call(db,'signout',null);assert.equal((await db.query('select public.is_site_admin() ok')).rows[0].ok,false);await login(db,other,otherSid);assert.equal((await db.query('select public.is_site_admin() ok')).rows[0].ok,true);
+ }finally{await db.close();}});

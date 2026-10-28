@@ -145,3 +145,21 @@ model MorningTvDevice {
  @@map("morning_tv_devices")
  @@schema("private")
 }
+
+// SQL enforces capability-only relay and per-session revocation. Auth owns sessions.
+model AdminQrRequest {
+ device_hash String @id
+ approval_hash String @unique
+ label String
+ oauth_url String
+ owner_id String? @db.Uuid
+ created_at DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+ deadline DateTime @default(dbgenerated("clock_timestamp() + interval '10 minutes'")) @db.Timestamptz(6)
+ auth_code String?
+ claimed Boolean @default(false)
+ session_id String? @unique @db.Uuid
+ expires_at DateTime? @db.Timestamptz(6)
+ revoked_at DateTime? @db.Timestamptz(6)
+ @@map("admin_qr_requests")
+ @@schema("private")
+}

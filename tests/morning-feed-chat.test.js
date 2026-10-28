@@ -12,6 +12,7 @@ async function database() {
   const db = new PGlite();
   await db.exec(`create role anon; create role authenticated; create schema auth;
     create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,is_anonymous boolean);
+    create table auth.sessions(id uuid primary key,user_id uuid references auth.users(id));
     create table auth.identities(user_id uuid,provider text,identity_data jsonb);
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     insert into auth.users values('${bart}','bartconsedine@gmail.com',now(),false),('${wife}','mjshah8@gmail.com',now(),false);
