@@ -1,3 +1,4 @@
+import { getTldr } from '@/private-apps/morning-feed/tldr/server';
 import 'server-only';
 import { requireWorkspace, checkAppAccess } from './auth';
 import { visibleApps } from './workspace-policy';
@@ -24,7 +25,7 @@ import { readAppData, compareAndWriteAppData } from './app-data';
 const registry = createAppRegistry([{
   slug: 'morning-feed', name: 'Morning signal',
   description: 'Your morning rituals, briefings and big ideas. One personal feed, ready for the big screen.',
-  Component: MorningFeed, api: createMorningApi({ readAppData, compareAndWriteAppData }),
+  Component: MorningFeed, api: createMorningApi({ readAppData, compareAndWriteAppData, getTldr }),
 }, {
   slug: 'project-board', name: 'Project board',
   description: 'Private projects and next steps, connected to your calendar.',
