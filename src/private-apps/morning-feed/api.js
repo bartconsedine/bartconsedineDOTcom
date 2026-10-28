@@ -1,11 +1,16 @@
+import { historyPage } from './tldr/model.js';
 import { validateRevision } from '../../lib/record-revision.js';
 import { KEY, MAX_BYTES, SLUG, validateScreen } from './model.js';
 
 // The registry's shared dispatcher verifies admin access and exact-origin POST.
 // Production dependencies also recheck auth, registry membership, and owner RLS.
-export function createMorningApi({ readAppData, compareAndWriteAppData }) {
+export function createMorningApi({ readAppData, compareAndWriteAppData, getTldr }) {
   return {
     async GET(_request, { dataOwnerId, permission } = {}) {
+      if (_request && new URL(_request.url).searchParams.get('feed') === 'tldr') {
+        let page; try { page = historyPage(_request); } catch { return Response.json({ error: 'Invalid issue page.' }, { status: 400 }); }
+        return Response.json(await getTldr(page));
+      }
       const record = await readAppData(SLUG, KEY, dataOwnerId);
       if (record) validateScreen(record.value);
       const screen = record?.value ?? null;

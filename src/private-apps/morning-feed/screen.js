@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import TldrTicker from './tldr/ticker';
 import { dayInZone, emptyScreen, KINDS, moveCard, validateScreen } from './model.js';
 import './screen.css';
 
@@ -15,6 +16,7 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [showBriefing, setShowBriefing] = useState(true);
   const [display, setDisplay] = useState(tv);
   const [now, setNow] = useState(null);
   const [active, setActive] = useState(0);
@@ -73,6 +75,7 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
     if (!display) return;
     root.current?.focus();
     function key(event) {
+      if (event.defaultPrevented) return;
       if (event.key === 'Tab') {
         const controls = root.current?.querySelectorAll('button:not(:disabled), a[href]');
         if (controls?.length) {
@@ -129,12 +132,13 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   const clock = now ? new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', minute: '2-digit' }).format(now) : '—';
   const date = now ? new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'long', month: 'long', day: 'numeric' }).format(now) : 'Your morning, on your time';
 
-  return <section ref={root} className={`morning${display ? ' morning-display' : ''}`} aria-label="Morning signal" role={display ? 'dialog' : undefined} aria-modal={display ? true : undefined} tabIndex={display ? -1 : undefined}>
+  return <section ref={root} className={`morning${display ? ' morning-display' : ''}${display && (!visible.length || !showBriefing) ? ' morning-ticker-only' : ''}`} aria-label="Morning signal" role={display ? 'dialog' : undefined} aria-modal={display ? true : undefined} tabIndex={display ? -1 : undefined}>
     <header className="morning-top"><span className="morning-brand"><span aria-hidden="true">✳</span> {screen.title}</span><span className="morning-tag">YOUR OWN FREQUENCY</span><div className="morning-actions">
-      {display ? <><button onClick={fullscreen}>Full screen</button><button onClick={tv ? onDisconnect : exitDisplay}>{tv ? 'Disconnect TV' : 'Exit TV mode'}</button></> : <><button disabled={saving || dirty || !visible.length} title={dirty ? 'Save your changes before opening TV mode.' : undefined} onClick={() => { setActive(0); setDisplay(true); setEditing(false); setError(''); }}>TV mode ↗</button>{canEdit && <button disabled={saving} onClick={() => setEditing(!editing)}>{editing ? 'Preview feed' : 'Edit morning'}</button>}</>}
+      {display ? <><button onClick={fullscreen}>Full screen</button><button aria-pressed={showBriefing} onClick={() => setShowBriefing(!showBriefing)}>{showBriefing ? 'Hide morning briefing' : 'Show morning briefing'}</button><button onClick={tv ? onDisconnect : exitDisplay}>{tv ? 'Disconnect TV' : 'Exit TV mode'}</button></> : <><button disabled={saving || dirty} title={dirty ? 'Save your changes before opening TV mode.' : undefined} onClick={() => { setActive(0); setDisplay(true); setEditing(false); setError(''); }}>TV mode ↗</button>{canEdit && <button disabled={saving} onClick={() => setEditing(!editing)}>{editing ? 'Preview feed' : 'Edit morning'}</button>}</>}
     </div></header>
     <div className="morning-hero"><div><p className="morning-kicker">{date}</p><h2>Make room for<br/><em>a good morning.</em></h2><p className="morning-subtitle">A little intention. A little momentum. All your morning in one place.</p></div><div className="morning-clock"><strong>{clock}</strong><span>{timezone.replaceAll('_', ' ')}</span></div></div>
     <div className="morning-status" aria-live="polite">{error ? <p role="alert">{error}</p> : notice ? <p>{notice}</p> : <p>{dirty ? 'Unsaved changes · save before opening TV mode' : revision ? 'Saved morning' : 'Your screen is ready to build'}</p>}{!display && canEdit && <button className="morning-primary" disabled={saving || !dirty} onClick={save}>{saving ? 'Saving…' : error && dirty ? 'Retry save' : 'Save morning'}</button>}</div>
+    <TldrTicker key={endpoint} endpoint={endpoint} display={display} onExpired={tv ? onTvExpired : undefined}/>
     {editing && !display && canEdit && <fieldset className="morning-editor" disabled={saving}>
       <legend>Your morning, your rules</legend><div className="morning-settings">
         <label>Screen name<input maxLength={80} value={screen.title} onChange={event => change({ ...screen, title: event.target.value })}/></label>
@@ -156,7 +160,7 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
       <div className="morning-section-head"><h3>Your morning lineup</h3><span>{visible.length} cards · in your order</span></div>
       {!visible.length ? <div className="morning-empty"><span aria-hidden="true">↗</span><h3>{screen.cards.length ? 'Your lineup is taking a breather.' : 'Big plans start with a small ritual.'}</h3><p>{screen.cards.length ? 'Enable a card in the editor to bring it back on screen.' : 'Build a feed of routines, personal briefings and links. Make it as simple or as wonderfully elaborate as you like.'}</p>{canEdit && <button disabled={saving} onClick={() => { if (!screen.cards.length) addCard(); else setEditing(true); }}>{screen.cards.length ? 'Edit cards' : 'Build your morning'}</button>}</div> : <div className="morning-grid">{visible.map((card, index) => <article className={`morning-card morning-kind-${card.kind}`} key={card.id}><div className="morning-card-meta"><span>{String(index + 1).padStart(2, '0')} / {card.kind.toUpperCase()}</span><span>{card.minutes ? `${card.minutes} MIN` : 'AT YOUR PACE'}</span></div><h3>{card.title}</h3><p>{card.body || 'Your next small step.'}</p><div className="morning-card-footer">{safeLink(card.url) && <a href={safeLink(card.url)} target="_blank" rel="noopener noreferrer">Open link ↗</a>}{card.kind === 'ritual' && <button disabled={saving || !canEdit || !today} aria-pressed={card.completedOn === today} onClick={() => updateCard(card.id, { completedOn: card.completedOn === today ? '' : today })}>{card.completedOn === today ? '✓ Done today' : 'Mark complete'}</button>}</div></article>)}</div>}
     </>}
-    {!display && <details className="morning-tv-help"><summary>Take your morning to the big screen</summary><p><a href="/tv">Connect a TV with QR code</a> · <a href="/auth/tv">Manage connected TVs</a></p><p>Save your morning, then open bartconsedine.com/tv in a compatible TV browser. Scan the QR code and approve it on your phone. You can also mirror this browser from a connected device. Support depends on your TV and streaming device.</p><p>TV mode rotates enabled cards and checks for saved changes every 30 seconds. Edit and save on another signed-in device to update the screen. Use arrow keys to change cards and Escape to exit. Full screen is optional.</p><p>Briefings and links are curated by you. Weather, news and calendar sync are not connected yet.</p>{dirty && <button onClick={() => { if (window.confirm('Discard unsaved edits and load the saved morning?')) load(); }}>Discard edits and reload</button>}</details>}
+    {!display && <details className="morning-tv-help"><summary>Take your morning to the big screen</summary><p><a href="/tv">Connect a TV with QR code</a> · <a href="/auth/tv">Manage connected TVs</a></p><p>Save your morning, then open bartconsedine.com/tv in a compatible TV browser. Scan the QR code and approve it on your phone. You can also mirror this browser from a connected device. Support depends on your TV and streaming device.</p><p>TV mode rotates enabled cards and checks for saved changes every 30 seconds. Edit and save on another signed-in device to update the screen. Use arrow keys to change cards and Escape to exit. Full screen is optional.</p><p>Briefings and links are curated by you. TLDR headlines come from public archives; weather and calendar sync are not connected yet.</p>{dirty && <button onClick={() => { if (window.confirm('Discard unsaved edits and load the saved morning?')) load(); }}>Discard edits and reload</button>}</details>}
     <footer className="morning-footer"><span>LESS SCROLL. MORE SIGNAL.</span><span>{display ? 'Rotating cards · refreshes every 30 seconds' : 'MADE FOR YOUR MORNING, BUILT TO GROW.'}</span></footer>
   </section>;
 }
