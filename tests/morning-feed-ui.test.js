@@ -57,3 +57,20 @@ test('completion, remove/undo and viewer controls respect editable state and exp
   button(ui.render(), 'Edit morning').props.onClick(); await ui.settle(); button(ui.render(), 'Remove').props.onClick(); input(ui, 'Card 1 title').props.onChange({ target: { value: 'Keep my other edit' } }); button(ui.render(), 'Undo removal').props.onClick(); assert.match(view(ui), /Keep my other edit/); assert.equal(ui.states[0].cards.length, 2);
   const viewer = morningUi(fetcher, { permission: 'viewer' }); await viewer.settle(); assert.equal(button(viewer.render(), 'Edit morning'), undefined); assert.equal(button(viewer.render(), 'Save morning'), undefined); assert.equal(button(viewer.render(), 'Mark complete').props.disabled, true); ui.close(); viewer.close();
 });
+
+test('paired TV starts read-only in display mode and clears the feed on revocation', async () => {
+  let revoked = false, expired = false;
+  const screen = { ...emptyScreen(), cards: [card('one')] };
+  const ui = morningUi(async endpoint => {
+    assert.equal(endpoint, '/api/tv');
+    return Response.json(revoked ? { status: 'expired' } : { status: 'connected', screen, updatedAt: null });
+  }, { tv: true, onTvExpired: () => { expired = true; }, onDisconnect: () => {} });
+  await ui.settle(); assert.match(view(ui), /ON AIR/);
+  assert.equal(button(ui.render(), 'Edit morning'), undefined);
+  assert.equal(button(ui.render(), 'Save morning'), undefined);
+  assert.ok(button(ui.render(), 'Disconnect TV'));
+  ui.key('Escape'); await ui.settle(); assert.match(view(ui), /ON AIR/);
+  revoked = true; await ui.tick(30000); assert.equal(expired, true);
+  assert.doesNotMatch(view(ui), /Ritual one/); assert.match(view(ui), /connection ended/);
+  ui.close();
+});

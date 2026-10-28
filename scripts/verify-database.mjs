@@ -140,6 +140,8 @@ try {
   await query(names[0], `insert into public.app_access_grants(owner_id,app_slug,invited_email,role)values('${ids[0]}','robot-party','guest@example.com','editor');set role authenticated;select set_config('request.jwt.claim.sub','${guest}',false);insert into public.robot_party_robots(owner_id,created_by,name,role,token_hash)values('${ids[0]}','${guest}','Guest restore robot','writer',encode(sha256(convert_to('${memberToken}','UTF8')),'hex'));`);
   const oauthClient='https://chatgpt.com/oauth/client.json',oauthRedirect='https://chatgpt.com/connector_platform_oauth_redirect',oauthResource='https://bartconsedine.com/api/robot-party/mcp',oauthChallenge='P'.repeat(43),oauthToken='rp_'+'Z'.repeat(43);
   await query(names[0], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.robot_party_authorize_connection(encode(sha256(convert_to('pending-code','UTF8')),'hex'),'77777777-7777-4777-8777-777777777777','${ids[0]}','Restore OAuth dot','writer',encode(sha256(convert_to('unused-oauth-key','UTF8')),'hex'),'${oauthClient}','${oauthRedirect}','${oauthResource}','${oauthChallenge}');`);
+  const tvDevice='T'.repeat(43),tvApproval='V'.repeat(43);
+  await query(names[0], `set role anon;select public.morning_tv('start','${tvDevice}','${tvApproval}');reset role;set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.morning_tv('approve','${tvApproval}');`);
   process.env.BACKUP_DIR = backups;
   const archive = await backup(connection(target(names[0])));
   // Prove corrupt backups and occupied destinations cannot restore.
@@ -181,6 +183,13 @@ try {
   const oauthExchange=await query(names[2], `set role anon;select public.robot_party_exchange_code(encode(sha256(convert_to('pending-code','UTF8')),'hex'),'${oauthClient}','${oauthRedirect}','${oauthResource}','${oauthChallenge}',encode(sha256(convert_to('${oauthToken}','UTF8')),'hex')) connection;select public.robot_party_identity('${oauthToken}') identity;`);
   assert.equal(oauthExchange[1].rows[0].connection.role,'writer');assert.equal(oauthExchange[2].rows[0].identity.name,'Restore OAuth dot');
   await assert.rejects(query(names[2], `set role anon;select public.robot_party_exchange_code(encode(sha256(convert_to('pending-code','UTF8')),'hex'),'${oauthClient}','${oauthRedirect}','${oauthResource}','${oauthChallenge}',encode(sha256(convert_to('${oauthToken}','UTF8')),'hex'))`),/invalid_grant/);
+  const restoredTv=await query(names[2], `set role anon;select public.morning_tv('read','${tvDevice}') tv;`);
+  assert.equal(restoredTv[1].rows[0].tv.status,'connected');
+  assert.equal(restoredTv[1].rows[0].tv.screen,null);
+  await assert.rejects(query(names[2], 'set role anon;select * from private.morning_tv_devices'),/permission denied/);
+  await query(names[2], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.morning_tv('revoke',encode(sha256(convert_to('${tvDevice}','UTF8')),'hex'));`);
+  const revokedTv=await query(names[2], `set role anon;select public.morning_tv('read','${tvDevice}') tv;`);
+  assert.equal(revokedTv[1].rows[0].tv.status,'expired');
   console.log('PASS: Prisma baseline + fresh deploy + incremental deploy + logical backup + isolated restore + restored RLS/grants/data.');
   console.log(`Disposable fixture backups retained at ${backups}`);
 } finally {
