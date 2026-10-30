@@ -28,3 +28,17 @@ test('TV waits for explicit phone approval, keeps QR on transient errors, and op
   fail = false; status = 'connected'; await ui.tick(5000); assert.equal(nodes(ui.render()).find(n => n.type === 'img'), undefined);
   assert.ok(nodes(ui.render()).some(n => n.props?.tv === true && n.props?.permission === 'viewer')); ui.close();
 });
+
+test('disconnect uses a remote-selectable app dialog; cancel and failed requests keep the current pairing', async () => {
+  let fail = true, writes = 0;
+  const ui = tvUi('tv-screen', async (_, options) => {
+    if (options?.method === 'POST') { writes++; return fail ? Response.json({ error: 'Disconnect failed. Retry.' }, { status: 503 }) : Response.json({ disconnected: true }); }
+    return Response.json({ status: 'pending', expiresAt: new Date(Date.now() + 600000).toISOString(), code: '1234ABCD', qr: 'data:image/png;base64,fixture', approvalUrl: 'https://example.com/fixture' });
+  });
+  await ui.settle(); button(ui, 'Cancel pairing').props.onClick(); await ui.settle();
+  assert.ok(nodes(ui.render()).find(node => node.props?.role === 'dialog' && node.props?.['aria-modal']));
+  button(ui, 'Keep connected').props.onClick(); await ui.settle(); assert.equal(writes, 0);
+  button(ui, 'Cancel pairing').props.onClick(); await ui.settle();
+  await button(ui, 'Disconnect TV').props.onClick(); await ui.settle(); assert.match(text(ui.render()), /Disconnect failed/); assert.match(text(ui.render()), /1234ABCD/);
+  fail = false; await button(ui, 'Disconnect TV').props.onClick(); await ui.settle(); assert.ok(button(ui, 'Show QR code')); assert.equal(nodes(ui.render()).find(node => node.props?.role === 'dialog'), undefined); ui.close();
+});

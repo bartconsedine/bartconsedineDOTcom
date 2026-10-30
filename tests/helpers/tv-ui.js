@@ -7,6 +7,7 @@ const { transformSync } = require('next/dist/compiled/babel/core');
 export function tvUi(file, fetcher, props = {}) {
   const states = [], effects = [], pending = [], timers = new Map(); let slot = 0, timerId = 0;
   const hooks = {
+    useRef(initial) { const key = slot++; if (!(key in states)) states[key] = { current: initial }; return states[key]; },
     useState(initial) { const key = slot++; if (!(key in states)) states[key] = typeof initial === 'function' ? initial() : initial; return [states[key], next => { states[key] = typeof next === 'function' ? next(states[key]) : next; }]; },
     useEffect(fn, deps) { const key = slot++, old = effects[key]; if (!old || deps.some((dep, i) => !Object.is(dep, old.deps[i]))) { old?.cleanup?.(); effects[key] = { deps }; pending.push(() => { effects[key].cleanup = fn(); }); } },
   };
@@ -15,6 +16,7 @@ export function tvUi(file, fetcher, props = {}) {
   runInNewContext(code, { module, exports: module.exports, fetch: fetcher, setInterval(fn, ms) { const id = ++timerId; timers.set(id, { fn, ms }); return id; }, clearInterval(id) { timers.delete(id); }, window: { confirm: () => true }, require: id => {
     if (id === 'react') return hooks;
     if (id.endsWith('.css')) return {};
+    if (id === './remote-navigation') return { attachRemoteNavigation: () => undefined };
     if (id === '../screen') return () => null;
     if (id === 'react/jsx-runtime') return require(id);
     throw Error(`Unexpected import ${id}`);

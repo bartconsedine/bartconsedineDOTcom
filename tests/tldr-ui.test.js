@@ -32,3 +32,14 @@ test('partial source failure retains that edition, revocation clears headlines a
  data={...feed([]),sources:[{edition:'tech',status:'unavailable',date:null}]}; await ui.tick(60000); assert.match(view(ui),/one/); assert.match(view(ui),/source unavailable/);
  revoked=true; await ui.tick(60000); assert.equal(expired,true); assert.doesNotMatch(view(ui),/Paused headline/); assert.doesNotMatch(view(ui),/example.com/); ui.close();
 });
+
+test('ticker yields arrows and OK to spatial navigation, while Back still resumes its QR reader', async () => {
+  const ui = tickerUi(async () => Response.json(feed()), { endpoint: '/api/tv', display: true });
+  await ui.settle();
+  ui.render().props.ref.current = { closest: () => ({}), contains: () => true, querySelector: () => ({ focus() {} }) };
+  ui.key('ArrowRight'); await ui.settle(); assert.match(view(ui), /tldr-scroll\">one/);
+  ui.key('Enter'); await ui.settle(); assert.doesNotMatch(view(ui), /Paused headline/);
+  const headline = nodes(ui.render()).find(node => node.props?.className === 'tldr-headline');
+  headline.props.onClick(); await ui.settle(); assert.match(view(ui), /Paused headline/);
+  ui.key('Backspace'); await ui.settle(); assert.doesNotMatch(view(ui), /Paused headline/); ui.close();
+});
