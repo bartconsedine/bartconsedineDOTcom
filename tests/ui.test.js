@@ -48,7 +48,7 @@ test('public text links keep destinations without decorative arrows', () => {
 test('admin navigation, sign-out POST, app cards and empty state keep working text controls', async () => {
   const AdminNav = component('components/admin-nav.js', { 'next/navigation': { usePathname: () => '/admin' } });
   const appModule = { listApps: async () => apps };
-  const Layout = component('app/admin/layout.js', { '@/lib/auth': auth, '@/lib/apps': appModule, '@/components/admin-nav': AdminNav });
+  const Layout = component('app/admin/layout.js', { '@/lib/auth': auth, '@/lib/admin-qr/api': {qrEnabled:()=>false}, '@/lib/apps': appModule, '@/components/admin-nav': AdminNav });
   const html = cleanMarkup(await Layout({ children: 'Workspace content' }));
   assert.match(html, /href="\/">Public site<\/a>/);
   assert.match(html, /href="\/admin" aria-current="page">My apps<\/a>/);
@@ -71,6 +71,6 @@ test('Google sign-in keeps enabled, pending and unconfigured states with clean l
   assert.match(cleanMarkup(React.createElement(Form, { configured: true })), /disabled="".*Opening Google…<\/button>/);
   status.pending = false;
   assert.match(cleanMarkup(React.createElement(Form, { configured: false })), /disabled=""/);
-  const Login = component('app/login/page.js', { '@/lib/auth': auth, '@/lib/auth-config': { authConfig: () => ({}) }, '@/lib/login-return': {loginReturn}, './login-form': Form, 'next/navigation': { redirect: () => { throw new Error('redirect'); } } });
+  const Login = component('app/login/page.js', { '@/lib/auth': auth, '@/lib/auth-config': { authConfig: () => ({}) }, '@/lib/login-return': {loginReturn}, '@/lib/admin-qr/api': {qrEnabled:()=>false}, './login-form': Form, 'next/navigation': { redirect: () => { throw new Error('redirect'); } } });
   assert.match(cleanMarkup(await Login({ searchParams: Promise.resolve({ state: 'signedout' }) })), /href="\/">Back to the public site<\/a>/);
 });

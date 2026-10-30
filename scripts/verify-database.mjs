@@ -142,6 +142,12 @@ try {
   await query(names[0], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.robot_party_authorize_connection(encode(sha256(convert_to('pending-code','UTF8')),'hex'),'77777777-7777-4777-8777-777777777777','${ids[0]}','Restore OAuth dot','writer',encode(sha256(convert_to('unused-oauth-key','UTF8')),'hex'),'${oauthClient}','${oauthRedirect}','${oauthResource}','${oauthChallenge}');`);
   const tvDevice='T'.repeat(43),tvApproval='V'.repeat(43);
   await query(names[0], `set role anon;select public.morning_tv('start','${tvDevice}','${tvApproval}');reset role;set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.morning_tv('approve','${tvApproval}');`);
+  const qrDevice='Q'.repeat(43),qrApproval='K'.repeat(43),qrSession='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  await query(names[0], `insert into auth.sessions values('${qrSession}','${ids[0]}');set role anon;select public.admin_qr('start','${qrDevice}','{"approval":"${qrApproval}","label":"Recovery TV","url":"https://auth.example/auth/v1/authorize"}');reset role;set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.admin_qr('approve','${qrApproval}');select public.admin_qr('relay','${qrApproval}','{"code":"synthetic-recovery-code"}');`);
+  const claims=await Promise.allSettled([query(names[0],`set role anon;select public.admin_qr('claim','${qrDevice}');`),query(names[0],`set role anon;select public.admin_qr('claim','${qrDevice}');`)]);
+  assert.equal(claims.filter(r=>r.status==='fulfilled').length,1,'concurrent target claims have one winner');
+  assert.equal(claims.filter(r=>r.status==='rejected').length,1);
+  await query(names[0],`set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select set_config('request.jwt.claims','{"session_id":"${qrSession}"}',false);select public.admin_qr('complete','${qrDevice}');`);
   process.env.BACKUP_DIR = backups;
   const archive = await backup(connection(target(names[0])));
   // Prove corrupt backups and occupied destinations cannot restore.
@@ -190,6 +196,13 @@ try {
   await query(names[2], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.morning_tv('revoke',encode(sha256(convert_to('${tvDevice}','UTF8')),'hex'));`);
   const revokedTv=await query(names[2], `set role anon;select public.morning_tv('read','${tvDevice}') tv;`);
   assert.equal(revokedTv[1].rows[0].tv.status,'expired');
+  const qrLogin=`set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select set_config('request.jwt.claims','{"session_id":"${qrSession}"}',false);`;
+  const qrRestored=await query(names[2],qrLogin+'select public.is_site_admin() allowed;select * from public.app_data;');
+  assert.equal(qrRestored[3].rows[0].allowed,true);assert.equal(qrRestored[4].rowCount,1);
+  await assert.rejects(query(names[2],'set role anon;select * from private.admin_qr_requests'),/permission denied/);
+  await query(names[2],`set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.admin_qr('revoke',encode(sha256(convert_to('${qrDevice}','UTF8')),'hex'));`);
+  const qrRevoked=await query(names[2],qrLogin+'select public.is_site_admin() allowed;select * from public.app_data;');
+  assert.equal(qrRevoked[3].rows[0].allowed,false);assert.equal(qrRevoked[4].rowCount,0);
   console.log('PASS: Prisma baseline + fresh deploy + incremental deploy + logical backup + isolated restore + restored RLS/grants/data.');
   console.log(`Disposable fixture backups retained at ${backups}`);
 } finally {
