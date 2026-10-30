@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { attachRemoteNavigation } from './tv/remote-navigation';
+import './tv/remote-navigation.css';
 import TldrTicker from './tldr/ticker';
 import { dayInZone, emptyScreen, KINDS, moveCard, validateScreen } from './model.js';
 import './screen.css';
@@ -26,6 +28,7 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   const busy = useRef(false);
   const endpoint = tv ? '/api/tv' : `/api/admin/apps/morning-feed${workspaceOwner ? `?owner=${encodeURIComponent(workspaceOwner)}` : ''}`;
   const canEdit = !tv && permission !== 'viewer';
+  useEffect(() => { if (display && !tv && root.current) return attachRemoteNavigation(root.current); }, [display, phase, tv]);
   const saving = phase === 'saving';
 
   async function load(signal) {
