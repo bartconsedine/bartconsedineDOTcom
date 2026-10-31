@@ -28,6 +28,9 @@ export function publicLink(value) {
     return url.href;
   } catch { return null; }
 }
+export function summaryText(html) {
+  return decode(html.replace(/<(script|style|template)\b[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<!--[\s\S]*?-->/g, '').replace(/<(?:br|\/p|\/div|\/li)\b[^>]*>/gi, '\n').replace(/<li\b[^>]*>/gi, '• ').replace(/<[^>]*>/g, '')).replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
 export function issueArticles(html) {
   const articles = [];
   // Only explicit editorial article blocks, never newsletter navigation, body links or scripts.
@@ -36,8 +39,8 @@ export function issueArticles(html) {
     const heading = block.match(/<a\b[^>]*href=["']([^"']+)["'][^>]*>\s*<h3\b[^>]*>([\s\S]*?)<\/h3>\s*<\/a>/i);
     if (!heading || /(?:\((?:sponsor(?:ed)?|advertisement)[^)]*\)|^(?:sponsored|advertisement)\b)/i.test(plain(heading[2])) || /data-(?:sponsor|ad)\b|rel=["'][^"']*\bsponsored\b|>\s*(?:sponsor(?:ed)?|advertisement|partner content)\s*</i.test(match[0])) continue;
     const title = plain(heading[2]).replace(/\s*\(\d+ minute (?:read|watch)\)\s*$/i, '');
-    const url = publicLink(decode(heading[1]));
-    if (title && title.length <= 500 && url) articles.push({ title, url });
+    const url = publicLink(decode(decode(heading[1])));
+    if (title && title.length <= 500 && url) articles.push({ title, url, summary: summaryText(block.slice(heading.index + heading[0].length)) });
   }
   return articles;
 }
@@ -47,7 +50,7 @@ export function mergeIssues(issues, now = Date.now()) {
     for (const article of issue.articles ?? []) {
       let item = unique.get(article.url);
       if (!item) { item = { ...article, editions: [] }; unique.set(article.url, item); }
-      item.editions.push({ edition: issue.edition, date: issue.date });
+      item.editions.push({ edition: issue.edition, date: issue.date, summary: article.summary ?? '' });
     }
     return { edition: issue.edition, date: issue.date ?? null, checkedAt: issue.checkedAt ?? null, status: issue.error ? 'unavailable' : now - Date.parse(issue.checkedAt) > 3600000 ? 'cached' : now - Date.parse(issue.date) > 3 * 86400000 ? 'older' : 'current', count: issue.articles?.length ?? 0, hasOlder: Boolean(issue.hasOlder) };
   });

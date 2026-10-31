@@ -8,7 +8,7 @@ import { createTvApi } from '../src/private-apps/morning-feed/tv/api.js';
 const article = (title, url = 'https://example.com/story?v=7&amp;utm_source=tldrnewsletter', extra = '') => `<article ${extra}><a class="font-bold" href="${url}"><h3>${title}</h3></a><div>Public summary</div></article>`;
 test('extracts every editorial headline including Quick Links; excludes sponsors in any section and never exports body/navigation', () => {
   const html = '<a href="https://example.com/unsubscribe">Unsubscribe</a><script>private</script>' + Array.from({length: 37}, (_,i) => article(`Story ${i} &amp; more (2 minute read)`, `https://example.com/${i}`)).join('') + article('Top ad (Sponsor)') + article('Sponsored placement') + article('Footer ad', undefined, 'data-sponsor="true"');
-  const items = issueArticles(html); assert.equal(items.length,37); assert.equal(items[36].title,'Story 36 & more'); assert.deepEqual(Object.keys(items[0]),['title','url']);
+  const items = issueArticles(html); assert.equal(items.length,37); assert.equal(items[36].title,'Story 36 & more'); assert.deepEqual(Object.keys(items[0]),['title','url','summary']);
   assert.equal(issueArticles(article('Watch', 'https://youtube.com/watch?v=abc&amp;utm_source=tldr'))[0].url, 'https://youtube.com/watch?v=abc');
 });
 test('public links preserve functional query parameters while rejecting credentials, private literals and subscriber destinations', () => {
@@ -53,4 +53,15 @@ test('TLDR read remains behind existing TV connection; pending/revoked/other-own
   assert.equal((await api.GET(req)).status,401); assert.equal(calls,0);
   status='connected'; const response=await api.GET(req); assert.equal(response.status,200); assert.equal((await response.json()).history,2); assert.equal(calls,1); assert.match(response.headers.get('cache-control'),/private, no-store/);
   status='expired'; assert.equal((await api.GET(req)).status,401); assert.equal(calls,1);
+});
+
+test('complete public summaries preserve paragraphs, bullets and final sentences without markup or private link attributes', () => {
+  const full = Array.from({length:100},(_,i)=>`Sentence ${i}.`).join(' ');
+  const html = `<article><a href="https://example.com/article?x=1&amp;amp;v=7"><h3>Long title (3 minute read)</h3></a><div class="newsletter-html"><p>Original <strong>source</strong> &amp; text.</p><p>${full}</p><ul><li>First point</li><li>Last point with <a href="https://private.example/unsubscribe?token=secret">visible words</a>.</li></ul><script>secret-script</script><!--private-comment--></div></article>`;
+  const [item] = issueArticles(html);
+  assert.ok(item.summary.includes(full)); assert.match(item.summary,/Original source & text\.\nSentence 0/); assert.match(item.summary,/• First point\n• Last point with visible words\./);
+  assert.doesNotMatch(item.summary,/<|token=|private-comment|secret-script|unsubscribe/);
+  assert.equal(item.url,'https://example.com/article?x=1&v=7');
+  const merged=mergeIssues([{edition:'tech',date:'2026-10-30',articles:[item]},{edition:'ai',date:'2026-10-30',articles:[{...item,summary:'Different original AI edition summary.'}]}]);
+  assert.equal(merged.articles.length,1); assert.equal(merged.articles[0].summary,item.summary); assert.equal(merged.articles[0].editions[1].summary,'Different original AI edition summary.');
 });

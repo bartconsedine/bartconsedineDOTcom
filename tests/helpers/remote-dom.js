@@ -8,6 +8,7 @@ export function remoteDom() {
   function matches(element, selector) {
     if (selector === ':disabled') return element.disabled;
     if (selector === '[role="dialog"][aria-modal="true"]') return element.getAttribute('role') === 'dialog' && element.getAttribute('aria-modal') === 'true';
+    if (selector === '[data-tv-back]') return element.attrs.has('data-tv-back');
     if (selector === '[data-tv-cancel]') return element.attrs.has('data-tv-cancel');
     if (selector === 'details[open]') return element.tag === 'details' && element.open;
     if (selector === 'summary') return element.tag === 'summary';

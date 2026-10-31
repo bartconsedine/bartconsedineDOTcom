@@ -1,3 +1,4 @@
+import * as tvHistory from '../../src/private-apps/morning-feed/tv/history.js';
 // Runs real client components with synthetic hooks/network; not a live browser.
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -15,6 +16,7 @@ export function tvUi(file, fetcher, props = {}) {
   const module = { exports: {} };
   runInNewContext(code, { module, exports: module.exports, fetch: fetcher, setInterval(fn, ms) { const id = ++timerId; timers.set(id, { fn, ms }); return id; }, clearInterval(id) { timers.delete(id); }, window: { confirm: () => true }, require: id => {
     if (id === 'react') return hooks;
+    if (['./history', './tv/history', '../tv/history.js'].includes(id)) return tvHistory;
     if (id.endsWith('.css')) return {};
     if (id === './remote-navigation') return { attachRemoteNavigation: () => undefined };
     if (id === '../screen') return () => null;
