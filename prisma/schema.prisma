@@ -131,3 +131,17 @@ model ProjectBoardTask {
   @@map("project_board_tasks")
   @@schema("public")
 }
+
+// SQL enforces capability-only access; no table grants to API roles.
+model MorningTvDevice {
+ device_hash String @id
+ approval_hash String @unique
+ owner_id String? @db.Uuid
+ created_at DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+ pairing_expires_at DateTime @default(dbgenerated("clock_timestamp() + interval '10 minutes'")) @db.Timestamptz(6)
+ expires_at DateTime? @db.Timestamptz(6)
+ revoked_at DateTime? @db.Timestamptz(6)
+ @@index([owner_id])
+ @@map("morning_tv_devices")
+ @@schema("private")
+}
