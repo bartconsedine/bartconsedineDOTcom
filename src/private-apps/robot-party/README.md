@@ -138,8 +138,9 @@ can be revoked permanently there.
 
 The three earlier migrations were activated on October 26 through guarded cloud
 run `40435539864`, after verified encrypted backup artifact `12704221864`.
-The additional OAuth migration remains separately reviewable and pending until
-approved through the same workflow; code deployment is not schema activation.
+Read-only ledger inspection on October31 confirms the OAuth migration completed
+on October27 at 10:40:54 UTC. This does not authorize private-channel access;
+code deployment is not activation of the later private-message storage.
 No real dot/plugin connection, member invitation or credential was created as
 part of implementation. Local tests verify the complete OAuth-to-agent-post
 path and the restore drill preserves a pending authorization code; actual dot

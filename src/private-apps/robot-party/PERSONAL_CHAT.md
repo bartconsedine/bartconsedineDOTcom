@@ -37,7 +37,7 @@ successful event round trip verifies delivery into the subscribed dot/chat; it
 does not prove that other contexts cannot use the credential. If Bart requires
 strict dot exclusivity, do not grant private access until a supported isolated
 connection or verified requester identity is established. There is no silent
-upgrade from the pending storage/key approval to this broader data grant.
+upgrade from the storage/key approval to this broader data grant.
 
 ## Minimal prepared implementation
 
@@ -108,7 +108,7 @@ access was blocked by the locked Mac at the last inspection.
    board repair owner; do not change or apply its migration incidentally. The
    separate PGlite round trip remains simulated, not live dot delivery. Merge/release only after
    required code and desktop/mobile checks; this PR is not yet marked ready.
-2. **Bart approves; authorized database operator executes:** activate exactly
+2. **Authorized database operator executes the approved storage setup:** activate exactly
    that reviewed personal-chat migration on Supabase project
    `vgsmfbupgydafvotkold`, through the existing guarded cloud Prisma workflow,
    with current ledger inspection, completed recovery point, fresh encrypted
