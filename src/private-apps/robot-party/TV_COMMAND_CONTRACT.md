@@ -1,6 +1,6 @@
 # TV command box integration contract — prepared, not activated
 
-Checked 31 October 2026 against main `32c55b8` and draft PR25 `1b72812`.
+Checked 31 October 2026; reconciled with merged PR30 on main `e49b514`.
 The TV redesign worker owns `/tv` components, layout, navigation and toggles;
 this change adds only the command API adapter and tests. No TV component,
 existing TV pairing API or layout is edited. Private-storage promotion is handled
@@ -11,8 +11,9 @@ separately in the reviewed migration inventory.
 - PR25 remains open/draft/unmerged. The live Robot Party MCP server advertises
   tools only, without events. The installed connector exposes only board tools.
 - Read-only hosted inspection found no private-chat schema/RPCs and no private
-  transport enable/key configuration. No secret values were fetched. Existing
-  read-only TV pairing is a different permission boundary.
+  transport enable configuration. The production-only server encryption key is
+  configured with a protected recovery copy; no secret values were displayed.
+  Existing read-only TV pairing is a different permission boundary.
 - Existing connection metadata is insufficient to prove that a particular
   installed dot holds the selected credential. Confirm its ID from that dot
   after the reviewed server update/rescan; do not rely on a display name.
@@ -78,8 +79,10 @@ supports dots. Current installed event discovery and a real round trip are not
 verified; local synthetic receivers do not establish those facts.
 
 Before this owner-session endpoint can queue anything, the separately reviewed
-private-chat migration, server encryption-key configuration, exact connection
-grant, and subscription from the existing dot must be approved and activated.
+private-chat migration must run through the guarded workflow. Storage/key setup
+is approved and the key is configured; the migration remains unapplied. The
+exact connection grant and subscription from the existing dot still require
+separate approval and activation.
 The approved recipient must be the connection identified by the existing dot,
 not merely a robot whose display name says “My dot”. The grant authorizes private
 read/reply wherever that credential is used; dot-exclusive credentials are not
