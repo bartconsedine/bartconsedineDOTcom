@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { startTvHistory, subscribeTvHistory, navigateTv, backTv, exitTvHistory, TV_VIEWS } from './tv/history';
 import { attachRemoteNavigation } from './tv/remote-navigation';
 import './tv/remote-navigation.css';
 import TvCalendar from './tv/calendar';
@@ -20,7 +21,7 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [tvView, setTvView] = useState('news');
+  const [tvView, setTvView] = useState('home');
   const [showBriefing, setShowBriefing] = useState(true);
   const [display, setDisplay] = useState(tv);
   const [now, setNow] = useState(null);
@@ -31,6 +32,20 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   const busy = useRef(false);
   const endpoint = tv ? '/api/tv' : `/api/admin/apps/morning-feed${workspaceOwner ? `?owner=${encodeURIComponent(workspaceOwner)}` : ''}`;
   const canEdit = !tv && permission !== 'viewer';
+  useEffect(() => {
+    if (tv || !window.location) return;
+    const restore = () => { if (TV_VIEWS.includes(new URL(window.location.href).searchParams.get('view'))) setDisplay(true); };
+    restore(); window.addEventListener('popstate', restore); return () => window.removeEventListener('popstate', restore);
+  }, [tv]);
+  useEffect(() => {
+    if (!display) return;
+    const stop = !tv ? startTvHistory(window) : () => {};
+    const unsubscribe = subscribeTvHistory(window, location => { if (location) { setTvView(location.view); if (location.view === 'briefing') setShowBriefing(true); } });
+    return () => { unsubscribe(); stop(); };
+  }, [display, tv]);
+  function navigate(value) { if (!navigateTv(window, value)) setTvView(value); if (value === 'briefing') setShowBriefing(true); }
+  function goBack() { if (!backTv(window)) navigate('home'); }
+
   useEffect(() => { if (display && !tv && root.current) return attachRemoteNavigation(root.current); }, [display, phase, tv]);
   const saving = phase === 'saving';
 
@@ -90,13 +105,13 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
           else if (!event.shiftKey && (document.activeElement === last || document.activeElement === root.current)) { event.preventDefault(); first.focus(); }
         }
       }
-      if (event.key === 'Escape' && !tv) setDisplay(false);
+      if (event.key === 'Escape' && !tv && tvView === 'home') exitDisplay();
       if (event.key === 'ArrowRight') { event.preventDefault(); setActive(index => (index + 1) % Math.max(1, visible.length)); }
       if (event.key === 'ArrowLeft') { event.preventDefault(); setActive(index => (index - 1 + Math.max(1, visible.length)) % Math.max(1, visible.length)); }
     }
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [display, visible.length]);
+  }, [display, visible.length, tvView]);
 
   function change(next) { setScreen(next); setDirty(true); setNotice(''); setError(''); }
   function updateCard(id, patch) { change({ ...screen, cards: screen.cards.map(card => card.id === id ? { ...card, ...patch } : card) }); }
@@ -122,7 +137,7 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
     } catch { setNotice('Full screen is unavailable here. TV mode is still active.'); }
   }
   async function exitDisplay() {
-    setDisplay(false);
+    exitTvHistory(window); setDisplay(false);
     try { if (document.fullscreenElement) await document.exitFullscreen(); } catch { /* The display still exits if the browser denies fullscreen changes. */ }
   }
 
@@ -139,11 +154,12 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   const date = now ? new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'long', month: 'long', day: 'numeric' }).format(now) : 'Your morning, on your time';
 
   return <section ref={root} className={`morning${display ? ' morning-display' : ''}${display && (!visible.length || !showBriefing || tvView !== 'briefing') ? ' morning-ticker-only' : ''}`} data-tv-view={display ? tvView : undefined} aria-label="Morning signal" role={display ? 'dialog' : undefined} aria-modal={display ? true : undefined} tabIndex={display ? -1 : undefined}>
-    <header className="morning-top"><span className="morning-brand"><span aria-hidden="true">✳</span> {screen.title}</span><span className="morning-tag">YOUR OWN FREQUENCY</span><div className="morning-actions">
-      {display ? <><button onClick={fullscreen}>Full screen</button><button disabled={!visible.length} title={!visible.length ? 'No enabled briefing cards are saved. Add cards from Edit morning on your phone or computer.' : undefined} aria-pressed={visible.length > 0 && showBriefing && tvView === 'briefing'} onClick={() => { if (tvView === 'briefing' && showBriefing) { setShowBriefing(false); setTvView('news'); } else { setShowBriefing(true); setTvView('briefing'); } }}>{!visible.length ? 'No briefing cards' : tvView === 'briefing' && showBriefing ? 'Hide morning briefing' : 'Show morning briefing'}</button><button onClick={tv ? onDisconnect : exitDisplay}>{tv ? 'Disconnect TV' : 'Exit TV mode'}</button></> : <><button disabled={saving || dirty} title={dirty ? 'Save your changes before opening TV mode.' : undefined} onClick={() => { setActive(0); setDisplay(true); setEditing(false); setError(''); }}>TV mode ↗</button>{canEdit && <button disabled={saving} onClick={() => setEditing(!editing)}>{editing ? 'Preview feed' : 'Edit morning'}</button>}</>}
+    <header className="morning-top"><span className="morning-brand">{display ? <img src="/tv/icon.svg" alt="" width="28" height="28"/> : <span aria-hidden="true">✳</span>} {display ? 'Bart TV' : screen.title}</span><span className="morning-tag">YOUR OWN FREQUENCY</span><div className="morning-actions">
+      {display ? <><button onClick={fullscreen}>Full screen</button><button disabled={!visible.length} title={!visible.length ? 'No enabled briefing cards are saved. Add cards from Edit morning on your phone or computer.' : undefined} aria-pressed={visible.length > 0 && showBriefing && tvView === 'briefing'} onClick={() => { if (tvView === 'briefing' && showBriefing) { setShowBriefing(false); navigate('news'); } else { setShowBriefing(true); navigate('briefing'); } }}>{!visible.length ? 'No briefing cards' : tvView === 'briefing' && showBriefing ? 'Hide morning briefing' : 'Show morning briefing'}</button><button onClick={tv ? onDisconnect : exitDisplay}>{tv ? 'Disconnect TV' : 'Exit TV mode'}</button></> : <><button disabled={saving || dirty} title={dirty ? 'Save your changes before opening TV mode.' : undefined} onClick={() => { setActive(0); setDisplay(true); setEditing(false); setError(''); }}>TV mode ↗</button>{canEdit && <button disabled={saving} onClick={() => setEditing(!editing)}>{editing ? 'Preview feed' : 'Edit morning'}</button>}</>}
     </div></header>
-    {display && <nav className="morning-tv-nav" aria-label="TV sections">{[['news','News'],['briefing','Briefing'],['calendar','Calendar'],['commands','Commands']].map(([value,label]) => <button key={value} aria-pressed={tvView === value} {...(value === 'news' && tvView !== 'news' ? { 'data-tv-cancel': '' } : {})} onClick={() => { setTvView(value); if (value === 'briefing') setShowBriefing(true); }}>{label + (value === 'calendar' && (tv || permission !== 'owner') ? ' · locked' : '')}</button>)}<span>D-pad to move · OK to select · Back to News</span></nav>}
-    {display && tvView === 'briefing' && !visible.length && <section className="tv-panel"><p className="tv-panel-kicker">MORNING BRIEFING</p><h2>No briefing cards saved.</h2><p>Add or enable cards in Edit morning on your phone or computer. News works independently.</p><button onClick={() => setTvView('news')}>Back to News</button></section>}
+    {display && <nav className="morning-tv-nav" aria-label="TV sections">{[['home','Home'],['news','News'],['briefing','Briefing'],['calendar','Calendar'],['commands','Commands']].map(([value,label]) => <button key={value} aria-pressed={tvView === value} onClick={() => navigate(value)}>{label + (value === 'calendar' && (tv || permission !== 'owner') ? ' · locked' : '')}</button>)}{tvView !== 'home' && <button data-tv-back onClick={goBack}>← Back</button>}<span>D-pad · OK selects · Back returns</span></nav>}
+    {display && tvView === 'home' && <section className="tv-home"><p className="tv-panel-kicker">BART TV / YOUR SIGNAL, IN FOCUS</p><h2>A clearer view.<br/><em>Of your world.</em></h2><div className="tv-home-grid">{[['news','01','News','Full TLDR stories. Five editions.'],['briefing','02','Briefing',visible.length ? `${visible.length} saved cards. Your morning, your pace.` : 'No briefing cards saved yet.'],['calendar','03','Calendar',tv || permission !== 'owner' ? 'Private · owner authorization required.' : 'Your existing Calendar companion agenda.'],['commands','04','Your dot','Command delivery is not connected yet.']].map(([value,number,title,copy]) => <button key={value} onClick={() => navigate(value)}><small>{number} /</small><strong>{title}<span>↗</span></strong><p>{copy}</p></button>)}</div><p className="tv-home-help">Choose a screen with the D-pad. Press OK to open it. Back exits only from Home.</p></section>}
+    {display && tvView === 'briefing' && !visible.length && <section className="tv-panel"><p className="tv-panel-kicker">MORNING BRIEFING</p><h2>No briefing cards saved.</h2><p>Add or enable cards in Edit morning on your phone or computer. News works independently.</p><button onClick={() => navigate('news')}>Back to News</button></section>}
     {display && tvView === 'calendar' && <TvCalendar locked={tv || permission !== 'owner'}/>}
     {display && tvView === 'commands' && <TvCommandBox paired={tv}/>}
     <div className="morning-hero"><div><p className="morning-kicker">{date}</p><h2>Make room for<br/><em>a good morning.</em></h2><p className="morning-subtitle">A little intention. A little momentum. All your morning in one place.</p></div><div className="morning-clock"><strong>{clock}</strong><span>{timezone.replaceAll('_', ' ')}</span></div></div>

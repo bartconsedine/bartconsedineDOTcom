@@ -78,13 +78,15 @@ export function attachRemoteNavigation(root) {
     repair();
     const area = scope(), list = targets(area);
     if (backKeys.includes(event.key)) {
-      event.preventDefault(); event.stopPropagation();
       const cancel = area.querySelector('[data-tv-cancel]');
+      const details = selected?.closest('details[open]');
+      const previous = area.querySelector('[data-tv-back]');
+      if (!cancel && !details && !previous) return; // Home yields to browser/host exit.
+      event.preventDefault(); event.stopPropagation();
+      if (event.repeat) return;
       if (cancel && !cancel.matches(':disabled')) cancel.click();
-      else {
-        const details = selected?.closest('details[open]');
-        if (details) { details.open = false; select(details.querySelector('summary'), true); }
-      }
+      else if (details) { details.open = false; select(details.querySelector('summary'), true); }
+      else if (previous && !previous.matches(':disabled')) previous.click();
       return;
     }
     event.preventDefault(); event.stopPropagation();

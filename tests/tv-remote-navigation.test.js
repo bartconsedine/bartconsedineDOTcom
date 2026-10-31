@@ -69,3 +69,10 @@ test('Down from a wide headline reaches its nearby control row before a wider so
   assert.equal(nextRemoteTarget(items,'headline','down'),'older');
   assert.equal(nextRemoteTarget(items,'older','up'),'headline');
 });
+
+test('Back activates a previous-screen control, closes overlays first, and yields at Home without a trap',()=>{
+ const dom=remoteDom(),{root,element}=dom;const home=root.append(element('button',0,0));const back=root.append(element('button',150,0));back.setAttribute('data-tv-back','');const cleanup=attachRemoteNavigation(root);dom.flush();
+ assert.equal(dom.key('BrowserBack').defaultPrevented,true);assert.equal(back.clicks,1);dom.key('Backspace',{repeat:true});assert.equal(back.clicks,1);
+ const modal=root.append(element('section',0,100));modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.zIndex='5500';const cancel=modal.append(element('button',0,100));cancel.setAttribute('data-tv-cancel','');cancel.onClick=()=>root.remove(modal);dom.mutate();dom.key('Backspace');dom.mutate();assert.equal(cancel.clicks,1);assert.equal(back.clicks,1);
+ root.remove(back);dom.mutate();assert.equal(dom.key('BrowserBack').defaultPrevented,undefined);assert.equal(home.clicks,0);cleanup();
+});
