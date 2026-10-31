@@ -171,8 +171,9 @@ identifier events, and accepts authenticated private replies. Queued attempts
 run while the owner page is open and resume on its next visit. No generic model
 or imported dot history is used.
 
-The generated private migration remains outside the active inventory so it
-cannot join another app’s rollout. See [the exact activation plan](PERSONAL_CHAT.md)
+The reviewed private storage migration is now promoted to the guarded inventory
+as `20261031225622_robot_party_personal_chat`; it creates no grants/subscriptions. See [the exact activation plan](PERSONAL_CHAT.md)
 for its artifact, approval steps, actor responsibilities, installed-connector
-verification gate, and local/live test limits. No hosted setup, private grant,
-secret configuration, subscription, or production release has occurred.
+verification gate, and local/live test limits. Storage/key setup is authorized; hosted migration and completed recovery-point
+verification remain pending. No private grant, subscription or TV command
+capability has been created.

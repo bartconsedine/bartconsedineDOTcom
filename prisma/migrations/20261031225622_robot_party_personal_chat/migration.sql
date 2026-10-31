@@ -1,6 +1,4 @@
--- STAGED DESIGN ONLY. Not in Prisma's active migration inventory and never auto-applied.
--- Promote through the repository's migration generator/review workflow only after
--- coordination with concurrent migrations. No hosted execution is authorized here.
+-- Private command/reply storage. Creates no connection grant or subscription.
 begin;
 create table public.robot_party_personal_channels(
  id uuid primary key, owner_id uuid not null references auth.users(id),

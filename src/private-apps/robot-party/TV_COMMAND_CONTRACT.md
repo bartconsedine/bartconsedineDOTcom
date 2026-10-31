@@ -3,7 +3,8 @@
 Checked 31 October 2026 against main `32c55b8` and draft PR25 `1b72812`.
 The TV redesign worker owns `/tv` components, layout, navigation and toggles;
 this change adds only the command API adapter and tests. No TV component,
-existing TV pairing API, active migration, or rollout configuration is edited.
+existing TV pairing API or layout is edited. Private-storage promotion is handled
+separately in the reviewed migration inventory.
 
 ## Read-only live findings
 
@@ -108,5 +109,6 @@ session, exact-origin enforcement, private-response redaction, fixed recipient,
 confirmed queued receipts, stable retry IDs, changed-content conflict, disabled
 transport and denial of grant/revoke/owner selectors. The underlying prepared
 private transport’s PGlite tests use disposable SQL and simulated receivers.
-No hosted schema/configuration, credentials, access grants, subscriptions, TV
-permissions, private messages, or model API sessions were created in this task.
+The storage/key setup was subsequently authorized; its migration is
+`20261031225622_robot_party_personal_chat`. No dot access grants, subscriptions,
+TV command permissions, private messages, or model API sessions were created.

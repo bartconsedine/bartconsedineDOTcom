@@ -122,3 +122,25 @@ without inspecting actual history. Do not mark later migrations applied or edit
 SQL/checksums. A separately authorized future ordinary `deploy` applies the
 remaining suffix through the same gates. Logical backup recovery remains governed
 by the recovery runbook; this option does not automate hosted rollback.
+
+## Private dot-message storage — October 31, 2026
+
+`20261031225622_robot_party_personal_chat` adds separate owner-scoped private
+channels/messages and private subscription/outbox storage. It creates no dot
+credential, private connection grant, subscription, TV command permission or
+admin membership. User authorization for this storage and the server encryption
+key was received on October31; future connection grants/subscriptions remain a
+separate exact access decision.
+
+Read-only hosted ledger inspection confirmed all eight reviewed predecessors
+through `20261028223639_morning_tv_pairing` completed with matching checksums.
+After merging the reviewed inventory/model/pin, normal `inspect` must report
+only the new private-storage migration pending; reconfirm the entire suffix
+before `deploy`. Keep the current completed Supabase recovery-point check,
+fresh encrypted full-backup upload/download verification, main-only deployment
+and existing `production-database` review gates. Do not use raw SQL deployment.
+
+The disposable PostgreSQL17 drill exercises fresh and incremental deployment,
+backup/restore guard failures, restored private messages/subscription ciphertext
+and queued outbox state, and owner/other-admin/anonymous denial. This is recovery
+verification with synthetic records, not live dot delivery or hosted restoration.

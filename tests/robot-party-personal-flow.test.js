@@ -17,7 +17,6 @@ async function setup() {
   await db.exec(await readFile('tests/fixtures/auth.sql', 'utf8'));
   await db.exec(`insert into auth.users values('${owner}','bartconsedine@gmail.com',now(),false),('${other}','mjshah8@gmail.com',now(),false),('${guest}','guest@example.com',now(),false);insert into auth.identities select id,'google',jsonb_build_object('email',email,'email_verified',true) from auth.users;`);
   for (const name of (await readdir('prisma/migrations')).filter(name => name !== 'migration_lock.toml').sort()) await db.exec(await readFile('prisma/migrations/' + name + '/migration.sql', 'utf8'));
-  await db.exec(await readFile('src/private-apps/robot-party/personal/staged-migration/20261027145320_robot_party_personal_chat/migration.sql', 'utf8'));
   await db.exec(`insert into private.site_admin(user_id,email) select id,email from auth.users where id in('${owner}','${other}');`);
   await login(db, owner);
   for (const [id, value] of [[robot, token], [secondRobot, secondToken]]) await db.query('insert into public.robot_party_robots(id,owner_id,created_by,name,role,token_hash) values($1,$2,$2,$3,$4,$5)', [id, owner, 'Synthetic dot ' + id.slice(0, 4), 'writer', createHash('sha256').update(value).digest('hex')]);

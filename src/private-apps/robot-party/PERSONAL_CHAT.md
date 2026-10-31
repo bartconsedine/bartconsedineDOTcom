@@ -1,9 +1,9 @@
-# Connect the existing dot — prepared, not activated
+# Connect the existing dot — storage setup authorized, access not activated
 
 Private website: `/admin/apps/robot-party/personal`.
 MCP remains `https://bartconsedine.com/api/robot-party/mcp`.
 No model API, dot-history import, board-thread relay, email relay, or new OAuth
-client is introduced. PR25 stays draft; nothing here activates hosted access.
+client is introduced. Private storage/key setup was authorized on 31 October 2026. No connection grant or subscription is authorized by that setup.
 
 ## Feasibility confirmed; installed capability still unverified
 
@@ -79,32 +79,34 @@ upgrade from the pending storage/key approval to this broader data grant.
   next visit. This small implementation does not provision a background worker
   or scheduled automation. Replies continue to persist and appear on refresh.
 
-## Exact staged database artifact
+## Reviewed storage migration
 
-Generated using `npm run db:migration:new -- robot_party_personal_chat`, then
-moved out of the active migration inventory to avoid the separate board rollout:
+The reviewed SQL was promoted with the migration generator to
+`prisma/migrations/20261031225622_robot_party_personal_chat/migration.sql`.
+Its operational SQL is unchanged from the previous staged candidate; only the
+staging-only header was replaced. A new name places it after the eight already
+applied migrations, preserving exact-prefix deployment order. Applied migration
+bytes remain unchanged. The SHA-256 pin is:
+`a2fcecb510688e3e016f33c0a5b57cdd9380f57416dace9bb832c620840cbf40`.
 
-`personal/staged-migration/20261027145320_robot_party_personal_chat/migration.sql`
+It creates only private-message channels/messages, subscriptions/outbox, and
+scoped RPCs/RLS/constraints/indexes. It creates no robot, connection grant,
+subscription, owner enrollment or TV command capability. The source-of-truth
+models and guarded migration inventory include it. The real PostgreSQL 17
+fresh/upgrade + dump/restore drill passed with restored private messages,
+subscription ciphertext and pending outbox, plus cross-user/table denial.
 
-It creates only:
-
-- `public.robot_party_personal_channels` and `public.robot_party_personal_messages`;
-- `private.robot_party_personal_subscriptions` and `private.robot_party_personal_outbox`;
-- owner-scoped and exact-connection RPCs, RLS, grants, constraints and indexes.
-
-No existing migration, Prisma model, checksum manifest or cloud rollout runner
-was changed. The candidate must be promoted and inventoried by the coordinated
-migration workflow before it is deployable. **Do not paste this SQL into the
-hosted SQL editor.** Runtime flag defaults off even if the tables exist.
+Use only the guarded main-only cloud Prisma workflow with its fresh encrypted
+backup gate. Do not apply SQL through a dashboard or connector. A completed
+Supabase recovery point must still be verified before a hosted write; browser
+access was blocked by the locked Mac at the last inspection.
 
 ## Smallest approval/setup sequence, with responsible actor
 
-1. **Implementation agent, no new access:** finish code/security review, promote
-   the named candidate into the repository’s Prisma inventory with its reviewed
-   model/checksum metadata, reconcile concurrent main/migrations, and run the
-   required real PostgreSQL upgrade/backup/restore drill. Coordinate with the
+1. **Implementation agent, no new access:** finish code/security review, reconcile concurrent main/migrations, and verify
+   the promoted migration/model/checksum and completed PostgreSQL recovery drill. Coordinate with the
    board repair owner; do not change or apply its migration incidentally. The
-   current PGlite test is not that operational drill. Merge/release only after
+   separate PGlite round trip remains simulated, not live dot delivery. Merge/release only after
    required code and desktop/mobile checks; this PR is not yet marked ready.
 2. **Bart approves; authorized database operator executes:** activate exactly
    that reviewed personal-chat migration on Supabase project
@@ -113,11 +115,12 @@ hosted SQL editor.** Runtime flag defaults off even if the tables exist.
    backup roundtrip and environment review. Name the exact migration/checksum
    and pending suffix at action time. If unrelated pending migrations prevent
    that exact rollout, stop and coordinate rather than deploy them too.
-3. **Bart approves; authorized deployment operator configures privately:** store
-   one 32-byte AES key as base64 in Vercel’s server-only
-   `ROBOT_PARTY_PERSONAL_KEY`, keep its recovery copy in approved secret storage,
-   then set `ROBOT_PARTY_PERSONAL_ENABLED=1` for the intended deployment only.
-   This is new persistent secret/configuration and is NOT authorized yet.
+3. **Authorized deployment operator:** the approved 32-byte AES key is now stored
+   as the production-only Vercel Secret `ROBOT_PARTY_PERSONAL_KEY`, with a protected
+   recovery copy in the existing approved local backup directory. Do not recreate
+   or rotate it incidentally. After hosted schema verification, set
+   `ROBOT_PARTY_PERSONAL_ENABLED=1` for the intended deployment only.
+   Storage/key configuration was explicitly authorized on October31; grants and subscriptions remain separate.
    Never paste the key into chat, source, browser storage, messages or logs.
 4. **Bart or an explicitly authorized operator in ChatGPT:** rescan the existing
    Robot Party plugin/server in the existing dot’s profile. Verify Identify is
@@ -149,7 +152,7 @@ hosted SQL editor.** Runtime flag defaults off even if the tables exist.
 Steps 2, 3, 5 and 6 require exact action-time approval under the source delegation.
 Step 4 can also require approval if permissions/connection scope change. This
 sequence is a plan, not a request to preapprove unspecified IDs or secrets.
-No sensitive activation action has been attempted or denied; all are pending.
+Storage/key setup is authorized. No actual-dot grant, event subscription or TV command capability has been created; those remain pending exact access authorization.
 
 ## Verification and remaining limits
 
@@ -164,16 +167,15 @@ save. Network/ChatGPT receivers are injected synthetic fixtures, not live dots.
 
 Node 22.23.2; locked dependencies installed locally with `npm ci --ignore-scripts`.
 Prisma validation uses the existing engine copied to writable `/tmp`. Record
-final full test/build/CI evidence in PR25. Active Prisma inventory is unchanged,
-so its validation does not certify promotion of the staged candidate.
+final full test/build/CI and hosted checkpoint evidence in PR25.
 
 Desktop/mobile browser review remains blocked: Computer Use reports the Mac
-locked and no available browser. Hosted schema activation, recovery drill,
+locked and no available browser. Hosted schema activation,
 authenticated live RLS/reload checks, event rescan, real callback and actual dot
-reply are unverified. PR remains draft, unmerged, and production is unchanged.
+reply are unverified. PR remains draft and unmerged; the application deployment is unchanged. The
+production-only encryption Secret is configured, while the transport enable flag
+is absent and no private connection access exists.
 
 Final local verification for this prepared revision: Prisma validation passed,
-all 188 repository tests passed, production build passed, and `git diff --check`
-passed. Candidate SQL SHA-256:
-`8c71d74d5e8141d05e66851051d7dfda96a20813332bd46c75d95e0dfd16fbbe`.
-The paused board checkout and all active migration/rollout files are unchanged.
+all 222 repository tests passed, production build passed, and `git diff --check`
+passed. The paused board checkout and TV layout worker are untouched. The new private-chat migration/pin/models and recovery fixture are the only migration-related changes.
