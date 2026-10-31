@@ -1,3 +1,4 @@
+import * as tvHistory from '../../src/private-apps/morning-feed/tv/history.js';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
@@ -15,7 +16,10 @@ export function morningUi(fetcher, props = {}) {
   const module = { exports: {} };
   runInNewContext(code, { module, exports: module.exports, fetch: fetcher, URL, AbortController, crypto: globalThis.crypto, setInterval(fn, ms) { const id = ++timerId; timers.set(id, { fn, ms }); return id; }, clearInterval(id) { timers.delete(id); }, document: { fullscreenElement: null }, window: { confirm: () => true, addEventListener: (key, fn) => keys.set(key, fn), removeEventListener: key => keys.delete(key) }, require: id => {
     if (id === 'react') return hooks;
+    if (['./history', './tv/history', '../tv/history.js'].includes(id)) return tvHistory;
     if (id === './tv/remote-navigation') return { attachRemoteNavigation: () => undefined };
+    if (id === './tv/calendar') return () => null;
+    if (id === './tv/command-box') return () => null;
     if (id === './tldr/ticker') return () => null;
     if (id === './model.js') return model;
     if (id.endsWith('.css')) return {};

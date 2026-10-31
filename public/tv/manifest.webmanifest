@@ -1,0 +1,16 @@
+{
+  "id": "/tv",
+  "name": "Bart TV",
+  "short_name": "Bart TV",
+  "description": "Your news, morning briefing and personal signal on the big screen.",
+  "start_url": "/tv?view=home",
+  "scope": "/tv",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0d1420",
+  "theme_color": "#0d1420",
+  "icons": [
+    { "src": "/tv/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/tv/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
