@@ -79,5 +79,17 @@ test('ticker-only TV mode opens with no routine cards and the morning briefing r
   const ui = morningUi(async () => Response.json({ screen: emptyScreen(), updatedAt: null }));
   await ui.settle(); assert.equal(button(ui.render(), 'TV mode ↗').props.disabled, false);
   button(ui.render(), 'TV mode ↗').props.onClick(); await ui.settle(); assert.match(view(ui), /morning-ticker-only/);
-  assert.ok(button(ui.render(), 'Hide morning briefing')); button(ui.render(), 'Hide morning briefing').props.onClick(); await ui.settle(); assert.ok(button(ui.render(), 'Show morning briefing')); ui.close();
+  assert.equal(button(ui.render(), 'No briefing cards').props.disabled, true); ui.close();
+});
+
+test('briefing Hide/Show and section navigation actually switch saved cards, survive refresh, and reload into an honest News view', async () => {
+ const screen={...emptyScreen(),cards:[card('one')]};
+ const ui=morningUi(async()=>Response.json({screen,updatedAt:'2026-10-30T12:00:00Z'}));await ui.settle();button(ui.render(),'TV mode ↗').props.onClick();await ui.settle();
+ assert.equal(ui.render().props['data-tv-view'],'news');
+ button(ui.render(),'Show morning briefing').props.onClick();await ui.settle();assert.equal(ui.render().props['data-tv-view'],'briefing');assert.doesNotMatch(ui.render().props.className,/ticker-only/);
+ for(let i=0;i<3;i++){button(ui.render(),'Hide morning briefing').props.onClick();await ui.settle();assert.match(ui.render().props.className,/ticker-only/);await ui.tick(30000);assert.equal(ui.render().props['data-tv-view'],'news');button(ui.render(),'Show morning briefing').props.onClick();await ui.settle();assert.equal(ui.render().props['data-tv-view'],'briefing');}
+ button(ui.render(),'Calendar').props.onClick();await ui.settle();assert.equal(ui.render().props['data-tv-view'],'calendar');
+ button(ui.render(),'Commands').props.onClick();await ui.settle();assert.equal(ui.render().props['data-tv-view'],'commands');
+ button(ui.render(),'News').props.onClick();await ui.settle();assert.equal(ui.render().props['data-tv-view'],'news');ui.close();
+ const fresh=morningUi(async()=>Response.json({status:'connected',screen,updatedAt:null}),{tv:true});await fresh.settle();assert.equal(fresh.render().props['data-tv-view'],'news');assert.ok(button(fresh.render(),'Calendar · locked'));fresh.close();
 });

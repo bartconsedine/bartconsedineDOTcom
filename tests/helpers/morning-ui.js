@@ -16,6 +16,8 @@ export function morningUi(fetcher, props = {}) {
   runInNewContext(code, { module, exports: module.exports, fetch: fetcher, URL, AbortController, crypto: globalThis.crypto, setInterval(fn, ms) { const id = ++timerId; timers.set(id, { fn, ms }); return id; }, clearInterval(id) { timers.delete(id); }, document: { fullscreenElement: null }, window: { confirm: () => true, addEventListener: (key, fn) => keys.set(key, fn), removeEventListener: key => keys.delete(key) }, require: id => {
     if (id === 'react') return hooks;
     if (id === './tv/remote-navigation') return { attachRemoteNavigation: () => undefined };
+    if (id === './tv/calendar') return () => null;
+    if (id === './tv/command-box') return () => null;
     if (id === './tldr/ticker') return () => null;
     if (id === './model.js') return model;
     if (id.endsWith('.css')) return {};

@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { attachRemoteNavigation } from './tv/remote-navigation';
 import './tv/remote-navigation.css';
+import TvCalendar from './tv/calendar';
+import TvCommandBox from './tv/command-box';
 import TldrTicker from './tldr/ticker';
 import { dayInZone, emptyScreen, KINDS, moveCard, validateScreen } from './model.js';
 import './screen.css';
@@ -18,6 +20,7 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [tvView, setTvView] = useState('news');
   const [showBriefing, setShowBriefing] = useState(true);
   const [display, setDisplay] = useState(tv);
   const [now, setNow] = useState(null);
@@ -135,13 +138,17 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   const clock = now ? new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', minute: '2-digit' }).format(now) : '—';
   const date = now ? new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'long', month: 'long', day: 'numeric' }).format(now) : 'Your morning, on your time';
 
-  return <section ref={root} className={`morning${display ? ' morning-display' : ''}${display && (!visible.length || !showBriefing) ? ' morning-ticker-only' : ''}`} aria-label="Morning signal" role={display ? 'dialog' : undefined} aria-modal={display ? true : undefined} tabIndex={display ? -1 : undefined}>
+  return <section ref={root} className={`morning${display ? ' morning-display' : ''}${display && (!visible.length || !showBriefing || tvView !== 'briefing') ? ' morning-ticker-only' : ''}`} data-tv-view={display ? tvView : undefined} aria-label="Morning signal" role={display ? 'dialog' : undefined} aria-modal={display ? true : undefined} tabIndex={display ? -1 : undefined}>
     <header className="morning-top"><span className="morning-brand"><span aria-hidden="true">✳</span> {screen.title}</span><span className="morning-tag">YOUR OWN FREQUENCY</span><div className="morning-actions">
-      {display ? <><button onClick={fullscreen}>Full screen</button><button aria-pressed={showBriefing} onClick={() => setShowBriefing(!showBriefing)}>{showBriefing ? 'Hide morning briefing' : 'Show morning briefing'}</button><button onClick={tv ? onDisconnect : exitDisplay}>{tv ? 'Disconnect TV' : 'Exit TV mode'}</button></> : <><button disabled={saving || dirty} title={dirty ? 'Save your changes before opening TV mode.' : undefined} onClick={() => { setActive(0); setDisplay(true); setEditing(false); setError(''); }}>TV mode ↗</button>{canEdit && <button disabled={saving} onClick={() => setEditing(!editing)}>{editing ? 'Preview feed' : 'Edit morning'}</button>}</>}
+      {display ? <><button onClick={fullscreen}>Full screen</button><button disabled={!visible.length} title={!visible.length ? 'No enabled briefing cards are saved. Add cards from Edit morning on your phone or computer.' : undefined} aria-pressed={visible.length > 0 && showBriefing && tvView === 'briefing'} onClick={() => { if (tvView === 'briefing' && showBriefing) { setShowBriefing(false); setTvView('news'); } else { setShowBriefing(true); setTvView('briefing'); } }}>{!visible.length ? 'No briefing cards' : tvView === 'briefing' && showBriefing ? 'Hide morning briefing' : 'Show morning briefing'}</button><button onClick={tv ? onDisconnect : exitDisplay}>{tv ? 'Disconnect TV' : 'Exit TV mode'}</button></> : <><button disabled={saving || dirty} title={dirty ? 'Save your changes before opening TV mode.' : undefined} onClick={() => { setActive(0); setDisplay(true); setEditing(false); setError(''); }}>TV mode ↗</button>{canEdit && <button disabled={saving} onClick={() => setEditing(!editing)}>{editing ? 'Preview feed' : 'Edit morning'}</button>}</>}
     </div></header>
+    {display && <nav className="morning-tv-nav" aria-label="TV sections">{[['news','News'],['briefing','Briefing'],['calendar','Calendar'],['commands','Commands']].map(([value,label]) => <button key={value} aria-pressed={tvView === value} {...(value === 'news' && tvView !== 'news' ? { 'data-tv-cancel': '' } : {})} onClick={() => { setTvView(value); if (value === 'briefing') setShowBriefing(true); }}>{label + (value === 'calendar' && (tv || permission !== 'owner') ? ' · locked' : '')}</button>)}<span>D-pad to move · OK to select · Back to News</span></nav>}
+    {display && tvView === 'briefing' && !visible.length && <section className="tv-panel"><p className="tv-panel-kicker">MORNING BRIEFING</p><h2>No briefing cards saved.</h2><p>Add or enable cards in Edit morning on your phone or computer. News works independently.</p><button onClick={() => setTvView('news')}>Back to News</button></section>}
+    {display && tvView === 'calendar' && <TvCalendar locked={tv || permission !== 'owner'}/>}
+    {display && tvView === 'commands' && <TvCommandBox paired={tv}/>}
     <div className="morning-hero"><div><p className="morning-kicker">{date}</p><h2>Make room for<br/><em>a good morning.</em></h2><p className="morning-subtitle">A little intention. A little momentum. All your morning in one place.</p></div><div className="morning-clock"><strong>{clock}</strong><span>{timezone.replaceAll('_', ' ')}</span></div></div>
     <div className="morning-status" aria-live="polite">{error ? <p role="alert">{error}</p> : notice ? <p>{notice}</p> : <p>{dirty ? 'Unsaved changes · save before opening TV mode' : revision ? 'Saved morning' : 'Your screen is ready to build'}</p>}{!display && canEdit && <button className="morning-primary" disabled={saving || !dirty} onClick={save}>{saving ? 'Saving…' : error && dirty ? 'Retry save' : 'Save morning'}</button>}</div>
-    <TldrTicker key={endpoint} endpoint={endpoint} display={display} onExpired={tv ? onTvExpired : undefined}/>
+    <div className="morning-news-panel" hidden={display && tvView !== 'news'}><TldrTicker key={endpoint} endpoint={endpoint} display={display} visible={!display || tvView === 'news'} onExpired={tv ? onTvExpired : undefined}/></div>
     {editing && !display && canEdit && <fieldset className="morning-editor" disabled={saving}>
       <legend>Your morning, your rules</legend><div className="morning-settings">
         <label>Screen name<input maxLength={80} value={screen.title} onChange={event => change({ ...screen, title: event.target.value })}/></label>
