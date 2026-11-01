@@ -1,3 +1,4 @@
+import * as cardReader from '../../src/private-apps/morning-feed/tv/card-article.js';
 import * as tvHistory from '../../src/private-apps/morning-feed/tv/history.js';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -8,6 +9,7 @@ import * as model from '../../src/private-apps/morning-feed/model.js';
 const require = createRequire(import.meta.url);
 const { transformSync } = require('next/dist/compiled/babel/core');
 export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/ticker.js') {
+  const historyListeners = new Set();
   const states = [], effects = [], pending = [], timers = new Map(), keys = new Map(); let slot = 0, timerId = 0;
   const hooks = {
     useState(initial) { const key = slot++; if (!(key in states)) states[key] = typeof initial === 'function' ? initial() : initial; return [states[key], next => { states[key] = typeof next === 'function' ? next(states[key]) : next; }]; },
@@ -18,8 +20,10 @@ export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/tick
   const module = { exports: {} };
   runInNewContext(code, { module, exports: module.exports, fetch: fetcher, URL, AbortController, crypto: globalThis.crypto, setInterval(fn, ms) { const id = ++timerId; timers.set(id, { fn, ms }); return id; }, clearInterval(id) { timers.delete(id); }, document: { activeElement: null }, window: { matchMedia: () => ({ matches: reduced, addEventListener() {}, removeEventListener() {} }), addEventListener: (key, fn) => keys.set(key, fn), removeEventListener: key => keys.delete(key) }, require: id => {
     if (id === 'react') return hooks;
+    if (id === '../tv/card-article.js') return cardReader;
+    if (id === 'react-dom') return {createPortal: node => node};
     if (id.endsWith('/paged-text')) return ({text}) => text;
-    if (['./history', './tv/history', '../tv/history.js'].includes(id)) return tvHistory;
+    if (['./history', './tv/history', '../tv/history.js'].includes(id)) return {...tvHistory, subscribeTvHistory:(win,listener)=>{historyListeners.add(listener);const off=tvHistory.subscribeTvHistory(win,listener);return()=>{historyListeners.delete(listener);off();};}};
     if (id === 'qrcode') return { toDataURL: async url => 'data:image/png;base64,' + Buffer.from(url).toString('base64') };
     if (id === '../../calendar-companion/model.js') return calendarModel;
     if (id === './layout.js' || id === '../tldr/layout.js') return layout;
@@ -29,5 +33,5 @@ export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/tick
     throw new Error(`Unexpected import ${id}`);
   } });
   const flush = async () => { pending.splice(0).forEach(fn => fn()); await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); };
-  return { states, render() { slot = 0; return module.exports.default(props); }, async settle() { this.render(); await flush(); const tree = this.render(); await flush(); return tree; }, async tick(ms) { for (const timer of [...timers.values()]) if (timer.ms === ms) await timer.fn(); return this.settle(); }, key(key) { keys.get('keydown')?.({ key, target: { classList: { contains: () => true } }, preventDefault() {}, stopPropagation() {} }); }, close() { effects.forEach(effect => effect?.cleanup?.()); } };
+  return { states, emitHistory(location){for(const listener of historyListeners)listener(location);}, render() { slot = 0; return module.exports.default(props); }, async settle() { this.render(); await flush(); const tree = this.render(); await flush(); return tree; }, async tick(ms) { for (const timer of [...timers.values()]) if (timer.ms === ms) await timer.fn(); return this.settle(); }, key(key) { keys.get('keydown')?.({ key, target: { classList: { contains: () => true } }, preventDefault() {}, stopPropagation() {} }); }, close() { effects.forEach(effect => effect?.cleanup?.()); } };
 }

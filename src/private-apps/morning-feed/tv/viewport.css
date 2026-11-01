@@ -92,3 +92,5 @@ html:has(.morning-display),body:has(.morning-display),html:has(.tv-pair),body:ha
 @media(min-width:650px) { .tv-pair.tv-pair { flex-direction:row; align-items:center; } }
 @media(max-width:649px) { .tv-pair.tv-pair { flex-direction:column; justify-content:center; }.tv-pair.tv-pair .tv-qr img { width:min(40vw,25vh); } }
 .tldr-reader.tv-article-reader { grid-template-columns:minmax(0,1fr); justify-content:stretch; align-items:stretch; }
+/* Reader is portaled into the visible app root, also while News itself is hidden. */
+.tv-article-reader button { min-height:32px; padding:5px 11px; font:600 12px/1.3 Arial,sans-serif; border:1px solid #ffffff30; border-radius:6px; color:#f4f0e7; background:transparent; }

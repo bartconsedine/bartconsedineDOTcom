@@ -93,3 +93,11 @@ test('briefing Hide/Show and section navigation actually switch saved cards, sur
  button(ui.render(),'News').props.onClick();await ui.settle();assert.equal(ui.render().props['data-tv-view'],'news');ui.close();
  const fresh=morningUi(async()=>Response.json({status:'connected',screen,updatedAt:null}),{tv:true});await fresh.settle();assert.equal(fresh.render().props['data-tv-view'],'home');assert.ok(button(fresh.render(),'Calendar · locked'));fresh.close();
 });
+
+
+test('TV briefing link opens the in-app article overlay without an external anchor',async()=>{
+ const story={...card('public'),kind:'link',title:'Saved article',body:'Saved original details',url:'https://example.com/article?v=7'};
+ const ui=morningUi(async()=>Response.json({status:'connected',screen:{...emptyScreen(),cards:[story]},updatedAt:null}),{tv:true,permission:'viewer'});await ui.settle();
+ assert.equal(nodes(ui.render()).some(n=>n.type==='a'&&n.props.href===story.url),false);
+ button(ui.render(),'Open link ↗').props.onClick();assert.equal(ui.tvOpens.length,1);assert.equal(ui.tvOpens[0].kind,'article');assert.equal(ui.tvOpens[0].payload.cardId,story.id);assert.equal(JSON.stringify(ui.tvOpens[0]).includes(story.url),false);assert.equal(JSON.stringify(ui.tvOpens[0]).includes(story.body),false);assert.equal(ui.tvOpens[0].payload.kind,'card');ui.close();
+});
