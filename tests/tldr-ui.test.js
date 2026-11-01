@@ -70,3 +70,12 @@ test('article opens in a sandboxed same-app frame with a truthful summary fallba
  button(ui.render(),'TLDR summary').props.onClick();await ui.settle();assert.doesNotMatch(view(ui),/<iframe/);assert.match(view(ui),/Complete source summary for one/);
  button(ui.render(),'Read site').props.onClick();await ui.settle();assert.match(view(ui),/<iframe/);ui.key('Backspace');await ui.settle();assert.doesNotMatch(view(ui),/Article reader/);ui.close();
 });
+
+
+test('saved-card reader resolves an ID while News/ticker is hidden, and a new open resets previous summary mode',async()=>{
+ const card={id:'saved',enabled:true,title:'Saved card',body:'Private original card details',url:'https://example.com/card?v=7'};
+ const ui=tickerUi(async()=>Response.json(feed()),{endpoint:'/api/tv',display:true,visible:false,cardStories:[card]});await ui.settle();button(ui.render(),'Turn ticker off').props.onClick();await ui.settle();
+ const location={overlay:'article',payload:{kind:'card',cardId:'saved'}};ui.emitHistory(location);await ui.settle();assert.equal(nodes(ui.render()).find(n=>n.type==='iframe').props.src,card.url);assert.ok(button(ui.render(),'Card details'));
+ button(ui.render(),'Card details').props.onClick();await ui.settle();assert.match(view(ui),/Private original card details/);ui.emitHistory({overlay:null});await ui.settle();ui.emitHistory(location);await ui.settle();assert.ok(nodes(ui.render()).find(n=>n.type==='iframe'));
+ ui.emitHistory({overlay:'article',payload:{kind:'card',cardId:'missing'}});await ui.settle();assert.doesNotMatch(view(ui),/Private original card details|Article reader/);ui.close();
+});
