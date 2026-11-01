@@ -12,7 +12,7 @@ The API rejects unknown fields, bad URLs/credentials/protocols, invalid dates/ti
 
 ## TV use
 
-Save on a phone or computer. Open `/tv` in a compatible TV browser, choose **Show QR code**, scan it with your phone, sign in, compare the displayed code and approve. The read-only feed starts automatically without Google sign-in on the TV. Pairing expires after ten minutes; a connected TV lasts 30 days. Manage/revoke connections at `/auth/tv`. See [phone pairing and its migration requirements](tv/README.md).
+Save on a phone or computer. Open `/tv` in a compatible TV browser, choose **Show QR code**, scan it with your phone, sign in, compare the displayed code and approve. The feed starts automatically without Google sign-in on the TV. Pairing expires after ten minutes; a connected TV lasts 30 days. Manage/revoke connections at `/auth/tv`. See [phone pairing and its migration requirements](tv/README.md).
 
 The existing **TV mode** button and browser mirroring also remain available. Full screen is optional, arrow keys/controls navigate, and cards refresh every 30 seconds. Failed network refreshes display a stale-data warning; an explicit device expiry/revocation clears the paired screen. The [TV remote navigation](tv/README.md#remote-navigation) keeps one control highlighted, supports four-way arrows with edge wrapping, OK activation and Back within dialogs. Casting and TV power/sleep controls are not implemented. Actual device compatibility requires a physical test.
 

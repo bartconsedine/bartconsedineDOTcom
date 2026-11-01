@@ -7,7 +7,7 @@ import { fitHeadline, headlineSize, readingSeconds } from '../src/private-apps/m
 const view=ui=>renderToStaticMarkup(ui.render());
 test('paired TVs and shared viewers never request Calendar data; command input cannot claim delivery',async()=>{
  const calendar=tickerUi(()=>assert.fail('locked TV must never request calendar'),{locked:true},false,'tv/calendar.js');await calendar.settle();assert.match(view(calendar),/approved for Morning signal only/);assert.ok(nodes(calendar.render()).some(n=>n.type==='a'&&n.props.href==='/admin/apps/morning-feed?view=calendar'));assert.doesNotMatch(view(calendar),/Open Calendar companion<\/a>/);calendar.close();
- const commands=tickerUi(()=>assert.fail('no command transport'),{paired:true},false,'tv/command-box.js');await commands.settle();const input=nodes(commands.render()).find(n=>n.type==='input');assert.equal(input.props.disabled,true);assert.equal(button(commands.render(),'Not connected').props.disabled,true);assert.match(view(commands),/read-only access/);commands.close();
+ const commands=tickerUi(()=>assert.fail('no command transport'),{paired:true},false,'tv/command-box.js');await commands.settle();const input=nodes(commands.render()).find(n=>n.type==='input');assert.equal(input.props.disabled,true);assert.equal(button(commands.render(),'Not connected').props.disabled,true);assert.match(view(commands),/Morning signal and news reading progress/);commands.close();
 });
 test('owner TV agenda uses only existing Calendar GET and clears private data on access denial',async()=>{
  let denied=false,calls=0;

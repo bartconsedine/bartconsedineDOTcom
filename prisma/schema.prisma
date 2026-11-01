@@ -7,6 +7,22 @@ datasource db {
   schemas  = ["public", "private"]
 }
 
+model MorningNewsSettings {
+  singleton Boolean @id @default(true)
+  enabled Boolean @default(false)
+  @@map("morning_news_settings")
+  @@schema("private")
+}
+
+model MorningNewsRead {
+  owner_id String @db.Uuid
+  article_id String
+  read_at DateTime @default(now()) @db.Timestamptz(6)
+  @@id([owner_id, article_id])
+  @@map("morning_news_reads")
+  @@schema("private")
+}
+
 // These models document application columns; cross-schema Auth FKs and security
 // features live in SQL. Use `npm run db:migration:new -- name` for SQL migrations.
 model AppData {
