@@ -81,3 +81,14 @@ html:has(.morning-display),body:has(.morning-display),html:has(.tv-pair),body:ha
  .morning-display>.morning-status { grid-row:3; grid-column:1/-1; }
 }
 @media(min-width:700px) and (max-width:1000px) { .morning-display .morning-brand { display:none; }.morning.morning-display { column-gap:6px; } }
+/* Pairing styles also load from tv.css; keep the viewport budget independent of import order. */
+.tv-pair.tv-pair { height:100dvh; min-height:0; padding:3vh 4vw; overflow:hidden; gap:24px; }
+.tv-pair.tv-pair .tv-pair-copy { flex:1; min-width:0; }
+.tv-pair.tv-pair h1 { font-size:clamp(30px,5vw,70px); margin:16px 0; }
+.tv-pair.tv-pair p { font-size:clamp(13px,1.4vw,20px); margin:10px 0; }
+.tv-pair.tv-pair .tv-code { margin:12px 0; }
+.tv-pair.tv-pair .tv-qr { padding:12px; }
+.tv-pair.tv-pair .tv-qr img { width:min(33vw,55vh,360px); }
+@media(min-width:650px) { .tv-pair.tv-pair { flex-direction:row; align-items:center; } }
+@media(max-width:649px) { .tv-pair.tv-pair { flex-direction:column; justify-content:center; }.tv-pair.tv-pair .tv-qr img { width:min(40vw,25vh); } }
+.tldr-reader.tv-article-reader { grid-template-columns:minmax(0,1fr); justify-content:stretch; align-items:stretch; }

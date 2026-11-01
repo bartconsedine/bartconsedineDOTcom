@@ -86,7 +86,7 @@ export default function TldrTicker({ endpoint, display = false, visible = true, 
     return () => clearInterval(timer);
   }, [enabled, visible, paused, sourcesOpen, readingPage, reduced, articles.length, seconds, active?.url]);
   function pauseStory(article) { setReaderSummary(false); const snapshot = { ...article, summary: article === active ? summary : article.summary }; setPaused(snapshot); openTvOverlay(window, 'article', snapshot); }
-  function resume() { setPaused(null); closeTvOverlay(window, 'article'); headline.current?.focus(); }
+  function resume() { if (!closeTvOverlay(window, 'article')) setPaused(null); headline.current?.focus(); }
   function closeSources() { setSourcesOpen(false); closeTvOverlay(window, 'sources'); sourceTrigger.current?.focus(); }
   function move(direction) {
     if (!articles.length) return;
