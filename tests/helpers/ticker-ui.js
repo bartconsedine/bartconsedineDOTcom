@@ -1,3 +1,4 @@
+import * as cardReader from '../../src/private-apps/morning-feed/tv/card-article.js';
 import * as tvHistory from '../../src/private-apps/morning-feed/tv/history.js';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -18,6 +19,8 @@ export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/tick
   const module = { exports: {} };
   runInNewContext(code, { module, exports: module.exports, fetch: fetcher, URL, AbortController, crypto: globalThis.crypto, setInterval(fn, ms) { const id = ++timerId; timers.set(id, { fn, ms }); return id; }, clearInterval(id) { timers.delete(id); }, document: { activeElement: null }, window: { matchMedia: () => ({ matches: reduced, addEventListener() {}, removeEventListener() {} }), addEventListener: (key, fn) => keys.set(key, fn), removeEventListener: key => keys.delete(key) }, require: id => {
     if (id === 'react') return hooks;
+    if (id === '../tv/card-article.js') return cardReader;
+    if (id === 'react-dom') return {createPortal: node => node};
     if (id.endsWith('/paged-text')) return ({text}) => text;
     if (['./history', './tv/history', '../tv/history.js'].includes(id)) return tvHistory;
     if (id === 'qrcode') return { toDataURL: async url => 'data:image/png;base64,' + Buffer.from(url).toString('base64') };

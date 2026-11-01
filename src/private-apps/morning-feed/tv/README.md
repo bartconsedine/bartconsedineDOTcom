@@ -73,3 +73,7 @@ Selecting a headline now opens its public URL in a same-app iframe reader instea
 Representative public checks on November 1: the NYTimes issue article returned HTTP403 with X-Frame-Options DENY; GitHub returned HTTP200 with X-Frame-Options deny and frame-ancestors none; cra.mr returned HTTP200 without a framing-denial header. Universal full-article embedding is therefore impossible in the website alone. Omarchy's stock WebAppActivity owns one WebView; the website has no documented bridge to create a second native article WebView. A host change would be necessary for a fully native universal article browser.
 
 Calendar access is unchanged by this layout release. See [the proposed narrow device consent](CALENDAR_DEVICE_PROPOSAL.md); it is a design for approval, not an activated grant or implemented endpoint.
+
+
+Saved briefing/card links use the same embedded reader in TV mode. The reader is portaled into the visible app root so it remains available while News is hidden or the ticker is off. Return to TV restores the originating screen/control; Card details shows the original saved body without sending it to the third-party iframe. The normal non-TV editor retains its existing link behavior.
+Only the saved card ID enters presentation history; title, URL and body are resolved from the currently authorized feed when opening/restoring the reader. Removed/disabled cards cannot be restored from stale private history payloads.
