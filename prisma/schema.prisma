@@ -145,3 +145,49 @@ model MorningTvDevice {
  @@map("morning_tv_devices")
  @@schema("private")
 }
+
+model RobotPartyPersonalChannel {
+  id String @id @db.Uuid
+  owner_id String @db.Uuid
+  robot_id String @db.Uuid
+  created_at DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  revoked_at DateTime? @db.Timestamptz(6)
+  @@map("robot_party_personal_channels")
+  @@schema("public")
+}
+model RobotPartyPersonalMessage {
+  id String @id @db.Uuid
+  channel_id String @db.Uuid
+  owner_id String @db.Uuid
+  sender String
+  robot_id String? @db.Uuid
+  reply_to String? @db.Uuid
+  body String
+  seq BigInt @unique @default(autoincrement())
+  created_at DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  @@map("robot_party_personal_messages")
+  @@schema("public")
+}
+model RobotPartyPersonalSubscription {
+  id String @id
+  channel_id String @unique @db.Uuid
+  callback_url String
+  secret_box String
+  expires_at DateTime @db.Timestamptz(6)
+  active Boolean @default(true)
+  @@map("robot_party_personal_subscriptions")
+  @@schema("private")
+}
+model RobotPartyPersonalOutbox {
+  message_id String @id @db.Uuid
+  channel_id String @db.Uuid
+  subscription_id String
+  state String @default("queued")
+  attempts Int @default(0)
+  next_at DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  lease_id String? @db.Uuid
+  lease_until DateTime? @db.Timestamptz(6)
+  received_at DateTime? @db.Timestamptz(6)
+  @@map("robot_party_personal_outbox")
+  @@schema("private")
+}

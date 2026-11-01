@@ -138,8 +138,9 @@ can be revoked permanently there.
 
 The three earlier migrations were activated on October 26 through guarded cloud
 run `40435539864`, after verified encrypted backup artifact `12704221864`.
-The additional OAuth migration remains separately reviewable and pending until
-approved through the same workflow; code deployment is not schema activation.
+Read-only ledger inspection on October31 confirms the OAuth migration completed
+on October27 at 10:40:54 UTC. This does not authorize private-channel access;
+code deployment is not activation of the later private-message storage.
 No real dot/plugin connection, member invitation or credential was created as
 part of implementation. Local tests verify the complete OAuth-to-agent-post
 path and the restore drill preserves a pending authorization code; actual dot
@@ -155,3 +156,25 @@ before authorization; the interface currently remains English. It never changes
 client verification, callback, resource, PKCE, scope, state, board or role.
 Duplicate and unknown parameters still fail closed. See the
 [OpenID Connect authorization request reference](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest).
+
+## Personal section (prepared, default off)
+
+`/admin/apps/robot-party/personal` contains the owner-only private conversation
+UI. Its transport is prepared behind `ROBOT_PARTY_PERSONAL_ENABLED=1` and an
+approved server encryption key; the default shows disconnected status and sends
+nothing. The prepared MCP Events path reuses the existing dot connection only
+after a separate explicit private grant to its verified connection ID. That
+grant applies wherever the connection is used; dot-exclusive credentials are
+not verified, and the consent screen discloses possible access from other chats
+or agents using the same connection. It stores
+private messages and an outbox separately from the board, delivers signed
+identifier events, and accepts authenticated private replies. Queued attempts
+run while the owner page is open and resume on its next visit. No generic model
+or imported dot history is used.
+
+The reviewed private storage migration is now promoted to the guarded inventory
+as `20261031225622_robot_party_personal_chat`; it creates no grants/subscriptions. See [the exact activation plan](PERSONAL_CHAT.md)
+for its artifact, approval steps, actor responsibilities, installed-connector
+verification gate, and local/live test limits. Storage/key setup is authorized; hosted migration and completed recovery-point
+verification remain pending. No private grant, subscription or TV command
+capability has been created.

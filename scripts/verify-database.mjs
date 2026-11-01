@@ -142,6 +142,8 @@ try {
   await query(names[0], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.robot_party_authorize_connection(encode(sha256(convert_to('pending-code','UTF8')),'hex'),'77777777-7777-4777-8777-777777777777','${ids[0]}','Restore OAuth dot','writer',encode(sha256(convert_to('unused-oauth-key','UTF8')),'hex'),'${oauthClient}','${oauthRedirect}','${oauthResource}','${oauthChallenge}');`);
   const tvDevice='T'.repeat(43),tvApproval='V'.repeat(43);
   await query(names[0], `set role anon;select public.morning_tv('start','${tvDevice}','${tvApproval}');reset role;set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.morning_tv('approve','${tvApproval}');`);
+  const personalChannel='88888888-8888-4888-8888-888888888888', personalMessage='99999999-9999-4999-8999-999999999999';
+  await query(names[0], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.robot_party_personal_owner('grant','{"id":"${personalChannel}","robotId":"55555555-5555-4555-8555-555555555555"}'::jsonb);set role anon;select public.robot_party_personal_robot('${robotToken}','subscribe',jsonb_build_object('id','rpps_'||repeat('a',64),'url','https://callback.example/synthetic','secretBox',repeat('fixture-ciphertext-',5),'expiresAt',clock_timestamp()+interval '1 hour'));set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.robot_party_personal_owner('send','{"id":"${personalMessage}","channelId":"${personalChannel}","body":"Synthetic private restore message"}'::jsonb);`);
   process.env.BACKUP_DIR = backups;
   const archive = await backup(connection(target(names[0])));
   // Prove corrupt backups and occupied destinations cannot restore.
@@ -177,6 +179,15 @@ try {
   await assert.rejects(query(names[2], 'set role anon;select * from public.robot_party_messages'),/permission denied/);
   await assert.rejects(query(names[2], 'set role authenticated;select token_hash from public.robot_party_robots'),/permission denied/);
   await assert.rejects(query(names[2], 'set role anon;select private.is_site_admin()'),/permission denied/);
+  const privateRestored=await query(names[2], `set role anon;select public.robot_party_personal_robot('${robotToken}','read','{}'::jsonb) conversation;`);
+  assert.equal(privateRestored[1].rows[0].conversation.messages[0].body,'Synthetic private restore message');
+  const privateOwner=await query(names[2], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.robot_party_personal_owner('snapshot','{}'::jsonb) channel;`);
+  assert.equal(privateOwner[2].rows[0].channel.hasPendingDelivery,true);
+  assert.equal(privateOwner[2].rows[0].channel.subscription.secret_box,'fixture-ciphertext-'.repeat(5));
+  const privateOther=await query(names[2], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[1]}',false);select public.robot_party_personal_owner('snapshot','{}'::jsonb) channel;`);
+  assert.equal(privateOther[2].rows[0].channel.channel,null);
+  await assert.rejects(query(names[2], 'set role anon;select * from public.robot_party_personal_messages'),/permission denied/);
+  await assert.rejects(query(names[2], 'set role anon;select * from private.robot_party_personal_subscriptions'),/permission denied/);
   await query(names[2], "update public.robot_party_robots set revoked_at=now() where id='55555555-5555-4555-8555-555555555555'");
   await assert.rejects(query(names[2], `set role anon;select public.robot_party_read('${robotToken}','{}'::jsonb)`),/robot_access_denied/);
   await assert.rejects(query(names[2], 'set role anon;select * from public.robot_party_oauth_codes'),/permission denied/);
