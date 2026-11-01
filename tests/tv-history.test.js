@@ -11,7 +11,7 @@ test('real history closes QR/source overlays, returns through previous screens, 
  assert.equal(states.at(-1).view,'home');assert.equal(backTv(b.win),false);assert.equal(b.canGoBack,false);
  navigateTv(b.win,'news');navigateTv(b.win,'calendar');navigateTv(b.win,'commands');assert.equal(states.at(-1).view,'commands');
  b.win.history.back();assert.equal(states.at(-1).view,'calendar');b.win.history.back();assert.equal(states.at(-1).view,'news');
- openTvOverlay(b.win,'qr',{title:'Public',url:'https://example.com/article'});assert.equal(states.at(-1).overlay,'qr');
+ openTvOverlay(b.win,'article',{title:'Public',url:'https://example.com/article'});assert.equal(states.at(-1).overlay,'article');
  b.win.history.back();assert.equal(states.at(-1).overlay,null);assert.equal(states.at(-1).view,'news');
  for(let i=0;i<4;i++){openTvOverlay(b.win,'sources');closeTvOverlay(b.win,'sources');assert.equal(states.at(-1).overlay,null);assert.equal(states.at(-1).view,'news');}
  b.win.history.back();assert.equal(states.at(-1).view,'home');assert.equal(b.canGoBack,false);assert.equal(backTv(b.win),false);

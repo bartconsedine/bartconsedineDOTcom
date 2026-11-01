@@ -1,5 +1,5 @@
 export const TV_VIEWS = ['home', 'news', 'briefing', 'calendar', 'commands'];
-const overlays = ['qr', 'sources', 'disconnect'];
+const overlays = ['article', 'sources', 'disconnect'];
 const active = new WeakMap(), listeners = new WeakMap();
 const valid = state => state?.version === 1 && TV_VIEWS.includes(state.view) && Number.isInteger(state.depth) && state.depth >= 0 && (!state.overlay || overlays.includes(state.overlay));
 const current = win => valid(win.history?.state?.bartTv) ? win.history.state.bartTv : null;
