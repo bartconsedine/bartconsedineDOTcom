@@ -1,5 +1,5 @@
 export const TV_VIEWS = ['home', 'news', 'briefing', 'calendar', 'commands'];
-const overlays = ['qr', 'sources', 'disconnect'];
+const overlays = ['article', 'sources', 'disconnect'];
 const active = new WeakMap(), listeners = new WeakMap();
 const valid = state => state?.version === 1 && TV_VIEWS.includes(state.view) && Number.isInteger(state.depth) && state.depth >= 0 && (!state.overlay || overlays.includes(state.overlay));
 const current = win => valid(win.history?.state?.bartTv) ? win.history.state.bartTv : null;
@@ -14,7 +14,10 @@ export function subscribeTvHistory(win, listener) {
 // using WebView.canGoBack()/goBack(), then finishing its Activity at the first entry.
 export function startTvHistory(win) {
   if (!win.history || !win.location) return () => {};
-  let pending = false;
+  let pending = false, closeTimer = null, closeTarget = null;
+  const schedule = win.setTimeout?.bind(win) ?? setTimeout;
+  const cancel = win.clearTimeout?.bind(win) ?? clearTimeout;
+  const clearClose = () => { if (closeTimer !== null) cancel(closeTimer); closeTimer = null; };
   const urlFor = state => { const url = new URL(win.location.href); url.searchParams.set('view', state.view); if (state.overlay) url.searchParams.set('panel', state.overlay); else url.searchParams.delete('panel'); return url.href; };
   const write = (method, state) => win.history[method]({ ...win.history.state, bartTv: state }, '', urlFor(state));
   if (!current(win)) {
@@ -24,7 +27,17 @@ export function startTvHistory(win) {
     // A direct child link still has a Home entry for the first Back press.
     if (TV_VIEWS.includes(requested) && requested !== 'home') write('pushState', { ...home, view: requested, depth: 1 });
   }
-  const pop = () => { pending = false; emit(win); };
+  const pop = event => {
+    // Next may restore an older internal snapshot before this listener runs.
+    // The event is the actual traversed entry; preserve current Next metadata
+    // while restoring that entry's own TV state and presentation URL.
+    if (valid(event?.state?.bartTv)) write('replaceState', event.state.bartTv);
+    const state = current(win);
+    // WebKit can emit a top popstate for child-only traversal without changing
+    // the top app entry. Keep closing until the actual parent entry changes.
+    if (closeTarget && state?.view === closeTarget.view && state?.overlay === closeTarget.overlay && state?.depth === closeTarget.depth) { emit(win); return; }
+    clearClose(); closeTarget = null; pending = false; emit(win);
+  };
   const controller = {
     navigate(view) {
       const state = current(win); if (!state || pending || !TV_VIEWS.includes(view) || state.view === view && !state.overlay) return;
@@ -37,10 +50,31 @@ export function startTvHistory(win) {
       write('pushState', { ...state, overlay, payload: payload ?? null, depth: state.depth + 1 }); emit(win); return true;
     },
     back() { const state = current(win); if (!state || !state.depth || pending) return false; pending = true; win.history.back(); return true; },
-    close(overlay) { if (current(win)?.overlay === overlay) return this.back(); return false; },
+    close(overlay) {
+      const state = current(win);
+      if (state?.overlay !== overlay) return false;
+      // Repeated Back is consumed while an article close is traversing child history.
+      if (pending) return true;
+      if (overlay !== 'article') return this.back();
+      pending = true; closeTarget = state;
+      let remaining = Math.min(32, Math.max(1, win.history.length || 32));
+      const step = () => {
+        clearClose();
+        if (!pending) return;
+        if (current(win)?.overlay !== overlay || current(win)?.depth !== state.depth || remaining-- <= 0) {
+          closeTarget = null; pending = false; emit(win); return;
+        }
+        // Iframes contribute joint history entries without a top-window popstate.
+        // Keep the frame mounted until the real parent traversal completes. A bounded
+        // retry handles child-only entries; any top popstate cancels it immediately.
+        closeTimer = schedule(step, 500);
+        win.history.back();
+      };
+      step(); return true;
+    },
   };
   active.set(win, controller); win.addEventListener('popstate', pop); emit(win);
-  return () => { if (active.get(win) === controller) active.delete(win); win.removeEventListener('popstate', pop); };
+  return () => { clearClose(); closeTarget = null; pending = false; if (active.get(win) === controller) active.delete(win); win.removeEventListener('popstate', pop); };
 }
 export const navigateTv = (win, view) => { const controller = active.get(win); if (!controller) return false; controller.navigate(view); return true; };
 export const backTv = win => active.get(win)?.back() ?? false;

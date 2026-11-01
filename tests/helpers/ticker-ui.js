@@ -18,6 +18,7 @@ export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/tick
   const module = { exports: {} };
   runInNewContext(code, { module, exports: module.exports, fetch: fetcher, URL, AbortController, crypto: globalThis.crypto, setInterval(fn, ms) { const id = ++timerId; timers.set(id, { fn, ms }); return id; }, clearInterval(id) { timers.delete(id); }, document: { activeElement: null }, window: { matchMedia: () => ({ matches: reduced, addEventListener() {}, removeEventListener() {} }), addEventListener: (key, fn) => keys.set(key, fn), removeEventListener: key => keys.delete(key) }, require: id => {
     if (id === 'react') return hooks;
+    if (id.endsWith('/paged-text')) return ({text}) => text;
     if (['./history', './tv/history', '../tv/history.js'].includes(id)) return tvHistory;
     if (id === 'qrcode') return { toDataURL: async url => 'data:image/png;base64,' + Buffer.from(url).toString('base64') };
     if (id === '../../calendar-companion/model.js') return calendarModel;

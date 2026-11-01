@@ -9,10 +9,11 @@ export function headlineSize(length) {
 export function fitHeadline(element) {
   if (!element?.getBoundingClientRect || !element.textContent) return;
   const win = element.ownerDocument.defaultView;
-  const max = Math.min(76, Math.max(34, win.innerWidth * 0.04));
+  const max = Math.min(76, Math.max(28, win.innerWidth * 0.04), (win.innerHeight || 1080) * 0.065);
+  const min = win.innerWidth < 650 ? 20 : (win.innerHeight || 1080) <= 720 ? 24 : 30;
   let size = max;
   element.style.fontSize = `${size}px`;
-  while (size > 30 && element.scrollHeight > parseFloat(win.getComputedStyle(element).lineHeight) * 2 + 2) {
+  while (size > min && element.scrollHeight > parseFloat(win.getComputedStyle(element).lineHeight) * 2 + 2) {
     size -= 2; element.style.fontSize = `${size}px`;
   }
 }
