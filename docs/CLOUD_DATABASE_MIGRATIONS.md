@@ -144,3 +144,11 @@ The disposable PostgreSQL17 drill exercises fresh and incremental deployment,
 backup/restore guard failures, restored private messages/subscription ciphertext
 and queued outbox state, and owner/other-admin/anonymous denial. This is recovery
 verification with synthetic records, not live dot delivery or hosted restoration.
+
+## Owner news progress — prepared November 1, 2026
+
+`20261101014448_morning_news_progress` adds private owner-scoped read markers and a list/mark RPC for live owner sessions and paired TVs. Its checksum is pinned in the reviewed inventory; it starts disabled. This task has not applied it to hosted Supabase or enabled the capability.
+
+After code release, inspect the actual complete pending suffix. Obtain separate explicit authorization for the hosted migration and for enabling list/mark access on existing paired TVs. Use the normal main-only deploy workflow, current completed recovery point, environment review and fresh encrypted backup verification. Verify the ledger checksum, private table denial, disabled state and owner/device identity boundaries before activation. See [the feature operating guide](../src/private-apps/morning-feed/tldr/README.md#deployment-and-rollback) for the exact activation statement and rollback behavior. Never bypass migration history with connector DDL.
+
+After authorized activation, accept a confirmed read → reload → independent owner session → TV re-pairing flow, cross-owner denial and revoked-device denial against the hosted service. Local browser fixtures and PostgreSQL recovery checks do not certify these hosted flows.

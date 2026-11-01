@@ -143,6 +143,7 @@ try {
   const tvDevice='T'.repeat(43),tvApproval='V'.repeat(43);
   await query(names[0], `set role anon;select public.morning_tv('start','${tvDevice}','${tvApproval}');reset role;set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.morning_tv('approve','${tvApproval}');`);
   const personalChannel='88888888-8888-4888-8888-888888888888', personalMessage='99999999-9999-4999-8999-999999999999';
+  await query(names[0], `update private.morning_news_settings set enabled=true;set role anon;select public.morning_news_progress('read','${tvDevice}',repeat('a',64));`);
   await query(names[0], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.robot_party_personal_owner('grant','{"id":"${personalChannel}","robotId":"55555555-5555-4555-8555-555555555555"}'::jsonb);set role anon;select public.robot_party_personal_robot('${robotToken}','subscribe',jsonb_build_object('id','rpps_'||repeat('a',64),'url','https://callback.example/synthetic','secretBox',repeat('fixture-ciphertext-',5),'expiresAt',clock_timestamp()+interval '1 hour'));set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.robot_party_personal_owner('send','{"id":"${personalMessage}","channelId":"${personalChannel}","body":"Synthetic private restore message"}'::jsonb);`);
   process.env.BACKUP_DIR = backups;
   const archive = await backup(connection(target(names[0])));
@@ -197,10 +198,16 @@ try {
   const restoredTv=await query(names[2], `set role anon;select public.morning_tv('read','${tvDevice}') tv;`);
   assert.equal(restoredTv[1].rows[0].tv.status,'connected');
   assert.equal(restoredTv[1].rows[0].tv.screen,null);
+  const restoredNews=await query(names[2], `set role anon;select public.morning_news_progress('list','${tvDevice}') progress;`);
+  assert.equal(restoredNews[1].rows[0].progress.reads[0].id,'a'.repeat(64));
+  const otherNews=await query(names[2], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[1]}',false);select public.morning_news_progress('list') progress;`);
+  assert.deepEqual(otherNews[2].rows[0].progress.reads,[]);
+  await assert.rejects(query(names[2], 'set role authenticated;select * from private.morning_news_reads'),/permission denied/);
   await assert.rejects(query(names[2], 'set role anon;select * from private.morning_tv_devices'),/permission denied/);
   await query(names[2], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.morning_tv('revoke',encode(sha256(convert_to('${tvDevice}','UTF8')),'hex'));`);
   const revokedTv=await query(names[2], `set role anon;select public.morning_tv('read','${tvDevice}') tv;`);
   assert.equal(revokedTv[1].rows[0].tv.status,'expired');
+  await assert.rejects(query(names[2], `set role anon;select public.morning_news_progress('list','${tvDevice}')`),/news_progress_denied/);
   console.log('PASS: Prisma baseline + fresh deploy + incremental deploy + logical backup + isolated restore + restored RLS/grants/data.');
   console.log(`Disposable fixture backups retained at ${backups}`);
 } finally {

@@ -54,5 +54,12 @@ export function mergeIssues(issues, now = Date.now()) {
     }
     return { edition: issue.edition, date: issue.date ?? null, checkedAt: issue.checkedAt ?? null, status: issue.error ? 'unavailable' : now - Date.parse(issue.checkedAt) > 3600000 ? 'cached' : now - Date.parse(issue.date) > 3 * 86400000 ? 'older' : 'current', count: issue.articles?.length ?? 0, hasOlder: Boolean(issue.hasOlder) };
   });
-  return { articles: [...unique.values()], sources, hasOlder: sources.some(s => s.hasOlder) };
+  return { articles: newestFirst([...unique.values()]), sources, hasOlder: sources.some(s => s.hasOlder) };
+}
+
+// Public archives provide issue dates, not authoritative publisher timestamps.
+// Equal-date stories have deterministic canonical-URL order across refreshes.
+export function newestFirst(articles) {
+  const date = article => Math.max(0, ...(article.editions ?? []).map(e => Date.parse(e.date) || 0));
+  return [...articles].sort((a, b) => date(b) - date(a) || a.url.localeCompare(b.url));
 }

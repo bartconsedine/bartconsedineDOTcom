@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
 import * as calendarModel from '../../src/private-apps/calendar-companion/model.js';
+import * as progressModel from '../../src/private-apps/morning-feed/tldr/progress-model.js';
 import * as layout from '../../src/private-apps/morning-feed/tldr/layout.js';
 import * as model from '../../src/private-apps/morning-feed/model.js';
 const require = createRequire(import.meta.url);
@@ -12,6 +13,7 @@ export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/tick
   const historyListeners = new Set();
   const states = [], effects = [], pending = [], timers = new Map(), keys = new Map(); let slot = 0, timerId = 0;
   const hooks = {
+    useMemo(fn, deps) { const key = slot++, old = states[key]; if (!old || deps.some((dep, i) => !Object.is(dep, old.deps[i]))) states[key] = { deps, value: fn() }; return states[key].value; },
     useState(initial) { const key = slot++; if (!(key in states)) states[key] = typeof initial === 'function' ? initial() : initial; return [states[key], next => { states[key] = typeof next === 'function' ? next(states[key]) : next; }]; },
     useRef(initial) { const key = slot++; if (!(key in states)) states[key] = { current: initial }; return states[key]; },
     useEffect(fn, deps) { const key = slot++, old = effects[key]; if (!old || deps.some((dep, i) => !Object.is(dep, old.deps[i]))) { old?.cleanup?.(); effects[key] = { deps }; pending.push(() => { effects[key].cleanup = fn(); }); } },
@@ -27,6 +29,7 @@ export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/tick
     if (id === 'qrcode') return { toDataURL: async url => 'data:image/png;base64,' + Buffer.from(url).toString('base64') };
     if (id === '../../calendar-companion/model.js') return calendarModel;
     if (id === './layout.js' || id === '../tldr/layout.js') return layout;
+    if (id === './progress-model.js') return { ...progressModel, createNewsProgress: args => progressModel.createNewsProgress({ ...args, fetcher }) };
     if (id === './model.js') return model;
     if (id.endsWith('.css')) return {};
     if (id === 'react/jsx-runtime') return require(id);

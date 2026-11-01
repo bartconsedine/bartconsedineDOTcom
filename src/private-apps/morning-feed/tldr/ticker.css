@@ -92,3 +92,7 @@
 @media(max-width:600px) { .tv-home-grid { grid-template-columns:1fr; }.tv-home h2 { font-size:42px; }.morning .tv-home-grid button { min-height:140px; } }
 .morning .morning-tv-nav button[aria-pressed=true]:hover:not(:disabled) { background:#d9f27d; color:#141e18; }
 @media(min-width:1500px) { .tv-home-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.morning .tv-home-grid button { min-height:195px; }.tv-home-grid strong { margin-top:20px; }.tv-home-grid p { font-size:19px; } }
+.tldr-progress { flex:none; font:13px/1.4 Arial,sans-serif; color:var(--wire-muted,#adbbcc); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.tldr-progress [role=alert] { color:#ffd1a6; }
+.tldr-controls { flex-wrap:wrap; }
+@media(max-width:650px) { .morning-display .tldr-bottom { flex-wrap:wrap; }.tldr-progress { font-size:11px; } }
