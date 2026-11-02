@@ -94,3 +94,26 @@ html:has(.morning-display),body:has(.morning-display),html:has(.tv-pair),body:ha
 .tldr-reader.tv-article-reader { grid-template-columns:minmax(0,1fr); justify-content:stretch; align-items:stretch; }
 /* Reader is portaled into the visible app root, also while News itself is hidden. */
 .tv-article-reader button { min-height:32px; padding:5px 11px; font:600 12px/1.3 Arial,sans-serif; border:1px solid #ffffff30; border-radius:6px; color:#f4f0e7; background:transparent; }
+
+/* Phone sign-in and command controls stay within the TV content area. */
+.morning-display .tv-calendar-signin { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px, .8fr); align-items:center; gap:24px; overflow:auto; }
+.tv-calendar-signin>div p { font-size:clamp(14px,1.3vw,20px); line-height:1.45; }
+.tv-calendar-signin .qr-device { padding:16px; }
+.tv-calendar-signin .qr-device h2 { margin:6px 0; font-size:22px; }
+.tv-calendar-signin .qr-device p { font-size:12px; margin:8px 0; }
+.tv-calendar-signin .qr-device img { width:min(210px,25vh); }
+.morning-display .tv-command-panel { display:flex; flex-direction:column; align-items:stretch; height:100%; overflow:auto; gap:14px; }
+.tv-command-panel h2 { font-size:clamp(26px,3.5vw,48px); margin:4px 0; }
+.tv-command-compose { display:flex; align-items:end; gap:16px; }
+.tv-command-compose label { flex:1; font-size:16px; }
+.morning .tv-command-compose textarea { display:block; width:100%; box-sizing:border-box; margin-top:10px; padding:14px; background:#0d1420; color:#eef2f7; border:1px solid #5d6a7e; border-radius:8px; font:inherit; resize:none; }
+.morning .tv-command-compose button:enabled { background:#e5f39a; color:#162013; }
+.tv-command-panel [role=alert] { color:#ffc4ab; }
+.tv-command-panel [role=status] { color:#dff3a1; }
+@media(max-width:650px) {
+ .morning-display .tv-calendar-signin { grid-template-columns:1fr; gap:12px; padding:12px; align-content:start; }
+ .tv-calendar-signin>div p { font-size:13px; margin:8px 0; }
+ .tv-calendar-signin .qr-device img { width:min(170px,21vh); }
+ .morning-display .tv-command-panel { padding:16px; }
+ .tv-command-compose { flex-direction:column; align-items:stretch; }
+}

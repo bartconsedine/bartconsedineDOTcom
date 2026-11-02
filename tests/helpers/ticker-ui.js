@@ -20,8 +20,9 @@ export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/tick
   };
   const { code } = transformSync(readFileSync(new URL(`../../src/private-apps/morning-feed/${file}`, import.meta.url), 'utf8'), { babelrc: false, configFile: false, presets: [[require('next/dist/compiled/babel/preset-react'), { runtime: 'automatic' }]], plugins: [require('next/dist/compiled/babel/plugin-transform-modules-commonjs')] });
   const module = { exports: {} };
-  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, URL, AbortController, crypto: globalThis.crypto, setInterval(fn, ms) { const id = ++timerId; timers.set(id, { fn, ms, at: time + ms }); return id; }, clearInterval(id) { timers.delete(id); }, document: { activeElement: null }, window: { matchMedia: () => ({ matches: reduced, addEventListener() {}, removeEventListener() {} }), addEventListener: (key, fn) => keys.set(key, fn), removeEventListener: key => keys.delete(key) }, require: id => {
+  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, URL, AbortController, AbortSignal, crypto: globalThis.crypto, setInterval(fn, ms) { const id = ++timerId; timers.set(id, { fn, ms, at: time + ms }); return id; }, clearInterval(id) { timers.delete(id); }, document: { activeElement: null }, window: { matchMedia: () => ({ matches: reduced, addEventListener() {}, removeEventListener() {} }), addEventListener: (key, fn) => keys.set(key, fn), removeEventListener: key => keys.delete(key) }, require: id => {
     if (id === 'react') return hooks;
+    if (id.endsWith('/qr-device')) return props => require('react').createElement('section', {'data-qr-auto-start': props.autoStart, 'aria-label':'Owner QR sign-in controls'}, 'Phone QR sign-in');
     if (id === '../tv/card-article.js') return cardReader;
     if (id === 'react-dom') return {createPortal: node => node};
     if (id.endsWith('/paged-text')) return ({text}) => text;

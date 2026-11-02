@@ -165,3 +165,7 @@ at the same sizes also passed. Browser APIs were intercepted with synthetic data
 these checks do not certify hosted Google OAuth, actual TV hardware or production
 persistence. Local evidence is in `/private/tmp/tv-owner-qr-browser/` and
 `/private/tmp/tv-refresh-focus-browser/`.
+
+### Calendar entry (November 2)
+
+The limited TV Calendar panel embeds the existing request UI and generates a QR on entry. An owner whose Google Calendar token is missing can explicitly sign out only the target screen, then use `/login/qr?calendar=1` to generate a new request. This deliberately retains the existing rule that QR exchange cannot overwrite an already authenticated owner session. The normal phone approval, same-account Google flow, full-access disclosure, expiration and revocation protections are unchanged.

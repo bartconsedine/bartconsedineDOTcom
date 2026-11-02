@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { attachRemoteNavigation } from '@/private-apps/morning-feed/tv/remote-navigation';
 
-export default function QrDevice() {
+export default function QrDevice({ autoStart = false, embedded = false } = {}) {
   const [label, setLabel] = useState('Living room TV');
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -12,8 +12,10 @@ export default function QrDevice() {
 
   useEffect(() => {
     root.current.querySelector('button')?.focus();
-    return attachRemoteNavigation(root.current.closest('main'));
+    if (!embedded) return attachRemoteNavigation(root.current.closest('main'));
   }, []);
+
+  useEffect(() => { if (autoStart) void call('start'); }, []);
 
   const hasRequest = Boolean(data);
   useEffect(() => {
