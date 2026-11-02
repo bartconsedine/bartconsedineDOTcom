@@ -81,3 +81,20 @@ Only the saved card ID enters presentation history; title, URL and body are reso
 ## Owner news progress capability
 
 Once separately authorized and enabled, a paired TV may list and append the owner’s news read markers through `/api/tv/news-progress`. Markers belong to the owner, survive disconnect/re-pairing, and are shared with the owner’s signed-in sessions and other TVs. Feed editing, Calendar and other apps remain outside the TV capability. Existing paired credentials gain this narrow capability only after explicit activation approval; until then the UI reports that progress is unavailable. See [progress storage and rollout](../tldr/README.md#saved-reading-progress-november-1) for the migration, activation and recovery requirements.
+
+## Owner browser entry and News controls (November 2)
+
+`/tv` now checks the existing verified administrator session. An authorized owner is redirected to `/admin/apps/morning-feed?view=<requested TV section>`; only known section names survive, and owner selectors are not forwarded. The protected workspace/API independently authorize every data request. `/tv` participates in the existing session-refresh proxy with private/no-store headers. Unauthenticated, unapproved or unavailable owner verification retains the existing QR screen; pairing alone never grants Calendar access. The owner Calendar still requires that browser's Google Calendar connection.
+
+News Next/Previous no longer disable during saves, preserving the remote's actual focus while duplicate activations are guarded. Rotation remains available during a progress-storage outage, with a visible unsaved warning. See [News setup and half-hour scheduling](../tldr/README.md#tv-fixes-and-half-hour-scheduling-november-2), including the missing hosted migration diagnosis. The pending Calendar layout PR #34 is not included here.
+
+## Full-owner QR integration (November 2)
+
+The owner chose full private-workspace access with Calendar instead of the proposed
+limited agenda snapshot. When `ADMIN_QR_ENABLED` is enabled, `/tv` and its locked
+Calendar page link to `/login/qr`. Phone approval names this target device and its
+30-day full access, then Google requests the existing Calendar companion scopes.
+Completion opens the protected owner Calendar view. Existing limited pairings are
+not upgraded; the TV receives a separate owner session after approval. All private
+apps retain owner RLS. Google access expiry is independent and may require reconnecting.
+See [implementation, revocation and hosted activation](../../../../docs/ADMIN_QR_LOGIN.md).

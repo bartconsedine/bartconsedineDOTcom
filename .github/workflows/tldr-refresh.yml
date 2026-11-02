@@ -1,0 +1,28 @@
+name: Refresh public TLDR sources
+on:
+  schedule:
+    # Avoid the top-of-hour peak; GitHub may still delay scheduled runs.
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tldr-public-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check latest public issues
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo 'Configure the shared CRON_SECRET in GitHub Actions and Vercel production.' >&2
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error --max-time 60 --retry 2 --retry-delay 10 \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            https://bartconsedine.com/api/cron/tldr

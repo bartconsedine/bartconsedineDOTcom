@@ -25,4 +25,4 @@ export async function proxy(request) {
   response.headers.set('Referrer-Policy','no-referrer');
   return response;
 }
-export const config = { matcher: ['/admin/:path*', '/api/admin/:path*', '/login', '/auth/:path*'] };
+export const config = { matcher: ['/tv', '/admin/:path*', '/api/admin/:path*', '/login', '/auth/:path*'] };

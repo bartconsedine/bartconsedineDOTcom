@@ -16,7 +16,7 @@ export function createNewsProgress({ endpoint, fetcher = fetch }) {
     async load() {
       const response = await fetcher(endpoint, { cache: 'no-store' });
       const data = await response.json();
-      if (!response.ok || data.state !== 'ready' || !Array.isArray(data.reads) || data.reads.some(row => !/^[a-f0-9]{64}$/.test(row?.id) || !row.readAt)) throw Error(data.state === 'disabled' ? 'Saved reading progress is not enabled yet.' : 'Could not load reading progress. Retry.');
+      if (!response.ok || data.state !== 'ready' || !Array.isArray(data.reads) || data.reads.some(row => !/^[a-f0-9]{64}$/.test(row?.id) || !row.readAt)) throw Error(['disabled', 'setup_required'].includes(data.state) ? 'Reading progress needs server setup. Stories are not being saved as read.' : 'Could not load reading progress. Retry.');
       const loaded = new Set(data.reads.map(row => row.id));
       // Marks are append-only, so a late list must never erase confirmed reads,
       // including reads learned by another overlapping list from another session.

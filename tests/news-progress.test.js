@@ -78,3 +78,11 @@ test('overlapping lists cannot erase a read learned from another session', async
   assert.ok((await client.load()).has(id)); release();
   assert.ok((await stale).has(id));
 });
+
+test('missing progress migration has an actionable setup state distinct from transient failure', async () => {
+  for (const code of ['PGRST202', '42883']) {
+    const api = createNewsProgressApi({ rpc: async () => ({ error: { code, message: 'internal function detail' } }), authorize: async () => ({ ok: true }), origin: () => origin });
+    const response = await api.GET(new Request(origin + '/api/admin/news-progress'));
+    assert.equal(response.status, 503); assert.deepEqual(await response.json(), { state: 'setup_required' });
+  }
+});
