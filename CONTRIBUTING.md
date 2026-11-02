@@ -1,6 +1,6 @@
 # Contributing
 
-Use a feature branch and pull request for every repository change in the regular checkout. Never create or use Git worktrees; preserve existing worktrees and unrelated changes. Coordinate overlapping work before changing shared files or branches. Start PRs as drafts and make them ready only when the final diff and applicable checks have passed.
+Use one shared working branch at a time for every active agent in the regular checkout, with pull requests for delivery. Reuse the current working branch instead of creating or switching branches per task. Never create or use Git worktrees; preserve existing worktrees and unrelated changes. Use focused commits whose messages explain the task, change, and relevant context. Stage only intended files or hunks, recheck branch/status/diff before committing or pushing, coordinate overlapping edits, and serialize Git mutations, dependency installs, and builds. Never reset, rebase, force-push, stash, or discard another agent's work. Keep the shared branch after release and advance it safely to merged main when needed without rewriting shared history. Start PRs as drafts and make them ready only when the final diff and applicable checks have passed.
 
 Follow the [permissions and completion contract](docs/AGENT_PERMISSIONS.md): scope tool use to the requested repository task, verify service targets, carry authorized work through delivery, and report any remaining blocker precisely.
 
