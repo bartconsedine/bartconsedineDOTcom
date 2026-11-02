@@ -30,10 +30,10 @@ test('opening marks read, Back shows next newest unread, reload resumes, all sto
   button(ui.render(),'All stories').props.onClick();await settled(ui);assert.equal(title(ui),'newest');assert.match(html(ui),/· Read/);
   button(ui.render(),'Unread stories').props.onClick();await settled(ui);assert.equal(title(ui),'recent');ui.close();
 });
-test('manual next and upcoming selections consume only the story left; passive rotation never saves',async()=>{
-  const state=fixture();const ui=state.ui(false);await settled(ui);await ui.tick(24000);await settled(ui);assert.equal(title(ui),'recent');assert.equal(state.posts,0);
-  await nodes(ui.render()).find(n=>n.props?.['aria-label']==='Next headline').props.onClick();await settled(ui);assert.equal(title(ui),'old');assert.ok(state.reads.has(await articleId(two.url)));assert.equal(state.reads.size,1);
-  await nodes(ui.render()).find(n=>n.props?.className==='tldr-next-story').props.onClick();await settled(ui);assert.equal(title(ui),'newest');assert.ok(state.reads.has(await articleId(one.url)));ui.close();
+test('manual next and upcoming selections consume only the story left; elapsed time never navigates or saves',async()=>{
+  const state=fixture();const ui=state.ui(false);await settled(ui);await ui.advance(120000);await settled(ui);assert.equal(title(ui),'newest');assert.equal(state.posts,0);
+  await nodes(ui.render()).find(n=>n.props?.['aria-label']==='Next headline').props.onClick();await settled(ui);assert.equal(title(ui),'recent');assert.ok(state.reads.has(await articleId(three.url)));assert.equal(state.reads.size,1);
+  await nodes(ui.render()).find(n=>n.props?.className==='tldr-next-story').props.onClick();await settled(ui);assert.equal(title(ui),'old');assert.ok(state.reads.has(await articleId(two.url)));ui.close();
 });
 test('failed save stays unread with retry in the reader; all-read queue welcomes new arrivals',async()=>{
   const state=fixture();state.articles=[three];state.fail=true;const ui=state.ui();await settled(ui);
@@ -75,19 +75,19 @@ test('Next remains selectable while saving and repeated activation cannot consum
   assert.match(html(ui), /1 \/ 3 read · Synced/); ui.close();
 });
 
-test('unavailable progress does not freeze rotation or claim reads were saved', async () => {
+test('unavailable progress keeps manual navigation without claiming saved reads', async () => {
   const ui = tickerUi(async url => url === '/progress' ? Response.json({ state: 'setup_required' }, { status: 503 }) : Response.json({ articles: [one, two, three], sources: [], history: 0 }), { endpoint: '/feed', progressEndpoint: '/progress', display: true });
   await settled(ui); assert.equal(title(ui), 'newest'); assert.match(html(ui), /needs server setup/);
-  await ui.tick(24000); await settled(ui); assert.equal(title(ui), 'recent');
+  await ui.advance(120000); await settled(ui); assert.equal(title(ui), 'newest'); await nodes(ui.render()).find(n=>n.props?.['aria-label']==='Next headline').props.onClick(); await settled(ui); assert.equal(title(ui),'recent');
   assert.doesNotMatch(html(ui), /Synced/); ui.close();
 });
 
-test('minute progress refreshes do not restart a long story rotation timer', async () => {
+test('minute progress refreshes retain the current story indefinitely', async () => {
   const state = fixture();
   state.articles = [one, { ...three, summary: 'word '.repeat(300) }];
   const ui = state.ui(false); await settled(ui);
   assert.equal(title(ui), 'newest');
   await ui.advance(60000); await settled(ui); assert.equal(title(ui), 'newest');
-  await ui.advance(50000); await settled(ui); assert.equal(title(ui), 'old');
+  await ui.advance(600000); await settled(ui); assert.equal(title(ui), 'newest');
   assert.equal(state.posts, 0); ui.close();
 });

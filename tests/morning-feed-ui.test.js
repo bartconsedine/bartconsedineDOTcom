@@ -40,11 +40,11 @@ test('conflicts preserve local drafts; invalid timezone input does not crash pre
   input(ui, 'Card 1 title').props.onChange({ target: { value: 'My draft' } }); await button(ui.render(), 'Save morning').props.onClick(); assert.match(view(ui), /changed on another device/); assert.match(view(ui), /My draft/); ui.close();
 });
 
-test('TV rotates, handles remote keys, refreshes saved changes and labels stale data after a failed poll', async () => {
+test('TV holds cards until navigation, handles remote keys, refreshes saved changes and labels stale data after a failed poll', async () => {
   let screen = { ...emptyScreen(), cards: [card('one'), card('two')] }, fail = false;
   const ui = morningUi(async () => fail ? Response.json({}, { status: 503 }) : Response.json({ screen, updatedAt: '2026-10-27T02:00:00Z' }));
   await ui.settle(); button(ui.render(), 'TV mode ↗').props.onClick(); await ui.settle(); assert.match(view(ui), /ON AIR/); assert.match(view(ui), /Ritual one/);
-  await ui.tick(20000); assert.match(view(ui), /Ritual two/); ui.key('ArrowLeft'); assert.match(view(ui), /Ritual one/);
+  await ui.tick(20000); assert.match(view(ui), /Ritual one/); nodes(ui.render()).find(n=>n.props?.['aria-label']==='Next card').props.onClick(); await ui.settle(); assert.match(view(ui), /Ritual two/); ui.key('ArrowLeft'); assert.match(view(ui), /Ritual one/);
   screen = { ...screen, focus: 'A saved change from my phone' }; await ui.tick(30000); assert.match(view(ui), /A saved change from my phone/);
   fail = true; await ui.tick(30000); assert.match(view(ui), /Display is offline/); assert.match(view(ui), /A saved change from my phone/);
   ui.key('Escape'); await ui.settle(); assert.doesNotMatch(view(ui), /ON AIR/); ui.close();

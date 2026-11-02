@@ -6,18 +6,18 @@ import { renderToStaticMarkup } from 'react-dom/server';
 const item = (id,title=id) => ({ title, summary:`Complete source summary for ${id}. This is the final sentence.`, url:`https://example.com/${id}?v=7`, editions:[{edition:'tech',date:'2026-10-28'}] });
 const feed = (articles=[item('one'),item('two')],history=0) => ({articles,history,hasOlder:true,sources:[{edition:'tech',date:'2026-10-28',status:'current',checkedAt:'2026-10-28T12:00:00Z'}]});
 const view = ui => renderToStaticMarkup(ui.render());
-test('ticker rotates all headlines; OK pins a article snapshot across refresh, Back resumes and toggle is independent',async()=>{
+test('ticker holds headlines until manual navigation; OK pins a article snapshot across refresh, Back resumes and toggle is independent',async()=>{
  let data=feed(),fail=false;
  const ui=tickerUi(async()=>{if(fail) throw Error(); return Response.json(data);},{endpoint:'/api/tv',display:true});
- await ui.settle(); assert.match(view(ui),/one/); await ui.tick(24000); assert.match(view(ui),/two/);
+ await ui.settle(); assert.match(view(ui),/one/); await ui.advance(120000); assert.equal(nodes(ui.render()).find(n=>n.props?.className==='tldr-title').props.children,'one'); nodes(ui.render()).find(n=>n.props?.['aria-label']==='Next headline').props.onClick(); await ui.settle(); assert.equal(nodes(ui.render()).find(n=>n.props?.className==='tldr-title').props.children,'two');
  ui.key('Enter'); await ui.settle(); assert.match(view(ui),/Article reader/); assert.ok(nodes(ui.render()).find(n=>n.type==='iframe'));
  const image=nodes(ui.render()).find(n=>n.type==='iframe').props.src;
  data=feed([item('new')]); await ui.tick(60000); assert.match(view(ui),/two/); assert.equal(nodes(ui.render()).find(n=>n.type==='iframe').props.src,image);
  fail=true; await ui.tick(60000); assert.match(view(ui),/Keeping the last loaded headlines/); assert.match(view(ui),/two/);
  ui.key('Backspace'); await ui.settle(); assert.doesNotMatch(view(ui),/Article reader/); assert.match(view(ui),/new/);
- button(ui.render(),'Turn ticker off').props.onClick(); await ui.settle(); assert.doesNotMatch(view(ui),/ON AIR/); assert.ok(button(ui.render(),'Turn ticker on')); ui.close();
+ button(ui.render(),'Turn ticker off').props.onClick(); await ui.settle(); assert.match(view(ui),/OFF/); assert.ok(button(ui.render(),'Turn ticker on')); ui.close();
 });
-test('history is separate from routine cards, empty/errors are honest, and reduced motion disables automatic advance',async()=>{
+test('history is separate from routine cards, empty/errors are honest, and manual advance also works with reduced motion',async()=>{
  let history=0; const ui=tickerUi(async url=>{ history=Number(new URL(url,'https://example.com').searchParams.get('history')); return Response.json(feed([item('one'),item('two')],history));},{endpoint:'/api/admin/apps/morning-feed?owner=owner',display:true},true);
  await ui.settle(); await ui.tick(24000); assert.match(view(ui),/MANUAL/); assert.match(view(ui),/one/);
  ui.key('ArrowRight'); await ui.settle(); assert.match(view(ui),/two/);
