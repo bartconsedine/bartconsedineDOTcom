@@ -87,3 +87,14 @@ Once separately authorized and enabled, a paired TV may list and append the owne
 `/tv` now checks the existing verified administrator session. An authorized owner is redirected to `/admin/apps/morning-feed?view=<requested TV section>`; only known section names survive, and owner selectors are not forwarded. The protected workspace/API independently authorize every data request. `/tv` participates in the existing session-refresh proxy with private/no-store headers. Unauthenticated, unapproved or unavailable owner verification retains the existing QR screen; pairing alone never grants Calendar access. The owner Calendar still requires that browser's Google Calendar connection.
 
 News Next/Previous no longer disable during saves, preserving the remote's actual focus while duplicate activations are guarded. Rotation remains available during a progress-storage outage, with a visible unsaved warning. See [News setup and half-hour scheduling](../tldr/README.md#tv-fixes-and-half-hour-scheduling-november-2), including the missing hosted migration diagnosis. The pending Calendar layout PR #34 is not included here.
+
+## Full-owner QR integration (November 2)
+
+The owner chose full private-workspace access with Calendar instead of the proposed
+limited agenda snapshot. When `ADMIN_QR_ENABLED` is enabled, `/tv` and its locked
+Calendar page link to `/login/qr`. Phone approval names this target device and its
+30-day full access, then Google requests the existing Calendar companion scopes.
+Completion opens the protected owner Calendar view. Existing limited pairings are
+not upgraded; the TV receives a separate owner session after approval. All private
+apps retain owner RLS. Google access expiry is independent and may require reconnecting.
+See [implementation, revocation and hosted activation](../../../../docs/ADMIN_QR_LOGIN.md).

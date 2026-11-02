@@ -1,3 +1,4 @@
+import { qrEnabled } from '@/lib/admin-qr/api';
 import { checkAdmin } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { TV_VIEWS } from '@/private-apps/morning-feed/tv/history';
@@ -11,5 +12,5 @@ export default async function TV({ searchParams }) {
     const view = TV_VIEWS.includes(requested) ? requested : 'home';
     redirect(`/admin/apps/morning-feed?view=${view}`);
   }
-  return <TvScreen/>;
+  return <TvScreen ownerLoginEnabled={qrEnabled()}/>;
 }

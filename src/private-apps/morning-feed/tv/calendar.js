@@ -4,7 +4,7 @@ import { checkedAgo } from '../tldr/layout.js';
 import PagedText from './paged-text';
 import { localInstant } from '../../calendar-companion/model.js';
 // Read-only projection of the EXISTING Calendar companion API, never a new data source.
-export default function TvCalendar({ locked }) {
+export default function TvCalendar({ locked, ownerLoginEnabled = false }) {
   const [data, setData] = useState(null), [error, setError] = useState(''), [page, setPage] = useState(0), [retry, setRetry] = useState(0);
   useEffect(() => {
     if (locked) return;
@@ -16,7 +16,7 @@ export default function TvCalendar({ locked }) {
     }).catch(failure => { if (!disposed) setError(failure.message || 'Calendar unavailable. Retry.'); });
     return () => { disposed = true; controller.abort(); };
   }, [locked, retry]);
-  if (locked) return <section className="tv-panel"><p className="tv-panel-kicker">CALENDAR / PRIVATE</p><h2>Your calendar stays private.</h2><p>This paired TV is approved for Morning signal only. Calendar needs separate owner authorization; sign in with your owner Google account on this screen to open it.</p><p>The phone QR connects Morning signal. Your existing Google sign-in on this screen opens Calendar companion with your own calendar connection.</p><div className="tv-panel-actions"><a href="/admin/apps/morning-feed?view=calendar">Open existing owner Calendar view</a></div></section>;
+  if (locked) return <section className="tv-panel"><p className="tv-panel-kicker">CALENDAR / PRIVATE</p><h2>Your calendar stays private.</h2><p>This paired TV is approved for Morning signal only. Calendar needs full owner authorization.</p><p>Use full owner sign-in to connect Calendar and your private apps. Approve access on your phone, or use an existing owner Google session on this screen.</p><div className="tv-panel-actions">{ownerLoginEnabled && <a href="/login/qr">Connect Calendar with full owner QR sign-in</a>}<a href="/admin/apps/morning-feed?view=calendar">Open existing owner Calendar view</a></div></section>;
   const zone = data?.preferences.settings.timeZone ?? 'UTC';
   const now = Date.now();
   const events = (data?.events ?? []).filter(event => (event.end?.dateTime ? Date.parse(event.end.dateTime) : localInstant(event.end?.date, '00:00', zone)) > now);

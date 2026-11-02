@@ -12,6 +12,7 @@ test('TV entry uses verified owner sessions for Calendar; every denied session r
   let access = { ok: false, status: 401 };
   const module = { exports: {} }, TvScreen = () => null;
   runInNewContext(code, { module, exports: module.exports, require: id => {
+    if (id === '@/lib/admin-qr/api') return { qrEnabled: () => true };
     if (id === '@/lib/auth') return { checkAdmin: async () => access };
     if (id === 'next/navigation') return { redirect: url => { throw Error(url); } };
     if (id.endsWith('/history')) return { TV_VIEWS };
@@ -22,6 +23,7 @@ test('TV entry uses verified owner sessions for Calendar; every denied session r
     access = { ok: false, status };
     const page = await module.exports.default({ searchParams: Promise.resolve({ view: 'calendar', owner: 'another-owner' }) });
     assert.equal(page.type, TvScreen);
+    assert.equal(page.props.ownerLoginEnabled, true);
   }
   access = { ok: true, user: { id: 'verified-owner' } };
   await assert.rejects(module.exports.default({ searchParams: Promise.resolve({ view: 'calendar', owner: 'another-owner' }) }), /^Error: \/admin\/apps\/morning-feed\?view=calendar$/);

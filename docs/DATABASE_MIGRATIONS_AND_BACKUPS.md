@@ -207,3 +207,13 @@ The user now requires migration execution in the cloud. Use [the cloud workflow 
 `20261028223639_morning_tv_pairing` adds a private RLS-enabled hashed-credential table and a constrained capability RPC for QR approval and read-only feed access. See [the TV operating guide](../src/private-apps/morning-feed/tv/README.md) for lifetimes, owner verification, revocation and rollout. The new SHA-256 pin extends the full reviewed plan; existing migration bytes and the fixed Robot Party activation profile are unchanged. The recovery drill now restores a paired TV credential and verifies read access, table denial and owner revocation.
 
 Read-only hosted ledger inspection found only the six migrations through Robot Party OAuth applied. A full deploy would also apply the earlier pending project-board migration before TV pairing. Neither pending migration has been authorized/applied by this feature request. Review the complete pending set and obtain separate hosted-schema authorization before using the existing guarded deployment/backup workflow. Do not skip files, mark migrations applied, or run connector SQL to bypass that review.
+
+## Full-admin QR sessions (prepared, disabled)
+
+`20261028232412_admin_qr_sessions` adds the separate target-bound Google PKCE relay
+and 30-day full-admin website grants. It adds immediate session-ID revocation checks
+to admin/Google-email authorization helpers; existing TV grants remain read-only.
+See [the activation and recovery plan](ADMIN_QR_LOGIN.md). No hosted migration,
+redirect configuration, release, feature activation or live device approval is
+performed by preparing this change. Follow action-time confirmation and the protected
+cloud backup/Prisma workflow. Never delete revoked/expired session tombstones.

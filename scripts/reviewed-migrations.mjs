@@ -10,6 +10,7 @@ import { DatabaseToolError } from './database-connection.mjs';
 export const reviewedMigrations = Object.freeze({
   '20261101014448_morning_news_progress': '146295c54ea6484d498036070a46f2a30ffcc87da1129fd70b25322af459f2b2',
   '20261031225622_robot_party_personal_chat': 'a2fcecb510688e3e016f33c0a5b57cdd9380f57416dace9bb832c620840cbf40',
+  '20261028232412_admin_qr_sessions': 'ab45472b7a5f6c214ef581ea6cf2a4db01c8861d7ec694ebbeb2ba79a61b8e44',
   '20261028223639_morning_tv_pairing': 'cbea67535b9176fd7d63bf615e99cded347e6b807ffc5d8586cf9ef3d8f4f86c',
   '20261027080423_project_board': '24736a36e3486631b644c53eaf25f3b745c29d7db8f0721e8bcffb99e81fdee7',
   '20261027015049_robot_party_dot_oauth': '6a6e328aaa03fddc4685f5497ca80a273c1d45a0f697d68fa81735ce413baeb4',

@@ -1,0 +1,49 @@
+.qr-login { min-height: 100svh; padding: clamp(22px, 4vw, 72px); color: #eaf1ec; background: #101915; font-family: Arial, sans-serif; }
+.qr-login * { box-sizing: border-box; }
+.qr-login header { display: flex; justify-content: space-between; gap: 20px; align-items: center; margin-bottom: clamp(30px, 5vh, 70px); }
+.qr-login header span, .qr-eyebrow { color: #afc4b7; font-size: 12px; letter-spacing: .14em; font-weight: 700; }
+.qr-login a { color: #bde9cb; text-underline-offset: 5px; }
+.qr-login-layout { max-width: 1380px; margin: auto; display: grid; grid-template-columns: 1.1fr 1fr; align-items: center; gap: clamp(28px, 6vw, 100px); }
+.qr-login-copy h1 { font-family: Georgia, serif; font-size: clamp(44px, 5.5vw, 92px); line-height: 1.04; letter-spacing: -.04em; font-weight: 400; margin: 22px 0; }
+.qr-login-copy h1 em { color: #bde9cb; font-weight: 400; }
+.qr-login-copy p { max-width: 580px; font-size: clamp(16px, 1.3vw, 23px); line-height: 1.5; }
+.qr-login-copy p + p { color: #b7c6bd; font-size: clamp(14px, 1.1vw, 18px); }
+.qr-device { padding: clamp(20px, 2.7vw, 44px); border: 1px solid #3b5043; border-radius: 22px; background: #1a2921; text-align: center; }
+.qr-device h2 { font-size: clamp(22px, 2vw, 34px); margin: 10px 0 24px; }
+.qr-device p { line-height: 1.5; color: #c1cfc6; }
+.qr-device img { width: min(280px, 100%, 32vh); height: auto; border-radius: 8px; display: block; margin: 0 auto; }
+.qr-device label { display: block; text-align: left; font-size: 14px; color: #c1cfc6; margin: 24px 0; }
+.qr-device input { display: block; width: 100%; margin-top: 9px; padding: 14px; color: #fff; background: #111e17; border: 1px solid #789182; border-radius: 8px; font: inherit; font-size: 18px; }
+.qr-device button { padding: 14px 22px; background: #c2efcf; border: 1px solid transparent; border-radius: 9px; color: #14271b; font: inherit; font-weight: 700; cursor: pointer; }
+.qr-device button[aria-busy=true] { opacity: .75; }
+.qr-login [data-tv-selected], .qr-login :focus-visible { outline: 3px solid #e5ff9c; outline-offset: 5px; }
+.qr-confirmation strong { color: #fff; font-size: 22px; letter-spacing: .12em; white-space: nowrap; }
+.qr-device .qr-error { border-top: 1px solid #a58166; margin-top: 20px; padding-top: 8px; }
+.qr-device .qr-error p { color: #ffdbb7; }
+@media (max-width: 700px) { .qr-login-layout { grid-template-columns: 1fr; } .qr-login header span { display: none; } .qr-login header { margin-bottom: 28px; } .qr-device img { width: min(240px, 100%); } }
+
+@media (min-width: 701px) and (max-height: 650px) {
+  .qr-login { padding: 20px 3vw; }
+  .qr-login header { margin-bottom: 20px; }
+  .qr-login-layout { gap: 28px; }
+  .qr-device { padding: 20px; }
+  .qr-device-request { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(100px, 1fr); gap: 10px 14px; text-align: left; }
+  .qr-device-request > .qr-eyebrow, .qr-device-request > h2, .qr-device-request > .qr-instructions, .qr-device-request > .qr-error { grid-column: 1 / -1; }
+  .qr-device-request > p, .qr-device-request > h2 { margin: 0; }
+  .qr-device-request > h2 { margin-bottom: 4px; }
+  .qr-device-request > img { grid-column: 1; grid-row: 3 / span 3; width: min(100%, 180px); align-self: center; }
+  .qr-device-request > .qr-confirmation { grid-column: 2; grid-row: 3; }
+  .qr-device-request > [role=status] { grid-column: 2; grid-row: 4; }
+  .qr-device-request > button { grid-column: 2; grid-row: 5; padding: 12px; }
+  .qr-device-request > .qr-instructions { font-size: 14px; }
+}
+/* Leave room for the remote focus outline between controls and copy. */
+.qr-device p { margin: 12px 0; }
+.qr-device button { margin: 6px 0; }
+.qr-device button + p { margin-top: 18px; }
+.qr-device .qr-instructions { margin-bottom: 20px; }
+@media (min-width: 701px) and (max-height: 650px) {
+  .qr-device-request { gap: 16px 18px; }
+  .qr-device-request > p, .qr-device-request > button { margin: 0; }
+  .qr-device-request > .qr-instructions { margin: 4px 0 0; }
+}

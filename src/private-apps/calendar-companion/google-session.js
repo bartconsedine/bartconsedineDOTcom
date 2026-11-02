@@ -5,7 +5,8 @@ import { serverClient } from '../../lib/supabase';
 import { authConfig, cookieOptions } from '../../lib/auth-config';
 import { CalendarError, createGoogleClient } from './google-client';
 
-export const CALENDAR_SCOPES = 'https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/calendar.events';
+import { CALENDAR_SCOPES } from './scopes';
+export { CALENDAR_SCOPES } from './scopes';
 // Authorization comes from the shared dispatcher and requireAdmin, never getSession.
 // The verified Google identity must also own the provider credential used here.
 export async function googleSession(owner) {
