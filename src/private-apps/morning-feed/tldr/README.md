@@ -86,3 +86,7 @@ Validation before full-owner QR integration: Node 22.23.2; schema validation, al
 ## Manual navigation — November 2
 
 Automatic headline advancement has been removed for all users, including TV and reduced-motion sessions. The status now says Manual advance. Next, Previous, upcoming headlines and reader actions retain their existing confirmed-read behavior. Background issue/progress checks continue without a navigation timer; Briefing cards also require explicit navigation. This supersedes the rotation behavior described in earlier release notes above.
+
+### Newsletter filter (November 2)
+
+News has a top-row newsletter filter: All newsletters (default), Tech, AI, Dev, InfoSec and DevOps. The temporary view selection applies before unread filtering and controls headline navigation, Up Next, counts and source summary versions across latest/history pages and refreshes. Shared URLs remain deduplicated, with only the selected newsletter’s metadata and summary shown. Changing filters resets to the first matching story without marking anything read. An empty selection offers other newsletters or older issues. This disposable view selection resets on remount; no saved preference or database write is introduced.

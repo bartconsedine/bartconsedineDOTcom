@@ -6,8 +6,12 @@ import { subscribeTvHistory, openTvOverlay, closeTvOverlay } from '../tv/history
 import { headlineSize, fitHeadline, issueDate, checkedAgo } from './layout.js';
 import PagedText from '../tv/paged-text';
 import { articleId, createNewsProgress, newestFirst } from './progress-model.js';
+import { EDITIONS, filterEdition } from './edition-filter.js';
 import './ticker.css';
 export default function TldrTicker({ endpoint, progressEndpoint = null, display = false, visible = true, onExpired, cardStories = [] }) {
+  const [edition, setEdition] = useState('all');
+  const editionRef = useRef(edition);
+  editionRef.current = edition;
   const [enabled, setEnabled] = useState(true);
   const [data, setData] = useState(null);
   const [history, setHistory] = useState(0);
@@ -28,7 +32,7 @@ export default function TldrTicker({ endpoint, progressEndpoint = null, display 
   const [progressError, setProgressError] = useState('');
   const [savingReads, setSavingReads] = useState(0);
   const progress = useRef(null), failedReads = useRef(new Map()), moving = useRef(false), refreshProgress = useRef(null);
-  const allArticles = useMemo(() => newestFirst(data?.articles ?? []), [data]);
+  const allArticles = useMemo(() => newestFirst(filterEdition(data?.articles ?? [], edition)), [data, edition]);
   const progressPending = progressEndpoint && !readIds && !progressError;
   const articles = useMemo(() => progressPending ? [] : progressEndpoint && readIds && !showRead ? allArticles.filter(article => !readIds.has(article.readId)) : allArticles, [progressPending, progressEndpoint, readIds, showRead, allArticles]);
   const activeIndex = progressEndpoint ? Math.max(0, articles.findIndex(article => article.url === selectedUrl)) : index % Math.max(1, articles.length);
@@ -74,7 +78,7 @@ export default function TldrTicker({ endpoint, progressEndpoint = null, display 
     if (failedReads.current.size) { for (const article of [...failedReads.current.values()]) await markRead(article); }
     else { try { setReadIds(await progress.current.load()); setProgressError(''); } catch (error) { setProgressError(error.message); } }
   }
-  useEffect(() => { setSummaryIndex(0); }, [active?.url]);
+  useEffect(() => { setSummaryIndex(0); }, [active?.url, edition]);
   useEffect(() => {
     const title = headline.current?.querySelector?.('.tldr-title');
     if (!title) return;
@@ -115,7 +119,7 @@ export default function TldrTicker({ endpoint, progressEndpoint = null, display 
             }
             return merged;
           });
-          const found = next.articles.findIndex(a => a.url === current.current?.url);
+          const found = newestFirst(filterEdition(next.articles, editionRef.current)).findIndex(a => a.url === current.current?.url);
           setIndex(Math.max(0, found)); setError('');
         }
       } catch { if (!disposed) setError('Refresh unavailable. Keeping the last loaded headlines; retrying every minute.'); }
@@ -190,14 +194,14 @@ export default function TldrTicker({ endpoint, progressEndpoint = null, display 
   const progressStatus = progressEndpoint && <div className="tldr-progress" aria-live="polite">{progressError ? <><span role="alert">{progressError}</span> <button disabled={savingReads > 0} onClick={retryProgress}>{failedReads.current.size ? 'Retry saving progress' : 'Retry loading progress'}</button></> : <span>{savingReads ? 'Saving read status…' : progressPending ? 'Loading reading progress…' : readIds ? `${allArticles.filter(article => readIds.has(article.readId)).length} / ${allArticles.length} read · Synced` : ''}</span>}</div>;
   return <section ref={region} className={`tldr${display ? ' tldr-tv' : ''}`} aria-label="TLDR news ticker">
     <div className="tldr-toolbar"><div className="tldr-masthead"><strong>TLDR<span className="tldr-masthead-dot">.</span></strong><span>THE DAILY SIGNAL<br/><small>TECH / AI / DEV / INFOSEC / DEVOPS</small></span></div><div className="tldr-toolbar-end"><span className="tldr-live">{!enabled ? 'OFF' : paused || sourcesOpen || readingPage > 0 ? 'PAUSED' : 'MANUAL'}</span><button aria-pressed={enabled} onClick={() => { setEnabled(!enabled); setPaused(null); setSourcesOpen(false); }}>{enabled ? 'Turn ticker off' : 'Turn ticker on'}</button></div></div>
-    {enabled && <><div className="tldr-editorial"><article className="tldr-story">
+    {enabled && <><div className="tldr-edition-filter" role="group" aria-label="Filter TLDR newsletters"><span>Newsletters</span>{['all', ...EDITIONS].map(value => <button key={value} aria-pressed={edition === value} onClick={() => { setEdition(value); setIndex(0); setSelectedUrl(null); setSummaryIndex(0); }}>{value === 'all' ? 'All newsletters' : value === 'tech' ? 'Tech' : value === 'infosec' ? 'InfoSec' : value === 'devops' ? 'DevOps' : value === 'dev' ? 'Dev' : 'AI'}</button>)}</div><div className="tldr-editorial"><article className="tldr-story">
       <div className="tldr-meta"><span>{active?.editions.map(e => `${e.edition.toUpperCase()} · ${issueDate(e.date)}`).join(' / ') || 'PUBLIC NEWSLETTERS'}</span><span>{active ? `${activeIndex + 1} / ${articles.length}${readIds?.has(active.readId) ? ' · Read' : ''}` : '—'}</span></div>
       {active ? <><button ref={headline} className="tldr-headline" onClick={event => { event?.currentTarget?.focus({ preventScroll: true }); pauseStory(active); }} aria-label={`Open ${active.title} in the TV reader`}><span className="tldr-title" style={{ '--headline-size': `${headlineSize(active.title.length)}px` }}>{active.title}</span></button>
       <div className="tldr-summary-label"><span>THE TLDR SUMMARY</span><span>{new URL(active.url).hostname.replace(/^www\./, '')}</span></div>
       <div className="tldr-summary">{display ? <PagedText text={summary || 'No summary was published for this archive item. Open the article for details.'} label="Summary" onPage={setReadingPage}/> : summary}</div>
       {summaries.length > 1 && <div className="tldr-summary-editions" aria-label="Newsletter summary versions">{summaries.map((e, i) => <button key={`${e.edition}-${issueDate(e.date)}`} aria-pressed={summaryIndex === i} onClick={() => setSummaryIndex(i)}>{`${e.edition.toUpperCase()} summary`}</button>)}</div>}
-      </> : <div className="tldr-empty"><h2>{progressPending || loading ? 'Gathering the signal.' : allArticles.length && readIds ? 'You’re caught up.' : 'Waiting for the next signal.'}</h2><p role="status">{progressPending ? 'Loading your saved reading progress…' : loading ? 'Loading public TLDR issues…' : allArticles.length && readIds ? 'New stories appear here automatically. Choose All stories to revisit read articles.' : 'No headlines available. Sources will retry automatically.'}</p></div>}
-    </article><aside className="tldr-next" aria-label="Upcoming headlines"><p className="tldr-rail-label">UP NEXT <span>↗</span></p>{upcoming.map(({ article, index: nextIndex }, i) => <button key={article.url} className="tldr-next-story" disabled={savingReads > 0} onClick={() => selectStory(article, nextIndex)}><span className="tldr-next-number">0{i + 1}</span><span><small>{article.editions.map(e => e.edition.toUpperCase()).join(' / ')}</small><strong>{article.title}</strong></span></button>)}<p className="tldr-rail-note">Newest issues first.<br/>{progressEndpoint && !showRead ? 'Unread stories.' : 'Five editions.'}</p></aside></div>
+      </> : <div className="tldr-empty"><h2>{progressPending || loading ? 'Gathering the signal.' : allArticles.length && readIds ? 'You’re caught up.' : edition !== 'all' ? 'No stories for this newsletter.' : 'Waiting for the next signal.'}</h2><p role="status">{progressPending ? 'Loading your saved reading progress…' : loading ? 'Loading public TLDR issues…' : allArticles.length && readIds ? 'New stories appear here automatically. Choose All stories to revisit read articles.' : edition !== 'all' ? 'Choose another newsletter, All newsletters, or Older issues. Sources retry automatically.' : 'No headlines available. Sources will retry automatically.'}</p></div>}
+    </article><aside className="tldr-next" aria-label="Upcoming headlines"><p className="tldr-rail-label">UP NEXT <span>↗</span></p>{upcoming.map(({ article, index: nextIndex }, i) => <button key={article.url} className="tldr-next-story" disabled={savingReads > 0} onClick={() => selectStory(article, nextIndex)}><span className="tldr-next-number">0{i + 1}</span><span><small>{article.editions.map(e => e.edition.toUpperCase()).join(' / ')}</small><strong>{article.title}</strong></span></button>)}<p className="tldr-rail-note">Newest issues first.<br/>{progressEndpoint && !showRead ? 'Unread stories.' : edition === 'all' ? 'Five editions.' : `${edition.toUpperCase()} stories.`}</p></aside></div>
       <div className="tldr-bottom"><div className="tldr-controls"><button disabled={!articles.length} aria-busy={savingReads > 0} onClick={() => move(-1)} aria-label="Previous headline">←</button><button className="tldr-pause" disabled={!active} onClick={event => { event?.currentTarget?.focus({ preventScroll: true }); paused ? resume() : pauseStory(active); }}>{paused ? 'Resume ticker' : 'Open article'}</button><button disabled={!articles.length} aria-busy={savingReads > 0} onClick={() => move(1)} aria-label="Next headline">→</button>{progressEndpoint && <button aria-pressed={showRead} onClick={() => { setShowRead(!showRead); setSelectedUrl(null); }}>{showRead ? 'Unread stories' : 'All stories'}</button>}</div><div className="tldr-history"><button disabled={loading || !data?.history} onClick={() => { setHistory(Math.max(0, (data?.history ?? 0) - 1)); setSelectedUrl(null); }}>Newer issues</button><button disabled={loading || !data?.hasOlder} onClick={() => { setHistory((data?.history ?? 0) + 1); setSelectedUrl(null); }}>Older issues</button><button disabled={loading || history === 0} onClick={() => { setHistory(0); setSelectedUrl(null); }}>Latest</button></div></div>
       <div className="tldr-footnote"><p className="tldr-help">{display ? 'D-pad selects · OK opens article · Back returns' : 'Open any story to read it.'} Manual advance · Sources checked every 30 min {loading && ' · Refreshing…'}</p><button ref={sourceTrigger} className="tldr-source-trigger" onClick={() => { setSourcesOpen(true); openTvOverlay(window, 'sources'); }}>{`${data?.history ? `Issue history · page ${data.history + 1}` : 'Latest public issues'} · Issue dates & sources`}</button></div>
       {error && <p className="tldr-error" role="alert">{error}</p>}
