@@ -79,3 +79,33 @@ test('saved-card reader resolves an ID while News/ticker is hidden, and a new op
  button(ui.render(),'Card details').props.onClick();await ui.settle();assert.match(view(ui),/Private original card details/);ui.emitHistory({overlay:null});await ui.settle();ui.emitHistory(location);await ui.settle();assert.ok(nodes(ui.render()).find(n=>n.type==='iframe'));
  ui.emitHistory({overlay:'article',payload:{kind:'card',cardId:'missing'}});await ui.settle();assert.doesNotMatch(view(ui),/Private original card details|Article reader/);ui.close();
 });
+
+test('newsletter filter scopes shared summaries, upcoming stories and navigation without refetching', async () => {
+ const shared={...item('shared'),editions:[{edition:'tech',date:'2026-10-30',summary:'Tech version.'},{edition:'ai',date:'2026-10-29',summary:'AI version.'}]};
+ const ai={...item('ai-only'),editions:[{edition:'ai',date:'2026-10-28',summary:'AI only copy.'}]};
+ let calls=0;
+ const ui=tickerUi(async()=>{calls++;return Response.json(feed([shared,item('tech-only'),ai]));},{endpoint:'/feed',display:true});
+ await ui.settle();button(ui.render(),'AI').props.onClick();await ui.settle();
+ assert.equal(button(ui.render(),'AI').props['aria-pressed'],true);
+ assert.match(view(ui),/AI version/);assert.doesNotMatch(view(ui),/Tech version|tech-only|TECH summary/);
+ assert.equal(nodes(ui.render()).find(n=>n.props?.className==='tldr-title').props.children,'shared');
+ nodes(ui.render()).find(n=>n.props?.['aria-label']==='Next headline').props.onClick();await ui.settle();
+ assert.equal(nodes(ui.render()).find(n=>n.props?.className==='tldr-title').props.children,'ai-only');
+ button(ui.render(),'DevOps').props.onClick();await ui.settle();assert.match(view(ui),/No stories for this newsletter/);assert.equal(button(ui.render(),'Open article').props.disabled,true);
+ button(ui.render(),'All newsletters').props.onClick();await ui.settle();assert.match(view(ui),/tech-only/);assert.equal(calls,1);ui.close();
+});
+
+test('newsletter selection survives refresh and issue history without marking stories read', async () => {
+ let posts=0;
+ const ai={...item('ai-story'),editions:[{edition:'ai',date:'2026-11-01',summary:'AI copy.'}]};
+ const ui=tickerUi(async(url,options={})=>{
+  if(url==='/progress'){if(options.method==='POST')posts++;return Response.json({state:'ready',reads:[]});}
+  const history=Number(new URL(url,'https://example.com').searchParams.get('history'));
+  return Response.json(feed([item('tech-story'),ai],history));
+ },{endpoint:'/feed',progressEndpoint:'/progress'});
+ for(let i=0;i<4;i++)await ui.settle();
+ button(ui.render(),'AI').props.onClick();await ui.settle();
+ await ui.tick(60000);button(ui.render(),'Older issues').props.onClick();await ui.settle();
+ assert.equal(button(ui.render(),'AI').props['aria-pressed'],true);assert.match(view(ui),/AI copy/);assert.doesNotMatch(view(ui),/tech-story/);assert.equal(posts,0);
+ button(ui.render(),'All stories').props.onClick();await ui.settle();assert.doesNotMatch(view(ui),/tech-story/);ui.close();
+});

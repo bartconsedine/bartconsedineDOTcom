@@ -96,3 +96,9 @@
 .tldr-progress [role=alert] { color:#ffd1a6; }
 .tldr-controls { flex-wrap:wrap; }
 @media(max-width:650px) { .morning-display .tldr-bottom { flex-wrap:wrap; }.tldr-progress { font-size:11px; } }
+
+.tldr-edition-filter { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:16px; flex:none; }
+.tldr-edition-filter>span { color:var(--wire-muted); font:600 11px/1.4 monospace; margin-right:4px; }
+.morning .tldr .tldr-edition-filter button[aria-pressed=true],.tldr .tldr-edition-filter button[aria-pressed=true] { background:var(--wire-accent); border-color:var(--wire-accent); color:#141e18; }
+.morning-display .tldr-edition-filter { margin:0; gap:6px; }
+@media(max-width:650px) { .morning-display .tldr .tldr-edition-filter button { padding:5px 8px; font-size:10px; } .tldr-edition-filter>span { flex-basis:100%; } }

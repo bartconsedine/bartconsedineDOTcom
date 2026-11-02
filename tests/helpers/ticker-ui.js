@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
 import * as calendarModel from '../../src/private-apps/calendar-companion/model.js';
 import * as progressModel from '../../src/private-apps/morning-feed/tldr/progress-model.js';
+import * as editionFilter from '../../src/private-apps/morning-feed/tldr/edition-filter.js';
 import * as layout from '../../src/private-apps/morning-feed/tldr/layout.js';
 import * as model from '../../src/private-apps/morning-feed/model.js';
 const require = createRequire(import.meta.url);
@@ -29,6 +30,7 @@ export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/tick
     if (['./history', './tv/history', '../tv/history.js'].includes(id)) return {...tvHistory, subscribeTvHistory:(win,listener)=>{historyListeners.add(listener);const off=tvHistory.subscribeTvHistory(win,listener);return()=>{historyListeners.delete(listener);off();};}};
     if (id === 'qrcode') return { toDataURL: async url => 'data:image/png;base64,' + Buffer.from(url).toString('base64') };
     if (id === '../../calendar-companion/model.js') return calendarModel;
+    if (id === './edition-filter.js') return editionFilter;
     if (id === './layout.js' || id === '../tldr/layout.js') return layout;
     if (id === './progress-model.js') return { ...progressModel, createNewsProgress: args => progressModel.createNewsProgress({ ...args, fetcher }) };
     if (id === './model.js') return model;
