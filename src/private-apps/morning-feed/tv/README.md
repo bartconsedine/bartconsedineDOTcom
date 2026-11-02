@@ -98,3 +98,11 @@ Completion opens the protected owner Calendar view. Existing limited pairings ar
 not upgraded; the TV receives a separate owner session after approval. All private
 apps retain owner RLS. Google access expiry is independent and may require reconnecting.
 See [implementation, revocation and hosted activation](../../../../docs/ADMIN_QR_LOGIN.md).
+
+## Calendar QR and private Commands — November 2
+
+A limited paired TV now shows the existing full-owner QR request directly inside Calendar. The QR is generated on entry; phone approval, matching code and the same Google account remain required. Embedded controls reuse the outer TV remote controller. This grants full owner access for up to 30 days after explicit phone approval, including private apps; it does not upgrade the old display cookie.
+
+An owner session missing a current Google provider token gets an explicit **Sign out this screen and show QR code** action. It uses the existing device-local sign-out/revocation handler, then opens `/login/qr?calendar=1` and generates the new request. Other devices stay signed in. Failed sign-out keeps the screen and shows a retryable error. Calendar outages do not silently sign the user out.
+
+Commands uses `/api/tv/commands` to check readiness, submit a private owner command and attempt durable outbox delivery while open. The TV cannot select a recipient or grant access. A paired-only screen offers owner sign-in. The verified private channel and subscription must already exist. Failed/uncertain saves retain the exact UUID and text; a confirmed save means queued, not executed. Unsent text is temporary and is lost on leaving/reload. Private replies are available in the existing private Robot Party conversation. See [the command contract](../../robot-party/TV_COMMAND_CONTRACT.md) for the identity and subscription activation requirements.

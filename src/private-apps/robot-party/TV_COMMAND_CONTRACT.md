@@ -115,3 +115,7 @@ private transport’s PGlite tests use disposable SQL and simulated receivers.
 The storage/key setup was subsequently authorized; its migration is
 `20261031225622_robot_party_personal_chat`. No dot access grants, subscriptions,
 TV command permissions, private messages, or model API sessions were created.
+
+## TV UI integration (November 2)
+
+The Commands panel is wired to the reviewed API. It checks readiness, queues exact-ID owner submissions, pumps dispatch while open, and links to the existing private conversation/setup. The client never claims execution or falls back to board posting. Paired-only TVs still cannot send. This code does not grant any dot private access or create a ChatGPT subscription. Activating the server feature flag exposes private connection identification; the existing dot must rescan before its exact ID, private grant and subscription can be verified. Record actual hosted acceptance separately from component fixtures.

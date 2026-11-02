@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
 const require = createRequire(import.meta.url);
 const { transformSync } = require('next/dist/compiled/babel/core');
-function ui(fetcher) {
+function ui(fetcher, props = {}) {
   const state = [], effects = [], pending = [], timers = new Map(); let slot = 0, timer = 0, destination;
   const root = { querySelector: () => ({ focus() {} }), closest: () => root };
   const hooks = {
@@ -16,7 +16,7 @@ function ui(fetcher) {
   const { code } = transformSync(readFileSync('src/app/login/qr/qr-device.js', 'utf8'), { babelrc: false, configFile: false, presets: [[require('next/dist/compiled/babel/preset-react'), { runtime: 'automatic' }]], plugins: [require('next/dist/compiled/babel/plugin-transform-modules-commonjs')] });
   const module = { exports: {} };
   runInNewContext(code, { module, exports: module.exports, fetch: fetcher, AbortSignal, window: { location: { assign: url => { destination = url; } } }, setTimeout(fn) { timers.set(++timer, fn); return timer; }, clearTimeout: id => timers.delete(id), require: id => id === 'react' ? hooks : id.includes('remote-navigation') ? { attachRemoteNavigation: () => () => {} } : require(id) });
-  return { render() { slot = 0; const tree = module.exports.default(); pending.splice(0).forEach(fn => fn()); return tree; }, async poll() { const work = [...timers.values()]; timers.clear(); for (const fn of work) await fn(); }, get destination() { return destination; }, close() { effects.forEach(e => e.cleanup?.()); } };
+  return { render() { slot = 0; const tree = module.exports.default(props); pending.splice(0).forEach(fn => fn()); return tree; }, async poll() { const work = [...timers.values()]; timers.clear(); for (const fn of work) await fn(); }, get destination() { return destination; }, close() { effects.forEach(e => e.cleanup?.()); } };
 }
 function nodes(tree, predicate) { if (!tree || typeof tree !== 'object') return []; if (Array.isArray(tree)) return tree.flatMap(t => nodes(t, predicate)); return [...(predicate(tree) ? [tree] : []), ...nodes(tree.props?.children, predicate)]; }
 const button = (tree, text) => nodes(tree, n => n.type === 'button' && n.props.children === text)[0];
@@ -40,4 +40,9 @@ test('owner QR handles expiration and sends completed sign-in only to the Calend
     await button(fixture.render(), 'Generate QR code').props.onClick(); fixture.render(); result = { status: 'expired' }; await fixture.poll(); assert.ok(button(fixture.render(), 'Generate QR code'));
     result = { ...pending, status: 'ready' }; await button(fixture.render(), 'Generate QR code').props.onClick(); fixture.render(); result = { connected: true, destination: 'https://untrusted.example' }; await fixture.poll(); assert.equal(fixture.destination, '/tv?view=calendar');
   } finally { fixture.close(); }
+});
+
+test('embedded Calendar sign-in starts a real QR request without a separate generate action', async () => {
+  const actions=[];const fixture=ui(async(_,input)=>{actions.push(JSON.parse(input.body).action);return Response.json(pending);},{autoStart:true,embedded:true});
+  try {fixture.render();await new Promise(resolve=>setImmediate(resolve));const tree=fixture.render();assert.deepEqual(actions,['start']);assert.equal(nodes(tree,n=>n.type==='img')[0].props.src,pending.qr);}finally{fixture.close();}
 });
