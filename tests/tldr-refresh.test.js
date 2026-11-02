@@ -24,6 +24,9 @@ test('scheduled source failures are visible without leaking internal errors', as
   assert.equal((await run(async () => ({ sources: [{ edition: 'ai', status: 'unavailable' }] }))).status, 503);
   const failure = await run(async () => { throw Error('secret details'); });
   assert.equal(failure.status, 503); assert.doesNotMatch(await failure.text(), /secret details/);
-  const config = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url)));
-  assert.deepEqual(config.crons, [{ path: '/api/cron/tldr', schedule: '*/30 * * * *' }]);
+  const schedule = readFileSync(new URL('../.github/workflows/tldr-refresh.yml', import.meta.url), 'utf8');
+  assert.match(schedule, /cron: '7,37 \* \* \* \*'/);
+  assert.match(schedule, /github.ref == 'refs\/heads\/main'/);
+  assert.match(schedule, /https:\/\/bartconsedine.com\/api\/cron\/tldr/);
+  assert.match(schedule, /secrets.CRON_SECRET/);
 });

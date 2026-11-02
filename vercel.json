@@ -4,11 +4,5 @@
     "deploymentEnabled": {
       "codex/two-admin-access": false
     }
-  },
-  "crons": [
-    {
-      "path": "/api/cron/tldr",
-      "schedule": "*/30 * * * *"
-    }
-  ]
+  }
 }
