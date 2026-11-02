@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cardArticle } from '../tv/card-article.js';
 import { subscribeTvHistory, openTvOverlay, closeTvOverlay } from '../tv/history.js';
-import { readingSeconds, headlineSize, fitHeadline, issueDate, checkedAgo } from './layout.js';
+import { headlineSize, fitHeadline, issueDate, checkedAgo } from './layout.js';
 import PagedText from '../tv/paged-text';
 import { articleId, createNewsProgress, newestFirst } from './progress-model.js';
 import './ticker.css';
@@ -21,7 +21,6 @@ export default function TldrTicker({ endpoint, progressEndpoint = null, display 
   const [readerSummary, setReaderSummary] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [reduced, setReduced] = useState(false);
   const region = useRef(null), headline = useRef(null), current = useRef(null);
   const [readIds, setReadIds] = useState(null);
   const [showRead, setShowRead] = useState(false);
@@ -37,7 +36,6 @@ export default function TldrTicker({ endpoint, progressEndpoint = null, display 
   current.current = active;
   const summaries = active?.editions.filter((e, i, all) => e.summary && all.findIndex(other => other.summary === e.summary) === i) ?? [];
   const summary = summaries[summaryIndex % Math.max(1, summaries.length)]?.summary ?? active?.summary ?? '';
-  const seconds = readingSeconds(summary);
   useEffect(() => {
     if (!progressEndpoint) return;
     const client = createNewsProgress({ endpoint: progressEndpoint });
@@ -88,12 +86,6 @@ export default function TldrTicker({ endpoint, progressEndpoint = null, display 
     return () => { window.removeEventListener('resize', resize); window.cancelAnimationFrame(frame); };
   }, [active?.title, display, visible]);
   useEffect(() => {
-    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => setReduced(preference.matches); update();
-    preference.addEventListener?.('change', update);
-    return () => preference.removeEventListener?.('change', update);
-  }, []);
-  useEffect(() => {
     if (!enabled) return;
     let disposed = false, busy = false;
     const controller = new AbortController();
@@ -134,11 +126,6 @@ export default function TldrTicker({ endpoint, progressEndpoint = null, display 
     window.addEventListener('focus', wake); document.addEventListener?.('visibilitychange', wake);
     return () => { disposed = true; controller.abort(); clearInterval(timer); window.removeEventListener('focus', wake); document.removeEventListener?.('visibilitychange', wake); };
   }, [endpoint, enabled, history, progressEndpoint]);
-  useEffect(() => {
-    if (!enabled || !visible || paused || sourcesOpen || readingPage > 0 || reduced || !articles.length || savingReads > 0) return;
-    const timer = setInterval(() => progressEndpoint ? setSelectedUrl(articles[(activeIndex + 1) % articles.length].url) : setIndex(i => (i + 1) % articles.length), seconds * 1000);
-    return () => clearInterval(timer);
-  }, [enabled, visible, paused, sourcesOpen, readingPage, reduced, savingReads, articles.length, seconds, active?.url, progressEndpoint]);
   function pauseStory(article) { setReaderSummary(false); const snapshot = { ...article, summary: article === active ? summary : article.summary }; setPaused(snapshot); openTvOverlay(window, 'article', snapshot); if (allArticles.some(item => item.url === article.url)) void markRead(article); }
   function resume() { if (!closeTvOverlay(window, 'article')) setPaused(null); headline.current?.focus(); }
   function closeSources() { setSourcesOpen(false); closeTvOverlay(window, 'sources'); sourceTrigger.current?.focus(); }
@@ -202,7 +189,7 @@ export default function TldrTicker({ endpoint, progressEndpoint = null, display 
   const upcoming = articles.length > 1 ? Array.from({ length: Math.min(3, articles.length - 1) }, (_, offset) => ({ article: articles[(activeIndex + offset + 1) % articles.length], index: (activeIndex + offset + 1) % articles.length })) : [];
   const progressStatus = progressEndpoint && <div className="tldr-progress" aria-live="polite">{progressError ? <><span role="alert">{progressError}</span> <button disabled={savingReads > 0} onClick={retryProgress}>{failedReads.current.size ? 'Retry saving progress' : 'Retry loading progress'}</button></> : <span>{savingReads ? 'Saving read status…' : progressPending ? 'Loading reading progress…' : readIds ? `${allArticles.filter(article => readIds.has(article.readId)).length} / ${allArticles.length} read · Synced` : ''}</span>}</div>;
   return <section ref={region} className={`tldr${display ? ' tldr-tv' : ''}`} aria-label="TLDR news ticker">
-    <div className="tldr-toolbar"><div className="tldr-masthead"><strong>TLDR<span className="tldr-masthead-dot">.</span></strong><span>THE DAILY SIGNAL<br/><small>TECH / AI / DEV / INFOSEC / DEVOPS</small></span></div><div className="tldr-toolbar-end"><span className="tldr-live">{!enabled ? 'OFF' : paused || sourcesOpen || readingPage > 0 ? 'PAUSED' : reduced ? 'MANUAL' : 'ON AIR'}</span><button aria-pressed={enabled} onClick={() => { setEnabled(!enabled); setPaused(null); setSourcesOpen(false); }}>{enabled ? 'Turn ticker off' : 'Turn ticker on'}</button></div></div>
+    <div className="tldr-toolbar"><div className="tldr-masthead"><strong>TLDR<span className="tldr-masthead-dot">.</span></strong><span>THE DAILY SIGNAL<br/><small>TECH / AI / DEV / INFOSEC / DEVOPS</small></span></div><div className="tldr-toolbar-end"><span className="tldr-live">{!enabled ? 'OFF' : paused || sourcesOpen || readingPage > 0 ? 'PAUSED' : 'MANUAL'}</span><button aria-pressed={enabled} onClick={() => { setEnabled(!enabled); setPaused(null); setSourcesOpen(false); }}>{enabled ? 'Turn ticker off' : 'Turn ticker on'}</button></div></div>
     {enabled && <><div className="tldr-editorial"><article className="tldr-story">
       <div className="tldr-meta"><span>{active?.editions.map(e => `${e.edition.toUpperCase()} · ${issueDate(e.date)}`).join(' / ') || 'PUBLIC NEWSLETTERS'}</span><span>{active ? `${activeIndex + 1} / ${articles.length}${readIds?.has(active.readId) ? ' · Read' : ''}` : '—'}</span></div>
       {active ? <><button ref={headline} className="tldr-headline" onClick={event => { event?.currentTarget?.focus({ preventScroll: true }); pauseStory(active); }} aria-label={`Open ${active.title} in the TV reader`}><span className="tldr-title" style={{ '--headline-size': `${headlineSize(active.title.length)}px` }}>{active.title}</span></button>
@@ -212,7 +199,7 @@ export default function TldrTicker({ endpoint, progressEndpoint = null, display 
       </> : <div className="tldr-empty"><h2>{progressPending || loading ? 'Gathering the signal.' : allArticles.length && readIds ? 'You’re caught up.' : 'Waiting for the next signal.'}</h2><p role="status">{progressPending ? 'Loading your saved reading progress…' : loading ? 'Loading public TLDR issues…' : allArticles.length && readIds ? 'New stories appear here automatically. Choose All stories to revisit read articles.' : 'No headlines available. Sources will retry automatically.'}</p></div>}
     </article><aside className="tldr-next" aria-label="Upcoming headlines"><p className="tldr-rail-label">UP NEXT <span>↗</span></p>{upcoming.map(({ article, index: nextIndex }, i) => <button key={article.url} className="tldr-next-story" disabled={savingReads > 0} onClick={() => selectStory(article, nextIndex)}><span className="tldr-next-number">0{i + 1}</span><span><small>{article.editions.map(e => e.edition.toUpperCase()).join(' / ')}</small><strong>{article.title}</strong></span></button>)}<p className="tldr-rail-note">Newest issues first.<br/>{progressEndpoint && !showRead ? 'Unread stories.' : 'Five editions.'}</p></aside></div>
       <div className="tldr-bottom"><div className="tldr-controls"><button disabled={!articles.length} aria-busy={savingReads > 0} onClick={() => move(-1)} aria-label="Previous headline">←</button><button className="tldr-pause" disabled={!active} onClick={event => { event?.currentTarget?.focus({ preventScroll: true }); paused ? resume() : pauseStory(active); }}>{paused ? 'Resume ticker' : 'Open article'}</button><button disabled={!articles.length} aria-busy={savingReads > 0} onClick={() => move(1)} aria-label="Next headline">→</button>{progressEndpoint && <button aria-pressed={showRead} onClick={() => { setShowRead(!showRead); setSelectedUrl(null); }}>{showRead ? 'Unread stories' : 'All stories'}</button>}</div><div className="tldr-history"><button disabled={loading || !data?.history} onClick={() => { setHistory(Math.max(0, (data?.history ?? 0) - 1)); setSelectedUrl(null); }}>Newer issues</button><button disabled={loading || !data?.hasOlder} onClick={() => { setHistory((data?.history ?? 0) + 1); setSelectedUrl(null); }}>Older issues</button><button disabled={loading || history === 0} onClick={() => { setHistory(0); setSelectedUrl(null); }}>Latest</button></div></div>
-      <div className="tldr-footnote"><p className="tldr-help">{display ? 'D-pad selects · OK opens article · Back returns' : 'Pause any story to open it on your phone.'} {reduced ? 'Manual advance' : readingPage > 0 ? 'Paused while reading summary pages' : `Auto advance · ${seconds}s reading time`} · Sources checked every 30 min {loading && ' · Refreshing…'}</p><button ref={sourceTrigger} className="tldr-source-trigger" onClick={() => { setSourcesOpen(true); openTvOverlay(window, 'sources'); }}>{`${data?.history ? `Issue history · page ${data.history + 1}` : 'Latest public issues'} · Issue dates & sources`}</button></div>
+      <div className="tldr-footnote"><p className="tldr-help">{display ? 'D-pad selects · OK opens article · Back returns' : 'Open any story to read it.'} Manual advance · Sources checked every 30 min {loading && ' · Refreshing…'}</p><button ref={sourceTrigger} className="tldr-source-trigger" onClick={() => { setSourcesOpen(true); openTvOverlay(window, 'sources'); }}>{`${data?.history ? `Issue history · page ${data.history + 1}` : 'Latest public issues'} · Issue dates & sources`}</button></div>
       {error && <p className="tldr-error" role="alert">{error}</p>}
       {!paused && progressStatus}
     </>}

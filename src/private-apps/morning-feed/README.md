@@ -1,6 +1,6 @@
 # Morning signal
 
-A private morning feed at `/admin/apps/morning-feed`: editable ritual, briefing and link cards; morning intention; timezone clock; daily ritual completions; ordering and visibility; and a rotating TV display. Start empty, add your own cards, and explicitly save. No invented weather, calendar or news. Cards can link to external content, but links are not fetched, embedded or automatically synchronized.
+A private morning feed at `/admin/apps/morning-feed`: editable ritual, briefing and link cards; morning intention; timezone clock; daily ritual completions; ordering and visibility; and a manually navigated TV display. Start empty, add your own cards, and explicitly save. No invented weather, calendar or news. Cards can link to external content, but links are not fetched, embedded or automatically synchronized.
 
 ## Data and access
 
@@ -22,7 +22,7 @@ Use the reviewed shared contract and [chat operating guide](../../../docs/CHAT_A
 
 ## Verification
 
-Run `npm run db:validate`, `npm test`, `npm run build`. App tests cover strict validation, CRUD and revision conflicts through the guarded API, load/save failure recovery, completion dates, editor actions and reload with injected storage, TV refresh/rotation and real local PostgreSQL owner isolation. Browser checks use labeled rendered fixtures where authentication is unavailable; they do not prove a hosted session. Hosted saved-state reload, a fresh authenticated session, live second-user denial and physical TV operation remain unverified until those sessions/devices are available.
+Run `npm run db:validate`, `npm test`, `npm run build`. App tests cover strict validation, CRUD and revision conflicts through the guarded API, load/save failure recovery, completion dates, editor actions and reload with injected storage, TV refresh/manual navigation and real local PostgreSQL owner isolation. Browser checks use labeled rendered fixtures where authentication is unavailable; they do not prove a hosted session. Hosted saved-state reload, a fresh authenticated session, live second-user denial and physical TV operation remain unverified until those sessions/devices are available.
 
 On 2026-10-27, Node 22.23.2: Prisma validation passed; all 168 tests passed after integrating current main from an identical source snapshot outside OS temporary folders; production build passed. The `/private/tmp` worktree initially triggered two existing backup-directory tests because their valid-directory fixtures inherited that temporary location. Desktop, 390px phone/editor and 1920×1080 TV layouts were visually reviewed using the real component rendered with labeled sample fixtures; DOM width checks found no horizontal overflow. These checks did not use a hosted authenticated session or physical TV.
 
@@ -31,3 +31,7 @@ On 2026-10-27, Node 22.23.2: Prisma validation passed; all 168 tests passed afte
 The independent [TLDR news wire](tldr/README.md) includes the latest public Tech, AI, Dev, InfoSec and DevOps issues plus paginated older issues. TV mode works without routine cards; Hide morning briefing shows the ticker alone. OK pauses a headline with a locally generated phone QR, and Back resumes. The ticker has a separate session on/off control. Saved routine cards and the optional morning briefing remain intact. Public archive availability is distinct from email delivery, content scheduling, opening the dashboard and physically waking the TV.
 
 TV sections now provide News, Briefing, Calendar and Commands. News includes the complete public TLDR summaries with stationary wrapped titles. Show/Hide briefing navigates between real saved cards and News; no cards produces an explicit disabled control and explanatory section. Calendar reuses the existing protected Calendar companion API only for an authorized owner browser session; paired TV credentials remain Morning signal-only. Commands is visibly disconnected until actual-dot transport and sender authority are configured. See [editorial TV details](tldr/README.md).
+
+## Manual cards — November 2
+
+News stories and Briefing cards stay on the selected card until Next, Previous or another explicit selection. Background source, read-progress and saved-card refreshes continue. The legacy `rotationSeconds` field remains accepted for existing saved records but no longer controls navigation; its editor control is removed. No stored records or database schema change.

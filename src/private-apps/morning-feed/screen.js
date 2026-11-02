@@ -90,11 +90,6 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   }, [display, endpoint]);
   const visible = screen?.cards.filter(card => card.enabled) ?? [];
   useEffect(() => {
-    if (!display || !visible.length) return;
-    const timer = setInterval(() => setActive(index => (index + 1) % visible.length), screen.rotationSeconds * 1000);
-    return () => clearInterval(timer);
-  }, [display, visible.length, screen?.rotationSeconds]);
-  useEffect(() => {
     if (!display) return;
     root.current?.focus();
     function key(event) {
@@ -171,7 +166,6 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
       <legend>Your morning, your rules</legend><div className="morning-settings">
         <label>Screen name<input maxLength={80} value={screen.title} onChange={event => change({ ...screen, title: event.target.value })}/></label>
         <label>Time zone<input maxLength={80} value={screen.timezone} onChange={event => change({ ...screen, timezone: event.target.value })}/></label>
-        <label>Seconds per slide<input type="number" min="10" max="300" value={screen.rotationSeconds} onChange={event => change({ ...screen, rotationSeconds: Number(event.target.value) })}/></label>
       </div><label>Morning intention<textarea maxLength={400} value={screen.focus} placeholder="What deserves your attention?" onChange={event => change({ ...screen, focus: event.target.value })}/></label>
       {screen.cards.map((card, index) => <div className="morning-card-editor" key={card.id}>
         <div className="morning-card-controls"><strong>Card {String(index + 1).padStart(2, '0')}</strong><button disabled={index === 0} aria-label={`Move ${card.title} up`} onClick={() => change({ ...screen, cards: moveCard(screen.cards, card.id, -1) })}>↑</button><button disabled={index === screen.cards.length - 1} aria-label={`Move ${card.title} down`} onClick={() => change({ ...screen, cards: moveCard(screen.cards, card.id, 1) })}>↓</button><button onClick={() => { setRemoved({ card, index }); change({ ...screen, cards: screen.cards.filter(item => item.id !== card.id) }); }}>Remove</button></div>
