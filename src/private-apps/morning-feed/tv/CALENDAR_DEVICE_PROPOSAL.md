@@ -1,6 +1,6 @@
 # Proposed per-device Calendar agenda consent — not activated
 
-The current paired TV capability reads only Morning signal. The existing Calendar companion uses a Google provider token from the currently signed-in owner's Supabase session (`google-session.js`); it does not have a durable server refresh credential for a TV to reuse. Making every existing pairing read Calendar would silently expand access. An owner session can already open `/admin/apps/morning-feed?view=calendar`, but `/tv` deliberately uses its limited device credential even if that browser also has a Google owner session.
+The current paired TV capability reads only Morning signal. The existing Calendar companion uses a Google provider token from the currently signed-in owner's Supabase session (`google-session.js`); it does not have a durable server refresh credential for a TV to reuse. Making every existing pairing read Calendar would silently expand access. An owner session can already open `/admin/apps/morning-feed?view=calendar`, and `/tv` now redirects a verified owner browser session into that protected TV view. A QR-only browser still uses its limited device credential.
 
 ## Smallest separate-device option
 

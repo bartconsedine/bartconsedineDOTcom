@@ -16,6 +16,7 @@ export function createNewsProgressApi({ rpc, cookie, authorize, origin }) {
       if (!access.ok) return reply({ state: 'denied' }, access.status);
     }
     const { data, error } = await rpc('morning_news_progress', { p_action: action, p_secret: secret, p_article_id: articleId });
+    if (error && ['PGRST202', '42883'].includes(error.code)) return reply({ state: 'setup_required' }, 503);
     if (error) return reply({ state: error.message === 'news_progress_denied' ? 'denied' : 'unavailable' }, error.message === 'news_progress_denied' ? 403 : 503);
     if (!data || !['disabled', 'ready', 'saved'].includes(data.state)) return reply({ state: 'unavailable' }, 503);
     return reply(data);

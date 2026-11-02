@@ -16,7 +16,7 @@ export default function TvCalendar({ locked }) {
     }).catch(failure => { if (!disposed) setError(failure.message || 'Calendar unavailable. Retry.'); });
     return () => { disposed = true; controller.abort(); };
   }, [locked, retry]);
-  if (locked) return <section className="tv-panel"><p className="tv-panel-kicker">CALENDAR / PRIVATE</p><h2>Your calendar stays private.</h2><p>This paired TV is approved for Morning signal only. Calendar needs separate owner authorization; this release does not grant it.</p><p>Use your existing owner browser session below, or approve a separate read-only Calendar permission for this device once phone consent is available. Pairing alone does not grant Calendar access.</p><div className="tv-panel-actions"><a href="/admin/apps/morning-feed?view=calendar">Open existing owner Calendar view</a></div></section>;
+  if (locked) return <section className="tv-panel"><p className="tv-panel-kicker">CALENDAR / PRIVATE</p><h2>Your calendar stays private.</h2><p>This paired TV is approved for Morning signal only. Calendar needs separate owner authorization; sign in with your owner Google account on this screen to open it.</p><p>The phone QR connects Morning signal. Your existing Google sign-in on this screen opens Calendar companion with your own calendar connection.</p><div className="tv-panel-actions"><a href="/admin/apps/morning-feed?view=calendar">Open existing owner Calendar view</a></div></section>;
   const zone = data?.preferences.settings.timeZone ?? 'UTC';
   const now = Date.now();
   const events = (data?.events ?? []).filter(event => (event.end?.dateTime ? Date.parse(event.end.dateTime) : localInstant(event.end?.date, '00:00', zone)) > now);

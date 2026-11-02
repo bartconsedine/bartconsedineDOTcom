@@ -57,3 +57,37 @@ test('paused reader arrow navigation follows its own story and marks each newly 
   assert.equal(state.reads.size,3);ui.key('Backspace');await settled(ui);
   assert.match(html(ui),/You’re caught up/);ui.close();
 });
+
+test('Next remains selectable while saving and repeated activation cannot consume additional stories', async () => {
+  const state = fixture();
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const original = state.fetch;
+  state.fetch = async (url, options) => { if (options?.method === 'POST') await gate; return original(url, options); };
+  const ui = state.ui(); await settled(ui);
+  const next = () => nodes(ui.render()).find(n => n.props?.['aria-label'] === 'Next headline');
+  const pending = next().props.onClick(); await settled(ui);
+  assert.equal(next().props.disabled, false); assert.equal(next().props['aria-busy'], true);
+  await next().props.onClick(); assert.equal(title(ui), 'newest');
+  release(); await pending; await settled(ui);
+  assert.equal(state.posts, 1); assert.equal(title(ui), 'recent');
+  assert.equal(next().props.disabled, false); assert.equal(next().props['aria-busy'], false);
+  assert.match(html(ui), /1 \/ 3 read · Synced/); ui.close();
+});
+
+test('unavailable progress does not freeze rotation or claim reads were saved', async () => {
+  const ui = tickerUi(async url => url === '/progress' ? Response.json({ state: 'setup_required' }, { status: 503 }) : Response.json({ articles: [one, two, three], sources: [], history: 0 }), { endpoint: '/feed', progressEndpoint: '/progress', display: true });
+  await settled(ui); assert.equal(title(ui), 'newest'); assert.match(html(ui), /needs server setup/);
+  await ui.tick(24000); await settled(ui); assert.equal(title(ui), 'recent');
+  assert.doesNotMatch(html(ui), /Synced/); ui.close();
+});
+
+test('minute progress refreshes do not restart a long story rotation timer', async () => {
+  const state = fixture();
+  state.articles = [one, { ...three, summary: 'word '.repeat(300) }];
+  const ui = state.ui(false); await settled(ui);
+  assert.equal(title(ui), 'newest');
+  await ui.advance(60000); await settled(ui); assert.equal(title(ui), 'newest');
+  await ui.advance(50000); await settled(ui); assert.equal(title(ui), 'old');
+  assert.equal(state.posts, 0); ui.close();
+});
