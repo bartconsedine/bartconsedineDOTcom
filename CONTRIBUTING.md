@@ -1,6 +1,8 @@
 # Contributing
 
-Use a feature branch and pull request for every repository change. Preserve unrelated work and use an isolated worktree when another task is active. Start PRs as drafts and make them ready only when the final diff and applicable checks have passed.
+Use a feature branch and pull request for every repository change in the regular checkout. Never create or use Git worktrees; preserve existing worktrees and unrelated changes. Coordinate overlapping work before changing shared files or branches. Start PRs as drafts and make them ready only when the final diff and applicable checks have passed.
+
+Follow the [permissions and completion contract](docs/AGENT_PERMISSIONS.md): scope tool use to the requested repository task, verify service targets, carry authorized work through delivery, and report any remaining blocker precisely.
 
 Every PR must document the problem, resulting behavior, relevant setup/operational changes, and actual validation. Add or update tests for changed functionality, regressions, and relevant security boundaries. Documentation-only changes require checks of links, instructions, examples, and metadata; explain why new runtime tests are not applicable. Never claim a check ran when it did not.
 
@@ -24,7 +26,7 @@ Example: `Use $pr to add this feature, document it, add relevant tests, and open
 
 `/pr` is a conversational shorthand for this project workflow, **not a custom slash command registered by these files**. There is no command parser, hook, or global configuration installed. The workflow is available to checkouts containing this commit; it does not modify other repositories or preserved older worktrees. Skill discovery and composer behavior should be verified in the user's active Codex surface before claiming the picker has loaded it.
 
-The workflow continues through exact-head GitHub CI, an authorized merge guarded against head changes, Vercel Ready status with a matching merge commit, and production desktop/mobile browser QA. Prefer the existing Actions workflow and Vercel Git integration. Preserve user work and use a readable local-only checkout outside synced folders when cloud placeholders cause problems. UI changes do not require database/auth setup.
+The workflow continues through exact-head GitHub CI, an authorized merge guarded against head changes, Vercel Ready status with a matching merge commit, and production desktop/mobile browser QA. Prefer the existing Actions workflow and Vercel Git integration. Preserve user work in the regular checkout; report unreadable cloud placeholders as a blocker rather than relocating the checkout without authorization. UI changes do not require database/auth setup.
 
 Merge and deploy only when authorized and required checks pass, without bypassing branch protections. A request to run this workflow does not itself grant hosted database, credentials, or membership permissions.
 

@@ -26,6 +26,10 @@ Keep executable component registration and static presentation defaults in code.
 
 ## Project change workflow
 
+Read [the permissions and completion contract](docs/AGENT_PERMISSIONS.md) before acting. Use available permissions only for the requested repository task and its verified service targets. Tool availability is not authorization. Continue authorized work through validation and delivery; report exact blockers and unfinished checks instead of claiming completion.
+
+Never create or use Git worktrees. Work in the regular repository checkout on branches, preserving unrelated changes and existing worktrees. Whenever shipping something new, show visual confirmation; UI changes require screenshots of the actual shipped interface at relevant desktop and mobile sizes. Label preview, fixture, and unshipped evidence explicitly.
+
 Follow [CONTRIBUTING.md](CONTRIBUTING.md) for every repository change: use a branch and PR, document the change, add relevant functionality/regression/security tests, and report actual validation. The reusable project workflow is [.agents/skills/pr/SKILL.md](.agents/skills/pr/SKILL.md), explicitly invoked as `$pr`; `/pr` is a request shorthand, not an installed slash command.
 
 Bart authorizes automatically merging and deploying completed, checked, scoped website changes through the normal PR and release workflow. Do not pause for a separate code-release confirmation. Always include the direct live-site link after a deployment. Required checks and protections still apply; separate hosted database, credential, membership and security-sensitive access operations retain their own authorization requirements.
