@@ -67,8 +67,8 @@ html:has(.morning-display),body:has(.morning-display),html:has(.tv-pair),body:ha
 .morning-display .morning-tv-nav button,.morning-display .tldr-controls button,.morning-display .tldr-history button { white-space:nowrap; }
 .morning.morning-display>.morning-status:not(:has([role=alert])) { display:none; }
 .tldr .tldr-source-card { text-align:left; width:100%; }
-/* One slim navigation strip on TV; keep the two compact rows only on phone widths. */
-@media(min-width:700px) {
+/* One navigation strip on wide TVs; smaller viewports keep two compact rows. */
+@media(min-width:900px) {
  .morning.morning-display { grid-template-columns:auto minmax(0,1fr) auto; grid-template-rows:40px minmax(0,1fr) auto; column-gap:12px; }
  .morning-display>.morning-top { display:contents; }
  .morning-display .morning-brand { grid-row:1; grid-column:1; align-self:center; font-size:12px; }
@@ -80,7 +80,7 @@ html:has(.morning-display),body:has(.morning-display),html:has(.tv-pair),body:ha
  .morning-display>.tv-home,.morning-display>.tv-panel,.morning-display>.morning-command,.morning-display>.morning-feature,.morning-display>.morning-news-panel { grid-row:2; grid-column:1/-1; }
  .morning-display>.morning-status { grid-row:3; grid-column:1/-1; }
 }
-@media(min-width:700px) and (max-width:1200px) { .morning-display .morning-brand { display:none; }.morning.morning-display { column-gap:6px; } }
+@media(min-width:900px) and (max-width:1200px) { .morning-display .morning-brand { display:none; }.morning.morning-display { column-gap:6px; } }
 /* Pairing styles also load from tv.css; keep the viewport budget independent of import order. */
 .tv-pair.tv-pair { height:100dvh; min-height:0; padding:3vh 4vw; overflow:hidden; gap:24px; }
 .tv-pair.tv-pair .tv-pair-copy { flex:1; min-width:0; }
