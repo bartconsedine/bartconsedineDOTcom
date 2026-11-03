@@ -35,3 +35,9 @@ TV sections now provide News, Briefing, Calendar and Commands. News includes the
 ## Manual cards — November 2
 
 News stories and Briefing cards stay on the selected card until Next, Previous or another explicit selection. Background source, read-progress and saved-card refreshes continue. The legacy `rotationSeconds` field remains accepted for existing saved records but no longer controls navigation; its editor control is removed. No stored records or database schema change.
+
+## TV Home readability — November 2
+
+Home cards use a solid dark surface, brighter descriptions and larger titles/body text for viewing from across a room. Remote-selected cards retain the yellow fill and outline; their title, arrow, number and description all inherit the dark selected foreground. Explicit descendant colors previously left pale text on the yellow fill. Phone descriptions remain at least 16px. This changes presentation only; saved records and authorization are unaffected.
+
+Regression verification: in TV Home, move remote focus through all four cards and check every label against the selected fill, then open a section and return. Review 1920×1080, 960×540 and 390×844 layouts for clipped text and controls. Use actual authenticated production sessions for live evidence; physical TV readability still needs confirmation on the device.
