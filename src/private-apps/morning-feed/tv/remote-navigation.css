@@ -8,6 +8,10 @@
   background: #fff06a !important;
   color: #102a28 !important;
 }
+/* Card labels have their own colors; switch every label with the focus fill. */
+[data-tv-remote] .tv-home-grid button[data-tv-selected] :is(small,strong,span,p) {
+  color: inherit !important;
+}
 [data-tv-remote] .tldr-headline[data-tv-selected] .tldr-scroll { animation-play-state: paused; }
 .tv-remote-help { font: 600 14px/1.5 monospace; color: #d2e59e; }
 .tv-disconnect { position:fixed; inset:0; z-index:6000; display:grid; place-content:center; padding:32px; background:#102a28f5; color:#f6f2e7; }
