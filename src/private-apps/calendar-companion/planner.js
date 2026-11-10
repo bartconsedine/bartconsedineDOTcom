@@ -4,10 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { COVERAGE, dayInZone, localInstant, addDays, reminders, suggestions, emptyPlanner } from './model';
 import { SLUG, validatePreferences } from './preferences';
 import { eventKind, asPlan, busyWindow, eventsByDay } from './view-model';
+import { outingAvailability, outingGuide, outingZone, upcomingOutings } from './outings';
 import './planner.css';
 
 const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const dateLabel = (value, zone, time = false) => new Intl.DateTimeFormat('en-US', { timeZone: zone, month: 'short', day: 'numeric', ...(time ? { hour: 'numeric', minute: '2-digit' } : {}) }).format(new Date(value));
+const outingTime = new Intl.DateTimeFormat('en-US', { timeZone: outingZone, hour: 'numeric', minute: '2-digit' });
+const outingDate = new Intl.DateTimeFormat('en-US', { timeZone: outingZone, weekday: 'short', month: 'short', day: 'numeric' });
 const timeLabel = (value, zone) => new Intl.DateTimeFormat('en-GB', { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(value));
 const shared = e => e.extendedProperties?.shared ?? {};
 const dayOf = (e, zone) => e.start?.date ?? dayInZone(e.start.dateTime, zone);
@@ -34,6 +37,10 @@ export default function CalendarCompanion() {
   const [now, setNow] = useState(null);
   const lock = useRef(false);
   const batchRequests = useRef({});
+  const outingForm = useRef(null);
+  useEffect(() => {
+    if (editor?.fromOuting) outingForm.current?.focus();
+  }, [editor?.requestId]);
   async function load(nextMonth = month, keepPreferences = false) {
     setPhase('loading'); setError('');
     try {
@@ -105,6 +112,7 @@ export default function CalendarCompanion() {
     if (editor && !window.confirm('Discard the open event form?')) return;
     const form = newForm(kind, prefs, prefs.writeCalendar || data?.writeCalendar || '');
     if (proposal) Object.assign(form, { title: proposal.title, day: dayInZone(proposal.start, zone), time: timeLabel(proposal.start, zone), endDay: dayInZone(proposal.end, zone), endTime: timeLabel(proposal.end, zone) });
+    if (proposal?.url) Object.assign(form, { notes: `${proposal.venue}\n${proposal.url}`, fromOuting: true });
     setEditor(form);
   }
   async function openEvent(event) {
@@ -179,9 +187,28 @@ export default function CalendarCompanion() {
     {notice && <p className="cc-notice" role="status">{notice}</p>}
     {projectionError && <p role="alert">{projectionError}</p>}
     {dirty && <div className="cc-alert"><p>Save planning preferences before creating Google events. Event creation uses the settings confirmed by the server.</p><button disabled={controlsDisabled} onClick={savePreferences}>Save preferences</button></div>}
+    <section className="cc-outings" aria-labelledby="cc-outings-title">
+      <header className="cc-sectionhead"><div><span className="cc-kicker">NYC · 4–10 PM</span><h2 id="cc-outings-title">Early DJ shows</h2><p>Find a dance floor, then make a plan with time for the sitter.</p></div><a className="cc-googlelink" href={outingGuide} target="_blank" rel="noreferrer">Browse NYC listings ↗</a></header>
+      <div className="cc-outing-grid">
+        {(now === null ? [] : upcomingOutings(now)).map(pick => {
+          const { window, status, planned } = outingAvailability(pick, connected && !dirty && phase === 'ready' ? data : null, settings);
+          return <article key={pick.url} className="cc-outing">
+            <span className="cc-kicker">{outingDate.format(new Date(pick.start))} · {outingTime.formatRange(new Date(pick.start), new Date(pick.end))} ET</span>
+            <h3>{pick.title}</h3><p>{pick.style}<br />{pick.venue}</p>
+            <p className="cc-outing-sitter">Sitter window: {outingTime.formatRange(new Date(window.start), new Date(window.end))} ET</p>
+            <p>{status === 'planned' ? 'Already in your Google calendar' : status === 'busy' ? 'Conflict on a selected Google calendar' : status === 'open' ? 'No conflicts in your selected Google calendars' : 'Calendar availability not checked'}</p>
+            <div className="cc-actions">
+              <button className="cc-primary" disabled={writeDisabled} onClick={() => planned ? openEvent(planned) : begin('plan', pick)}>{planned ? 'Open saved plan' : 'Plan this show'}</button>
+              <a className="cc-googlelink" href={pick.url} target="_blank" rel="noreferrer">Venue &amp; tickets ↗</a>
+            </div>
+          </article>;
+        })}
+      </div>
+      {now !== null && upcomingOutings(now).length === 0 && <p>No upcoming picks. Browse NYC listings, then use “Make a plan” to save a show and track sitter coverage.</p>}
+    </section>
     <div className="cc-stats"><article><strong>{managed.filter(e => Date.parse(e.end.dateTime) >= (now ?? 0)).length}</strong><span>plans ahead</span></article><article><strong>{birthdays.length}</strong><span>upcoming birthdays</span></article><article className={queue.some(r => r.overdue) ? 'cc-warm' : ''}><strong>{queue.filter(r => r.overdue).length}</strong><span>sitter deadlines reached</span></article><article><strong>{proposals.length}</strong><span>open slots to fill</span></article></div>
     {editor?.external && <section className="cc-editor"><h2>{editor.event.summary ?? 'Google event'}</h2><p>{editor.event.start.date ?? dateLabel(editor.event.start.dateTime, zone, true)}</p><p className="cc-eventnotes">{editor.event.description}</p><p>This event is managed in Google Calendar.</p>{editor.event.htmlLink && <a className="cc-googlelink" href={editor.event.htmlLink} target="_blank" rel="noreferrer">Open in Google Calendar ↗</a>}<button onClick={() => setEditor(null)}>Close details</button></section>}
-    {editor && !editor.external && <form className="cc-editor" onSubmit={submit}><h2>{editor.kind === 'birthday' ? 'Someone worth remembering.' : editor.eventId ? 'Make this plan happen.' : 'Put something good on the calendar.'}</h2><p>{editor.kind === 'birthday' ? 'An all-day birthday, repeated every year in Google, with reminders 14 days, 7 days, and 1 day ahead.' : `Times in ${zone}. Sitter coverage includes ${settings.bufferMinutes} minutes on each side.`}</p>{editor.series && <p className="cc-note">This edits the entire recurring series.</p>}<fieldset disabled={writeDisabled}><div className="cc-fields">
+    {editor && !editor.external && <form className="cc-editor" onSubmit={submit} ref={outingForm} tabIndex={-1}><h2>{editor.kind === 'birthday' ? 'Someone worth remembering.' : editor.eventId ? 'Make this plan happen.' : 'Put something good on the calendar.'}</h2><p>{editor.kind === 'birthday' ? 'An all-day birthday, repeated every year in Google, with reminders 14 days, 7 days, and 1 day ahead.' : `Times in ${zone}. Sitter coverage includes ${settings.bufferMinutes} minutes on each side.`}</p>{editor.series && <p className="cc-note">This edits the entire recurring series.</p>}<fieldset disabled={writeDisabled}><div className="cc-fields">
       <Field label="Your personal Google calendar"><input readOnly value={data?.calendars?.find(c => c.primary)?.name ?? editor.calendarId} /></Field>
       {editor.kind === 'birthday' ? <><Field label="Family member’s name"><input required maxLength={100} value={editor.name} onChange={e => updateForm('name', e.target.value)} placeholder="Who are we celebrating?" /></Field><Field label="Birthday month"><select value={editor.monthDay.slice(0, 2)} onChange={e => updateForm('monthDay', `${e.target.value}-${editor.monthDay.slice(3)}`)}>{Array.from({ length: 12 }, (_, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{new Intl.DateTimeFormat('en-US', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2000, i, 1)))}</option>)}</select></Field><Field label="Birthday day"><input required type="number" min="1" max="31" value={Number(editor.monthDay.slice(3))} onChange={e => updateForm('monthDay', `${editor.monthDay.slice(0, 2)}-${String(Number(e.target.value)).padStart(2, '0')}`)} /></Field></> : <><Field label="Plan"><input required maxLength={160} value={editor.title} onChange={e => updateForm('title', e.target.value)} placeholder="Dinner, a show, an afternoon out…" /></Field><Field label="Date"><input required type="date" value={editor.day} onChange={e => updateForm('day', e.target.value)} /></Field><Field label="Start time"><input required type="time" value={editor.time} onChange={e => updateForm('time', e.target.value)} /></Field><Field label="End date (optional)"><input type="date" value={editor.endDay} onChange={e => updateForm('endDay', e.target.value)} /></Field><Field label={`End time (default ${settings.durationHours} hours)`}><input required={!!editor.endDay} type="time" value={editor.endTime} onChange={e => updateForm('endTime', e.target.value)} /></Field><Field label="Sitter coverage"><select value={editor.coverage} onChange={e => updateForm('coverage', e.target.value)}>{COVERAGE.map(v => <option key={v}>{v}</option>)}</select></Field><Field label="Sitter name"><input required={editor.coverage === 'Confirmed'} maxLength={120} value={editor.sitter} onChange={e => updateForm('sitter', e.target.value)} /></Field></>}
       <Field label="Notes / things to remember"><textarea maxLength={2000} value={editor.notes} onChange={e => updateForm('notes', e.target.value)} placeholder={editor.kind === 'birthday' ? 'Gift ideas, favorite cake, plans for celebrating…' : ''} /></Field>

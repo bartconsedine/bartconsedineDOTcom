@@ -57,3 +57,9 @@ References: [Google event insertion](https://developers.google.com/workspace/cal
 Reconciled the calendar branch with current main and the merged app-data dependency, preserving Robot Party's allowlisted login continuation alongside the fixed calendar return cookie. Regression tests cover both destinations and reject external redirects. The original repository checkout remains untouched.
 
 Release validation exposed published vulnerabilities in the previously pinned Next.js 16.4.0. Updated to the official patched 16.4.1 release and compatible security patches for the existing development-only undici/fast-uri dependencies; npm audit reports zero vulnerabilities. See <https://nextjs.org/blog/nextjs-security-update-october-14-2026>. No authentication scope, credential, membership or schema change is included in this security update.
+
+## Early DJ shows
+
+Calendar Companion shows a short list of venue-verified NYC DJ shows within 4–10 p.m. Eastern and links to the venue for tickets and Resident Advisor for more listings. The November 14, 2026 picks are curated public listings, not a live ticket feed. A pick drops off once its start time passes. After the picks expire, the listing guide stays available and any show can be entered through “Make a plan.”
+
+Each pick displays the sitter window using the household’s saved buffer and checks the latest selected Google calendars already loaded by the app. “Plan this show” opens an editable draft with venue, source link, exact times in the workspace time zone, and coverage set to Needed. Nothing is written until “Save in Google Calendar”; the existing server rechecks conflicts and creates the Google plan, sitter entry and booking reminder. A saved plan with the listing link and original dates can be reopened from the card. Tickets and sitter outreach are handled separately. No new storage, provider credentials, scopes or migrations are needed.

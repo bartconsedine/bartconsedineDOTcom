@@ -81,3 +81,14 @@
 @media(max-width:720px) { .cc-event small { font-size:10px; } }
 
 .cc button.cc-kind-sitter.cc-covered { background:#27382c; color:#c3dec0; border-color:#405943; }
+
+.cc-outings { margin:20px 0 28px; }
+.cc-outings .cc-sectionhead { margin:0 0 14px; }
+.cc-outings .cc-kicker { margin-bottom:6px; }
+.cc-outing-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.cc-outing { display:flex; flex-direction:column; padding:20px; border:1px solid #556253; border-radius:10px; background:linear-gradient(145deg,#26372d,#181f23); }
+.cc-outing h3 { font-family:Georgia,serif; font-size:clamp(21px,2.5vw,27px); line-height:1.12; }
+.cc .cc-outing-sitter { color:#e9d4b8; margin-top:12px; }
+.cc-outing .cc-actions { align-items:center; margin-top:auto; padding-top:8px; }
+.cc-editor:focus { outline:2px solid var(--cc-green); outline-offset:3px; }
+@media(max-width:720px) { .cc-outing-grid { grid-template-columns:1fr; } .cc-outings .cc-sectionhead { gap:0; } }

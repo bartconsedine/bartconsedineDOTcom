@@ -90,3 +90,31 @@ test('personal calendar is pinned in preferences and the event form has no alter
   assert.equal(field(ui.render(), 'Your personal Google calendar').props.children.props.readOnly, true);
   assert.equal(field(ui.render(), 'Google calendar'), undefined);
 });
+
+test('verified DJ listing opens a Google plan draft with exact show times, source and sitter coverage', async () => {
+  const calls = [];
+  const ui = calendarUi(async (_url, options) => {
+    if (!options?.method) return response(snapshot());
+    calls.push(JSON.parse(options.body));
+    return response({ saved: true, supportSynced: true });
+  }, [], Date.parse('2026-11-10T15:00:00Z'));
+  const tree = await ui.mount();
+  assert.ok(nodes(tree).some(n => n.props?.children === 'No conflicts in your selected Google calendars'));
+  button(tree, 'Plan this show').props.onClick();
+  assert.equal(calls.length, 0);
+  assert.equal(field(ui.render(), 'Plan').props.children.props.value, 'BLISS NYC with Wil Milton');
+  await nodes(ui.render()).find(n => n.type === 'form').props.onSubmit({ preventDefault() {} });
+  const { calendarId, event } = calls[0].change;
+  assert.equal(calendarId, 'family@example.com');
+  assert.equal(event.start, '2026-11-14T21:00:00.000Z');
+  assert.equal(event.end, '2026-11-15T03:00:00.000Z');
+  assert.equal(event.coverage, 'Needed');
+  assert.match(event.notes, /270 Meserole Street.*\nhttps:\/\/www\.3dollarbillbk\.com\//);
+});
+
+test('DJ listings surface sitter buffer conflicts and expire once the show starts', async () => {
+  const busy = { start: { dateTime: '2026-11-14T20:40:00Z' }, end: { dateTime: '2026-11-14T20:55:00Z' } };
+  const render = now => calendarUi(async () => response(snapshot({ events: [busy] })), [], Date.parse(now)).mount();
+  assert.ok(nodes(await render('2026-11-10T15:00:00Z')).some(n => n.props?.children === 'Conflict on a selected Google calendar'));
+  assert.equal(button(await render('2026-11-14T21:00:00Z'), 'Plan this show'), undefined);
+});
