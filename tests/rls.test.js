@@ -55,15 +55,15 @@ test('fresh migrations enroll nobody; SQL privileges forbid self-enrollment and 
   } finally { await db.close(); }
 });
 
-test('both approved admins have CRUD only on their own app data', async () => {
+test('both approved admins have CRUD only on their own laptop inventory', async () => {
   const db = await database();
   try {
     await enroll(db);
     for (const id of [bart, wife]) {
       await login(db, id);
       assert.equal(await allowed(db), true);
-      await db.exec(`insert into public.app_data(app_slug,key,value) values('japan-trip','plan-v1','{"text":"private"}')`);
-      await db.exec(`update public.app_data set value='{"text":"updated"}' where key='plan-v1'`);
+      await db.exec(`insert into public.app_data(app_slug,key,value) values('laptop-sales','inventory','{"text":"private"}')`);
+      await db.exec(`update public.app_data set value='{"text":"updated"}' where app_slug='laptop-sales' and key='inventory'`);
       const rows = (await db.query('select * from public.app_data')).rows;
       assert.equal(rows.length, 1); assert.equal(rows[0].owner_id, id);
       const other = id === bart ? wife : bart;
