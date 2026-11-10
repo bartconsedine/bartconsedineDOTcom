@@ -3,13 +3,14 @@ import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
 import * as model from '../../src/private-apps/calendar-companion/model.js';
 import * as preferences from '../../src/private-apps/calendar-companion/preferences.js';
+import * as outings from '../../src/private-apps/calendar-companion/outings.js';
 import * as viewModel from '../../src/private-apps/calendar-companion/view-model.js';
 const require = createRequire(import.meta.url);
 const { transformSync } = require('next/dist/compiled/babel/core');
 
 // Executes the real JSX and event handlers while substituting only hooks/network.
 // This is a local UI fixture, never a production authentication or storage path.
-export function calendarUi(fetcher, initial = []) {
+export function calendarUi(fetcher, initial = [], now = Date.now()) {
   const states = [...initial]; let index = 0;
   const effects = []; const effectSlots = new Set();
   const { code } = transformSync(readFileSync(new URL('../../src/private-apps/calendar-companion/planner.js', import.meta.url), 'utf8'), {
@@ -24,10 +25,11 @@ export function calendarUi(fetcher, initial = []) {
     useRef(value) { const slot = index++; if (!(slot in states)) states[slot] = { current: value }; return states[slot]; },
     useEffect(effect) { const slot = index++; if (!effectSlots.has(slot)) { effectSlots.add(slot); effects.push(effect); } },
   };
-  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, TextEncoder, URL, Blob, crypto: globalThis.crypto, setInterval: () => 1, clearInterval() {}, setTimeout, Intl, window: { addEventListener() {}, removeEventListener() {}, confirm: () => true }, require: id => {
+  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, Date: class extends Date { static now() { return now; } }, TextEncoder, URL, Blob, crypto: globalThis.crypto, setInterval: () => 1, clearInterval() {}, setTimeout, Intl, window: { addEventListener() {}, removeEventListener() {}, confirm: () => true }, require: id => {
     if (id === 'react') return hooks;
     if (id === './model') return model;
     if (id === './preferences') return preferences;
+    if (id === './outings') return outings;
     if (id === './view-model') return viewModel;
     if (id.endsWith('.css')) return {};
     if (id === 'react/jsx-runtime') return require(id);
