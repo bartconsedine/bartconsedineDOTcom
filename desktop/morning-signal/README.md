@@ -1,6 +1,6 @@
-![Morning signal uses the existing private workspace sign-in](docs/sign-in.png)
+![Morning signal native browser recovery window](docs/browser-recovery.png)
 
-Live website sign-in screen, captured without an authenticated session. The installed desktop window reaches the same authentication flow; this image does not show a signed-in briefing.
+Native browser recovery window, rendered offscreen with a missing-browser test fixture. The main briefing opens in Chrome; this image does not show a signed-in briefing.
 
 # Morning signal for the desktop
 
