@@ -6,8 +6,8 @@ export function createProjectBoardApi({storage,verifyCalendarLink}){
  const run = async fn => {try{return Response.json(await fn());}catch(e){if(e instanceof BoardError)return Response.json({error:e.message},{status:e.status});throw e;}};
  return {
  GET:(request,context)=>run(()=>storage.list(own(context))),
- POST:(request,context)=>run(async()=>{const owner=own(context),body=await bodyOf(request);if(body.op==='starter'){exact(body,['op']);project(starterProject);starterTasks.forEach(task);await storage.start(starterProject,starterTasks);return {saved:true,...await storage.list(owner)};}
- exact(body,['op','value','expectedRevision']);if(!['projects','tasks'].includes(body.op))throw new BoardError('Unknown operation.');const value=(body.op==='projects'?project:task)(body.value),expected=revision(body.expectedRevision);
+ POST:(request,context)=>run(async()=>{const owner=own(context),body=await bodyOf(request);exact(body,body?.op==='starter'?['op']:['op','value','expectedRevision']);if(body.op==='starter'){project(starterProject);starterTasks.forEach(task);await storage.start(starterProject,starterTasks);return {saved:true,...await storage.list(owner)};}
+ if(!['projects','tasks'].includes(body.op))throw new BoardError('Unknown operation.');const value=(body.op==='projects'?project:task)(body.value),expected=revision(body.expectedRevision);
  // Only validate a new/changed reference. Existing links remain editable if Google consent expires.
  if(body.op==='tasks'&&value.calendar_id){const old=(await storage.list(owner)).tasks.find(t=>t.id===value.id);if(!old||old.calendar_id!==value.calendar_id||old.event_id!==value.event_id)await verifyCalendarLink(context.owner,value);}
  return {saved:true,record:await storage.save(owner,body.op,value,expected)};

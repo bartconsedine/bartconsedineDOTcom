@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
+import { createUiRuntime, manualIntervals, tick } from './ui-runtime.js';
 import * as workspace from '../../src/lib/workspace-policy.js';
 import * as options from '../../src/private-apps/japan-trip/options.js';
 import * as coast from '../../src/private-apps/japan-trip/coastline.js';
@@ -18,21 +19,15 @@ export function tripUi(fetcher, initial = [], props = {}) { return componentUi('
 export function accessUi(fetcher) { return componentUi('../../app/admin/access/access-manager.js', fetcher, []); }
 export function explorerUi(plan) { return componentUi('option-explorer.js', null, [], { plan }); }
 function componentUi(file, fetcher, initial, props = {}) {
-  const states = [...initial]; const navigations=[]; let index = 0;
-  const effects = []; const effectSlots = new Set();
+  const runtime = createUiRuntime(initial), timers = manualIntervals(), navigations = [];
   const { code } = transformSync(readFileSync(new URL(`../../src/private-apps/japan-trip/${file}`, import.meta.url), 'utf8'), {
     babelrc: false, configFile: false,
     presets: [[require('next/dist/compiled/babel/preset-react'), { runtime: 'automatic' }]],
     plugins: [require('next/dist/compiled/babel/plugin-transform-modules-commonjs')],
   });
   const module = { exports: {} };
-  const hooks = {
-    useState(value) { const slot = index++; if (!(slot in states)) states[slot] = typeof value === 'function' ? value() : value; return [states[slot], next => { states[slot] = typeof next === 'function' ? next(states[slot]) : next; }]; },
-    useRef(value) { const slot = index++; if (!(slot in states)) states[slot] = { current: value }; return states[slot]; },
-    useEffect(effect) { const slot = index++; if (!effectSlots.has(slot)) { effectSlots.add(slot); effects.push(effect); } },
-  };
-  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, setInterval: () => 0, clearInterval() {}, TextEncoder, URL, Blob, crypto: globalThis.crypto, navigator: { clipboard: { writeText: async () => {} } }, window: { location: { origin: 'https://site.example', assign(url){navigations.push(url);} }, addEventListener() {}, removeEventListener() {} }, require: id => {
-    if (id === 'react') return hooks;
+  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, setInterval: timers.setInterval, clearInterval: timers.clearInterval, TextEncoder, URL, Blob, crypto: globalThis.crypto, navigator: { clipboard: { writeText: async () => {} } }, window: { location: { origin: 'https://site.example', assign(url){navigations.push(url);} }, addEventListener() {}, removeEventListener() {} }, require: id => {
+    if (id === 'react') return runtime.hooks;
     if (id === '@/lib/workspace-policy') return workspace;
     if (id === './model.js') return partyModel;
     if (id === './model') return model;
@@ -43,7 +38,16 @@ function componentUi(file, fetcher, initial, props = {}) {
     if (id === 'react/jsx-runtime') return require(id);
     throw new Error(`Unexpected dependency: ${id}`);
   } });
-  return { states, navigations, render() { index = 0; return module.exports.default(props); }, async mount() { this.render(); effects.splice(0).forEach(effect => effect()); await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); return this.render(); } };
+  const component = () => module.exports.default(props);
+  return {
+    states: runtime.states,
+    navigations,
+    render() { return runtime.render(component); },
+    mount() { return runtime.mount(component); },
+    async tick(delay) { await timers.tick(delay); await tick(); return this.render(); },
+    unmount: runtime.unmount,
+    close: runtime.unmount,
+  };
 }
 
 export function nodes(tree) {

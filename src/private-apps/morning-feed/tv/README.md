@@ -1,6 +1,6 @@
 # Phone approval for Morning signal TV
 
-On a compatible TV browser, open `/tv` and choose **Show QR code**. Scan with the phone camera, sign in with an enrolled Google administrator, compare the eight-character code with the physical TV, and choose **Approve TV**. The TV polls every five seconds and starts the rotating feed automatically. Google sign-in returns to the reviewed local approval page through the existing protected login continuation cookie. Signing in alone never approves a TV.
+On a compatible TV browser, open `/tv` and choose **Show QR code**. Scan with the phone camera, sign in with an enrolled Google administrator, compare the eight-character code with the physical TV, and choose **Approve TV**. The TV polls every five seconds and opens the feed automatically; cards advance only when selected. Google sign-in returns to the reviewed local approval page through the existing protected login continuation cookie. Signing in alone never approves a TV.
 
 The TV reads that administrator's own `morning-feed` / `screen-v1` saved document, not invited/shared feeds. When separately enabled, it also lists and marks that owner's news reading progress. It cannot edit feed records or authenticate to any other app. Ordinary authenticated TV mode and mirroring remain available. The physical TV must support this website's JavaScript and first-party cookies.
 
