@@ -1,0 +1,30 @@
+pkgname=morning-signal
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Your live Morning signal briefing in a dedicated desktop window'
+arch=('x86_64' 'aarch64')
+license=('MIT')
+depends=('qt6-base' 'qt6-declarative' 'qt6-wayland')
+optdepends=('google-chrome: preferred authenticated browser' 'chromium: alternative browser')
+makedepends=('gcc' 'make')
+options=('!debug')
+source=()
+sha256sums=()
+
+build() {
+  cd "$startdir/.."
+  ./bin/build
+}
+
+check() {
+  cd "$startdir/.."
+  ./bin/test
+}
+
+package() {
+  cd "$startdir/.."
+  install -Dm755 build/morning-signal "$pkgdir/usr/bin/morning-signal"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 pkgbuild/morning-signal.desktop "$pkgdir/usr/share/applications/morning-signal.desktop"
+  install -Dm644 pkgbuild/morning-signal.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/morning-signal.svg"
+}

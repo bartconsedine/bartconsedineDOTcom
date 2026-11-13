@@ -1,0 +1,22 @@
+[Desktop Entry]
+Type=Application
+Name=Morning signal
+Name[da]=Morgensignal
+Comment=Your daily briefing, connected to the live workspace
+Comment[da]=Din daglige briefing, forbundet med dit arbejdsområde
+Exec=morning-signal open
+Icon=morning-signal
+Terminal=false
+Categories=Network;News;
+StartupWMClass=chrome-bartconsedine.com__admin_apps_morning-feed-Default
+Actions=Display;Browser;
+
+[Desktop Action Display]
+Name=Open display
+Name[da]=Åbn visning
+Exec=morning-signal display
+
+[Desktop Action Browser]
+Name=Open in browser / Sign in
+Name[da]=Åbn i browser / Log ind
+Exec=morning-signal browser
