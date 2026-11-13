@@ -1,0 +1,28 @@
+#!/bin/sh
+set -eu
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+"$ROOT/bin/build"
+"$ROOT/bin/test"
+PREFIX="${XDG_DATA_HOME:-$HOME/.local/share}"
+install -Dm755 "$ROOT/build/morning-signal" "$HOME/.local/bin/morning-signal"
+install -Dm644 "$ROOT/pkgbuild/morning-signal.svg" "$PREFIX/icons/hicolor/scalable/apps/morning-signal.svg"
+install -Dm644 "$ROOT/LICENSE" "$PREFIX/licenses/morning-signal/LICENSE"
+# A desktop entry must not depend on the launcher's inherited PATH.
+python3 - "$ROOT/pkgbuild/morning-signal.desktop" "$PREFIX/applications/morning-signal.desktop" "$HOME/.local/bin/morning-signal" "${MORNING_SIGNAL_WM_CLASS:-}" <<'PY'
+import pathlib
+import sys
+source, target, binary = map(pathlib.Path, sys.argv[1:4])
+wm_class = sys.argv[4]
+if '\n' in wm_class or '\r' in wm_class:
+    raise SystemExit('Invalid window class')
+quoted = '"' + str(binary).replace('\\', '\\\\').replace('"', '\\"').replace('`', '\\`').replace('$', '\\$').replace('%', '%%') + '"'
+target.parent.mkdir(parents=True, exist_ok=True)
+entry = source.read_text().replace('Exec=morning-signal ', 'Exec=' + quoted + ' ')
+if wm_class:
+    entry = entry.replace('StartupWMClass=chrome-bartconsedine.com__admin_apps_morning-feed-Default', 'StartupWMClass=' + wm_class)
+target.write_text(entry)
+PY
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database "$PREFIX/applications"
+fi
+printf 'Installed Morning signal for the current user.\n'

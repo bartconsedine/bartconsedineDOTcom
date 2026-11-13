@@ -1,0 +1,10 @@
+{
+  "Morning signal": "Morgensignal",
+  "Unknown launch mode.": "Ukendt starttilstand.",
+  "Chrome or Chromium is required. Install a supported browser, then retry.": "Chrome eller Chromium er påkrævet. Installer en understøttet browser, og prøv igen.",
+  "The browser could not start. Check its installation, then retry.": "Browseren kunne ikke starte. Kontrollér installationen, og prøv igen.",
+  "Your saved briefing remains on the website. Retry after fixing the browser installation.": "Din gemte briefing er stadig på hjemmesiden. Prøv igen, når browserinstallationen er rettet.",
+  "Space: retry · Q: quit · ?: shortcuts": "Mellemrum: prøv igen · Q: afslut · ?: genveje",
+  "Retry": "Prøv igen",
+  "Close": "Luk"
+}

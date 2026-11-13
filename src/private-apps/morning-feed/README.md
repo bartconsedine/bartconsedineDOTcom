@@ -2,6 +2,8 @@
 
 A private morning feed at `/admin/apps/morning-feed`: editable ritual, briefing and link cards; morning intention; timezone clock; daily ritual completions; ordering and visibility; and a manually navigated TV display. Start empty, add your own cards, and explicitly save. No invented weather, calendar or news. Cards can link to external content, but links are not fetched, embedded or automatically synchronized.
 
+The [Omarchy desktop launcher](../../../desktop/morning-signal/README.md) opens this same live app in a dedicated Chrome window, preserving the existing sign-in and Supabase save/read behavior. It also offers display and normal-browser sign-in actions; no separate backend or desktop copy of records is introduced.
+
 ## Data and access
 
 One small whole-document record in existing Supabase `public.app_data`: app `morning-feed`, key `screen-v1`, schema `version: 1`. Includes title, focus, IANA timezone, rotationSeconds (10–300), and at most 24 cards. Each card has a stable id, kind, title, body, minutes, URL, visibility and last completed calendar date. Completion resets visually each day in the configured zone; this is not a history log. Screen preferences, order and completion dates are durable. Display mode, current slide and unsaved edits are temporary React state.
