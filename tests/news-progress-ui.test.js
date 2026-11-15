@@ -9,6 +9,13 @@ const one=item('old','2026-10-28'),two=item('recent','2026-10-30'),three=item('n
 const title=ui=>nodes(ui.render()).find(n=>n.props?.className==='tldr-title')?.props.children;
 const html=ui=>renderToStaticMarkup(ui.render());
 async function settled(ui) {for(let i=0;i<4;i++)await ui.settle();}
+async function waitForTitle(ui,expected){
+  // Feed identity uses real WebCrypto. A fixed number of setImmediate turns
+  // does not guarantee its worker has completed on a busy migration runner.
+  const deadline=Date.now()+2000;
+  do{await ui.settle();if(title(ui)===expected)return;await new Promise(resolve=>setTimeout(resolve,10));}while(Date.now()<deadline);
+  assert.equal(title(ui),expected,'Wait for the observed feed state, not an arbitrary microtask count');
+}
 function fixture() {
   const state={articles:[one,two,three],reads:new Map(),fail:false,posts:0};
   state.fetch=async(url,options={})=>{
@@ -77,7 +84,7 @@ test('Next remains selectable while saving and repeated activation cannot consum
 
 test('unavailable progress keeps manual navigation without claiming saved reads', async () => {
   const ui = tickerUi(async url => url === '/progress' ? Response.json({ state: 'setup_required' }, { status: 503 }) : Response.json({ articles: [one, two, three], sources: [], history: 0 }), { endpoint: '/feed', progressEndpoint: '/progress', display: true });
-  await settled(ui); assert.equal(title(ui), 'newest'); assert.match(html(ui), /needs server setup/);
+  await waitForTitle(ui,'newest'); assert.equal(title(ui), 'newest'); assert.match(html(ui), /needs server setup/);
   await ui.advance(120000); await settled(ui); assert.equal(title(ui), 'newest'); await nodes(ui.render()).find(n=>n.props?.['aria-label']==='Next headline').props.onClick(); await settled(ui); assert.equal(title(ui),'recent');
   assert.doesNotMatch(html(ui), /Synced/); ui.close();
 });
