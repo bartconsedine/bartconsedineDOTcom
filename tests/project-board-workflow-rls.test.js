@@ -16,10 +16,11 @@ const cancel=async(db,run,revision)=>(await db.query('select public.project_boar
 const reconcile=async db=>(await db.query('select public.project_board_reconcile() result')).rows[0].result;
 const rows=async(db,kind)=>(await db.query(`select * from public.project_board_${kind}`)).rows;
 async function insert(db,kind,value){workflowRecord(kind,value);const keys=Object.keys(value);return(await db.query(`insert into public.project_board_${kind}(${keys.join(',')}) values(${keys.map((_,i)=>'$'+(i+1)).join(',')}) returning *`,keys.map(k=>Array.isArray(value[k])?JSON.stringify(value[k]):value[k]))).rows[0];}
-async function setup({connect=true}={}){
+const receiptMigration='20261115184600_project_board_notification_receipts';
+async function setup({connect=true,includeReceiptMigration=true}={}){
  const db=new PGlite();await db.exec('create role anon;create role authenticated;');await db.exec(await readFile('tests/fixtures/auth.sql','utf8'));
  await db.exec(`insert into auth.users values('${owner}','bartconsedine@gmail.com',now(),false),('${other}','mjshah8@gmail.com',now(),false),('${guest}','guest@example.com',now(),false);insert into auth.identities select id,'google',jsonb_build_object('email',email,'email_verified',true) from auth.users;`);
- for(const name of(await readdir('prisma/migrations')).filter(n=>n!=='migration_lock.toml').sort())await db.exec(await readFile('prisma/migrations/'+name+'/migration.sql','utf8'));
+ for(const name of(await readdir('prisma/migrations')).filter(n=>n!=='migration_lock.toml'&&(includeReceiptMigration||n!==receiptMigration)).sort())await db.exec(await readFile('prisma/migrations/'+name+'/migration.sql','utf8'));
  await db.exec(`insert into private.site_admin(user_id,email) select id,email from auth.users where id in('${owner}','${other}');`);await login(db);
  await db.query('select public.project_board_start($1::jsonb,$2::jsonb)',[JSON.stringify(starterProject),JSON.stringify(starterTasks)]);
  if(connect){
@@ -74,9 +75,9 @@ test('dispatch is atomic, approval-bound, idempotent and immutable; separate sta
   const outcome=event(r,{scheduled_at:new Date(Date.now()-3000).toISOString(),accepted_at:new Date(Date.now()-2000).toISOString(),started_at:new Date(Date.now()-1000).toISOString()});
   await reply(db,messageId,outcome);assert.equal((await reconcile(db)).processed,1);assert.equal((await reconcile(db)).processed,0);
   await login(db);const loaded=(await rows(db,'runs')).find(v=>v.id===r.id);assert.equal(loaded.status,'succeeded');assert.equal(loaded.started_at.toISOString(),outcome.started_at);assert.equal(loaded.completed_at.toISOString(),outcome.completed_at);assert.ok(loaded.verified_at);
-  const delivery=(await rows(db,'deliveries'))[0];assert.equal(delivery.status,'received');assert.equal(delivery.delivered_at,null,'a private reply does not prove a separate external delivery');
+  const delivery=(await rows(db,'deliveries'))[0];assert.equal(delivery.status,'queued');assert.equal(delivery.received_at,null,'a manually-polled reply does not prove a notification callback receipt');assert.equal(delivery.delivered_at,null,'a private reply does not prove a separate external delivery');
   assert.equal((await rows(db,'events')).length,1);
-  assert.equal((await dispatch(db,r,messageId)).delivery,'received','uncertain retry reads current persisted outcome');
+  assert.equal((await dispatch(db,r,messageId)).delivery,'queued','uncertain retry reads current persisted transport state');
   const unboundMessageId=randomUUID();await ownerCall(db,'send',{id:unboundMessageId,channelId:snapshot.channel.id,body:'Synthetic unbound message'});
   await login(db,other);const otherRun=await insert(db,'runs',run());
   await assert.rejects(insert(db,'deliveries',{...workflowDefaults('deliveries'),run_id:otherRun.id,message_id:messageId}),/board_access_denied|foreign key/);
@@ -117,6 +118,41 @@ test('duplicate provider event IDs conflict across requests; acceptance is never
   const first=await insert(db,'runs',run()),firstId=randomUUID();await dispatch(db,first,firstId);const payload=event(first,{event_id:'provider-stable-event',status:'accepted',completed_at:null,started_at:null,evidence:[]});await reply(db,firstId,payload);await reconcile(db);
   assert.equal((await rows(db,'runs'))[0].status,'accepted');assert.equal((await rows(db,'runs'))[0].verified_at,null);
   const second=await insert(db,'runs',run()),secondId=randomUUID();await dispatch(db,second,secondId);await reply(db,secondId,event(second,{event_id:'provider-stable-event'}));const result=await reconcile(db);assert.equal(result.conflicts,1);assert.equal((await rows(db,'runs')).find(r=>r.id===second.id).status,'uncertain');
-  const deliveredRun=await insert(db,'runs',run()),deliveredId=randomUUID();await dispatch(db,deliveredRun,deliveredId);await reply(db,deliveredId,event(deliveredRun,{provider_delivery_id:'actual-result-id',delivered_at:new Date().toISOString()}));await reconcile(db);const delivery=(await rows(db,'deliveries')).find(d=>d.run_id===deliveredRun.id&&d.kind==='result');assert.equal(delivery.status,'confirmed');assert.equal(delivery.provider_delivery_id,'actual-result-id');assert.ok(delivery.delivered_at);assert.ok(delivery.verified_at);assert.equal(delivery.started_at,null);const notification=(await rows(db,'deliveries')).find(d=>d.run_id===deliveredRun.id&&d.kind==='notification');assert.equal(notification.status,'received');assert.equal(notification.delivered_at,null);
+  const deliveredRun=await insert(db,'runs',run()),deliveredId=randomUUID();await dispatch(db,deliveredRun,deliveredId);await reply(db,deliveredId,event(deliveredRun,{provider_delivery_id:'actual-result-id',delivered_at:new Date().toISOString()}));await reconcile(db);const delivery=(await rows(db,'deliveries')).find(d=>d.run_id===deliveredRun.id&&d.kind==='result');assert.equal(delivery.status,'confirmed');assert.equal(delivery.provider_delivery_id,'actual-result-id');assert.ok(delivery.delivered_at);assert.ok(delivery.verified_at);assert.equal(delivery.started_at,null);const notification=(await rows(db,'deliveries')).find(d=>d.run_id===deliveredRun.id&&d.kind==='notification');assert.equal(notification.status,'queued');assert.equal(notification.received_at,null);assert.equal(notification.delivered_at,null);
+ }finally{await db.close();}
+});
+
+test('notification receipt preserves the earlier actual callback time; a polled reply without callback never fabricates a transport receipt',async()=>{
+ const db=await setup();try{
+  const r=await insert(db,'runs',run()),messageId=randomUUID();await dispatch(db,r,messageId);
+  const claim=await ownerCall(db,'claim');assert.equal(claim.message.id,messageId);
+  await ownerCall(db,'finish',{messageId,leaseId:claim.leaseId,outcome:'received'});await reconcile(db);
+  const before=(await rows(db,'deliveries')).find(d=>d.message_id===messageId);assert.equal(before.status,'received');assert.ok(before.received_at);
+  await reply(db,messageId,event(r));await reconcile(db);
+  const after=(await rows(db,'deliveries')).find(d=>d.message_id===messageId);assert.equal(after.received_at.toISOString(),before.received_at.toISOString());assert.equal(after.revision,before.revision,'a reply must not rewrite unchanged transport facts');
+  await db.exec('reset role;');
+  const proof=(await db.query('select d.received_at=o.received_at exact_receipt,d.received_at<m.created_at callback_before_reply from public.project_board_deliveries d join private.robot_party_personal_outbox o on o.message_id=d.message_id join public.robot_party_personal_messages m on m.reply_to=d.message_id where d.owner_id=$1 and d.message_id=$2',[owner,messageId])).rows[0];assert.deepEqual(proof,{exact_receipt:true,callback_before_reply:true});await login(db);
+  const polled=await insert(db,'runs',run()),polledId=randomUUID();await dispatch(db,polled,polledId);await reply(db,polledId,event(polled));await reconcile(db);
+  const pending=(await rows(db,'deliveries')).find(d=>d.message_id===polledId);assert.equal(pending.status,'queued');assert.equal(pending.received_at,null);assert.equal((await rows(db,'runs')).find(row=>row.id===polled.id).status,'succeeded','a private read result can succeed independently of notification transport');
+  const failed=await ownerCall(db,'claim');assert.equal(failed.message.id,polledId);await ownerCall(db,'finish',{messageId:polledId,leaseId:failed.leaseId,outcome:'failed'});await reconcile(db);
+  const failedDelivery=(await rows(db,'deliveries')).find(d=>d.message_id===polledId);assert.equal(failedDelivery.status,'failed');assert.equal(failedDelivery.received_at,null);
+ }finally{await db.close();}
+});
+
+test('incremental receipt migration repairs only verified-owner run/message-bound notification provenance and leaves outcomes unchanged',async()=>{
+ const db=await setup({includeReceiptMigration:false});try{
+  const r=await insert(db,'runs',run()),messageId=randomUUID();await dispatch(db,r,messageId);const claim=await ownerCall(db,'claim');await ownerCall(db,'finish',{messageId,leaseId:claim.leaseId,outcome:'received'});
+  await reply(db,messageId,event(r,{provider_delivery_id:'synthetic-external-output',delivered_at:new Date().toISOString()}));await reconcile(db);
+  const polled=await insert(db,'runs',run()),polledId=randomUUID();await dispatch(db,polled,polledId);await reply(db,polledId,event(polled));await reconcile(db);
+  await db.exec('reset role;');
+  const bug=(await db.query('select d.received_at<>o.received_at overwritten from public.project_board_deliveries d join private.robot_party_personal_outbox o on o.message_id=d.message_id where d.owner_id=$1 and d.message_id=$2',[owner,messageId])).rows[0];assert.equal(bug.overwritten,true,'the old implementation demonstrably replaced callback time with reply time');
+  const runsBefore=await rows(db,'runs'),eventsBefore=await rows(db,'events'),resultsBefore=(await rows(db,'deliveries')).filter(d=>d.kind==='result');
+  await login(db,other);const otherRun=await insert(db,'runs',run()),otherDelivery=await insert(db,'deliveries',{...workflowDefaults('deliveries'),kind:'notification',run_id:otherRun.id,status:'received',received_at:new Date().toISOString()});
+  await db.exec('reset role;');await db.exec(await readFile('prisma/migrations/'+receiptMigration+'/migration.sql','utf8'));
+  const repaired=(await db.query('select d.received_at=o.received_at exact_receipt,d.status from public.project_board_deliveries d join private.robot_party_personal_outbox o on o.message_id=d.message_id where d.owner_id=$1 and d.message_id=$2',[owner,messageId])).rows[0];assert.deepEqual(repaired,{exact_receipt:true,status:'received'});
+  const neverReceived=(await db.query('select received_at,status from public.project_board_deliveries where owner_id=$1 and message_id=$2',[owner,polledId])).rows[0];assert.deepEqual(neverReceived,{received_at:null,status:'queued'});
+  assert.deepEqual((await rows(db,'runs')).filter(row=>row.owner_id===owner),runsBefore);assert.deepEqual(await rows(db,'events'),eventsBefore);assert.deepEqual((await rows(db,'deliveries')).filter(d=>d.kind==='result'),resultsBefore);
+  assert.deepEqual((await rows(db,'deliveries')).find(d=>d.id===otherDelivery.id),otherDelivery,'another owner and an unbound manual record are outside the one-time repair');
+  await login(db);assert.equal((await reconcile(db)).processed,0);assert.equal((await rows(db,'deliveries')).find(d=>d.message_id===messageId).status,'received');
  }finally{await db.close();}
 });
