@@ -102,7 +102,9 @@ message pointer; its private prose is not copied into board records.
 
 Accepted, started, completed and verified outcomes are distinct. A successful
 outcome requires completion time and evidence. Delivery confirmation requires
-its own delivered time and evidence. Do not infer start from a webhook receipt,
+its own delivered time and evidence. Notification receipt time comes only from
+the matching outbox; a private reply never supplies or overwrites that time.
+Result-report receipt is stored separately from its actual delivered time. Do not infer start from a webhook receipt,
 delivery from acceptance, or punctuality from a planned time.
 
 Notification retries use the same immutable event identity and the existing

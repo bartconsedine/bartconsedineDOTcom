@@ -189,3 +189,33 @@ board and an acknowledgment-only private round trip. An accepted callback is
 not a Dot result; an unavailable Text Inbox source association remains an
 explicit waiting item. Website rollback keeps the additive schema/data intact;
 the pre-release code rollback target is commit `4b6644a7c3b98706c366d5396b787797a393c031`.
+
+### Notification receipt provenance correction
+
+The guarded workflow `43746044876` activated the workflow migration on
+15 November 2026 after encrypted backup artifact `14174447396` was retained and
+verified. Hosted checksum/RLS/grant checks passed. The owner records were imported
+through guarded contracts and read back exactly; physical cross-device reload
+was confirmed by the owner.
+
+A real acknowledgment round trip succeeded through the existing private Dot
+connection after a manual prompt. Automatic event wake-up remains unverified.
+Live QA then found notification `received_at` being overwritten by the later
+private reply time. Those are different observations.
+
+`20261115184600_project_board_notification_receipts` is the reviewed correction,
+SHA-256 `1cfdbb9cf56e8412e34a67c23f8643a6e9256501e9e64b61561297a956bdca1a`.
+It replaces only the private reconciliation function, retaining its existing
+security/ACLs. Notification status/receipt now derive only from the matching
+private outbox. A verified-owner, run/message/channel-bound repair restores
+Bart's affected notification rows from that exact source, including null for an
+unconfirmed callback. Result, reply and execution timestamps remain unchanged.
+The applied workflow migration and its checksum remain unchanged.
+
+Use the normal checked main-only workflow and existing environment review,
+current physical recovery point and fresh encrypted backup gate for this one
+pending suffix. Read actual ledger state first; do not replay the earlier
+migration or connector DDL. Verify actual callback and notification receipt
+values match after deployment, while the confirmed canary outcome/event and
+unconfirmed external delivery remain intact. No new permission, provider action,
+schedule, credential, enrollment or paid feature is part of this correction.
