@@ -4,11 +4,12 @@ import { runInNewContext } from 'node:vm';
 import { createUiRuntime } from './ui-runtime.js';
 import * as model from '../../src/private-apps/project-board/model.js';
 import * as starter from '../../src/private-apps/project-board/starter.js';
+import * as workflow from '../../src/private-apps/project-board/workflow-model.js';
 export { tick } from './ui-runtime.js';
 const require = createRequire(import.meta.url);
 const { transformSync } = require('next/dist/compiled/babel/core');
 
-export function boardUi(fetcher, initial = []) {
+export function boardUi(fetcher, initial = [], environment = {}) {
   const runtime = createUiRuntime(initial);
   const { code } = transformSync(readFileSync(new URL('../../src/private-apps/project-board/board.js', import.meta.url), 'utf8'), {
     babelrc: false, configFile: false,
@@ -16,11 +17,12 @@ export function boardUi(fetcher, initial = []) {
     plugins: [require('next/dist/compiled/babel/plugin-transform-modules-commonjs')],
   });
   const module = { exports: {} };
-  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, URLSearchParams, Date, crypto: globalThis.crypto, require: id => {
+  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, URLSearchParams, Date, crypto: globalThis.crypto,...environment, require: id => {
     if (id === 'react') return runtime.hooks;
     if (id === 'react/jsx-runtime') return require(id);
     if (id === './model') return model;
     if (id === './starter') return starter;
+    if (id === './workflow-model') return workflow;
     if (id.endsWith('.css')) return { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) };
     throw new Error(id);
   } });

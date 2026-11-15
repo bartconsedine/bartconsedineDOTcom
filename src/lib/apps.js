@@ -28,7 +28,7 @@ const registry = createAppRegistry([{
   Component: MorningFeed, api: createMorningApi({ readAppData, compareAndWriteAppData, getTldr }),
 }, {
   slug: 'project-board', name: 'Project board',
-  description: 'Private projects and next steps, connected to your calendar.',
+  description: 'Your tasks, decisions, Dot jobs and verified outcomes in one private live board.',
   Component: ProjectBoard, api: createProjectBoardApi({ storage: projectStorage, verifyCalendarLink }),
 }, {
   slug: 'robot-party', name: 'Robot Party',
