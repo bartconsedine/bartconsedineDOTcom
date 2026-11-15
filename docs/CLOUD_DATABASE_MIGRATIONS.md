@@ -152,3 +152,40 @@ verification with synthetic records, not live dot delivery or hosted restoration
 After code release, inspect the actual complete pending suffix. Obtain separate explicit authorization for the hosted migration and for enabling list/mark access on existing paired TVs. Use the normal main-only deploy workflow, current completed recovery point, environment review and fresh encrypted backup verification. Verify the ledger checksum, private table denial, disabled state and owner/device identity boundaries before activation. See [the feature operating guide](../src/private-apps/morning-feed/tldr/README.md#deployment-and-rollback) for the exact activation statement and rollback behavior. Never bypass migration history with connector DDL.
 
 After authorized activation, accept a confirmed read → reload → independent owner session → TV re-pairing flow, cross-owner denial and revoked-device denial against the hosted service. Local browser fixtures and PostgreSQL recovery checks do not certify these hosted flows.
+
+## Canonical project-board workflow — November 15, 2026
+
+Read-only production inspection verified the eleven reviewed predecessors through
+`20261101014448_morning_news_progress` are already complete. Project Board and
+personal Robot Party storage are live; earlier prepared/unapplied descriptions
+above are dated checkpoints, not current rollout instructions.
+
+The reviewed additive suffix is **20261115173745_project_board_workflow**, SHA-256
+`86b4782c9569a06682603ab45d48a4165e7ef6f377fa01bbc71df328291d0459`.
+It preserves existing project/task IDs and adds owner-scoped workflow records,
+revision-bound approval, private-channel request binding, separate notification
+and result delivery observations, and deduplicated outcome reconciliation. It
+imports no backlog, creates no automation or scheduler, changes no existing Dot
+subscription/grant, and changes no credential, admin enrollment or calendar.
+
+The owner approved the implementation scope in chat. Authenticated Supabase
+Backups inspection on November 15 verified a restorable physical point at
+**2026-11-15T08:12:01Z** with Restore available. Eight dated points were visible;
+that is not evidence of the configured retention policy. PITR was not enabled
+and is not required or authorized for this release. No paid add-on is needed.
+
+After the checked code reaches main, run normal **inspect** and require exactly
+this one pending suffix. Retain the existing `production-database` environment
+review, exact `DEPLOY vgsmfbupgydafvotkold` confirmation, recovery check and fresh
+encrypted logical-backup upload/download/decryption gate. Never apply connector
+DDL, change a protection setting or mark a failed migration complete. Inspect
+actual history after any uncertain workflow result before retrying.
+
+Then verify the new checksum/ledger, owner RLS and private function grants, the
+unchanged existing channel, revision conflicts and readback. Import reconciled
+owner records only through the reviewed guarded operator contract, preserving
+source identities and missing provider metadata. Exercise the shipped owner
+board and an acknowledgment-only private round trip. An accepted callback is
+not a Dot result; an unavailable Text Inbox source association remains an
+explicit waiting item. Website rollback keeps the additive schema/data intact;
+the pre-release code rollback target is commit `4b6644a7c3b98706c366d5396b787797a393c031`.

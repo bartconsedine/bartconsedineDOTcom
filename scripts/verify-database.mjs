@@ -9,6 +9,7 @@ import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { connection, baselineCheck, backup, restoreLocal, migrationState, adoptBaseline, deployMigrations } from './database.mjs';
+import { verifyProjectBoardConcurrency } from './verify-project-board-concurrency.mjs';
 
 const c = connection(process.env.TEST_DATABASE_URL);
 assert.equal(c.local, true, 'Only a disposable local cluster is permitted');
@@ -145,6 +146,20 @@ try {
   const personalChannel='88888888-8888-4888-8888-888888888888', personalMessage='99999999-9999-4999-8999-999999999999';
   await query(names[0], `update private.morning_news_settings set enabled=true;set role anon;select public.morning_news_progress('read','${tvDevice}',repeat('a',64));`);
   await query(names[0], `set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.robot_party_personal_owner('grant','{"id":"${personalChannel}","robotId":"55555555-5555-4555-8555-555555555555"}'::jsonb);set role anon;select public.robot_party_personal_robot('${robotToken}','subscribe',jsonb_build_object('id','rpps_'||repeat('a',64),'url','https://callback.example/synthetic','secretBox',repeat('fixture-ciphertext-',5),'expiresAt',clock_timestamp()+interval '1 hour'));set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.robot_party_personal_owner('send','{"id":"${personalMessage}","channelId":"${personalChannel}","body":"Synthetic private restore message"}'::jsonb);`);
+  console.log('[board/OK] real PostgreSQL concurrency',await verifyProjectBoardConcurrency(target(names[0]),{ownerId:ids[0]}));
+  // Restore actual canonical workflow rows, approval revisions and uncertainty,
+  // not just table definitions. These fixtures never invoke an external action.
+  const boardProject='a1111111-1111-4111-8111-111111111111',boardTask='a2222222-2222-4222-8222-222222222222',boardJob='a3333333-3333-4333-8333-333333333333',boardRun='a4444444-4444-4444-8444-444444444444';
+  await query(names[0], `reset role;
+    insert into public.project_board_projects(owner_id,id,title) values('${ids[0]}','${boardProject}','Synthetic recovery project');
+    insert into public.project_board_tasks(owner_id,id,project_id,title,status,kind,next_action,blocked_reason,evidence) values('${ids[0]}','${boardTask}','${boardProject}','Synthetic waiting record','waiting','waiting','Inspect provider receipt','Outcome is unverified','[{"label":"Synthetic recovery evidence","url":"https://example.com/recovery","observed_at":"2026-11-15T17:00:00Z"}]');
+    insert into public.project_board_jobs(owner_id,id,project_id,title,provider_job_id,provider_revision,next_action) values('${ids[0]}','${boardJob}','${boardProject}','Synthetic provider definition','restore-provider-job','external-revision-v1','Verify provider state');
+    insert into public.project_board_schedules(owner_id,id,job_id,expression,timezone) values('${ids[0]}','a5555555-5555-4555-8555-555555555555','${boardJob}','Observed provider expression only','America/New_York');
+    insert into public.project_board_runs(owner_id,id,job_id,job_revision,task_id,task_revision,status,request_summary,next_action) values('${ids[0]}','${boardRun}','${boardJob}',1,'${boardTask}',1,'uncertain','Synthetic uncertain action; never execute','Inspect before retry');
+    insert into public.project_board_approvals(owner_id,id,run_id,run_revision) values('${ids[0]}','a6666666-6666-4666-8666-666666666666','${boardRun}',1);
+    insert into public.project_board_deliveries(owner_id,id,run_id,status,next_action) values('${ids[0]}','a7777777-7777-4777-8777-777777777777','${boardRun}','uncertain','Never blindly retry');`);
+  const workflowTables=['projects','tasks','jobs','schedules','runs','approvals','deliveries','events'];
+  const workflowBefore=Object.fromEntries(await Promise.all(workflowTables.map(async table=>[table,(await query(names[0],`select * from public.project_board_${table} order by owner_id,id`)).rows])));
   const qrDevice='Q'.repeat(43),qrApproval='K'.repeat(43),qrSession='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   await query(names[0], `insert into auth.sessions values('${qrSession}','${ids[0]}');set role anon;select public.admin_qr('start','${qrDevice}','{"approval":"${qrApproval}","label":"Recovery TV","url":"https://auth.example/auth/v1/authorize"}');reset role;set role authenticated;select set_config('request.jwt.claim.sub','${ids[0]}',false);select public.admin_qr('approve','${qrApproval}');select public.admin_qr('relay','${qrApproval}','{"code":"synthetic-recovery-code"}');`);
   const claims=await Promise.allSettled([query(names[0],`set role anon;select public.admin_qr('claim','${qrDevice}');`),query(names[0],`set role anon;select public.admin_qr('claim','${qrDevice}');`)]);
@@ -162,6 +177,11 @@ try {
   await assert.rejects(restoreLocal(archive, connection(target(names[2]))), /not empty/);
   await query(names[2], 'drop table occupied');
   await restoreLocal(archive, connection(target(names[2])));
+  for(const table of workflowTables){
+    assert.deepEqual((await query(names[2],`select * from public.project_board_${table} order by owner_id,id`)).rows,workflowBefore[table],`canonical ${table} survive backup/restore with exact identities and revisions`);
+    const scoped=await query(names[2],`set role authenticated;select set_config('request.jwt.claim.sub','${ids[1]}',false);select * from public.project_board_${table};`);
+    assert.equal(scoped[2].rowCount,0,`restored ${table} still deny the second owner`);
+  }
   assert.equal((await query(names[2], 'select * from private._prisma_migrations')).rowCount, Object.keys(reviewedMigrations).length);
   for (const [index, id] of ids.entries()) {
     const restored = await query(names[2], `set role authenticated; select set_config('request.jwt.claim.sub','${id}',false); select public.is_site_admin() allowed; select value from public.app_data;`);

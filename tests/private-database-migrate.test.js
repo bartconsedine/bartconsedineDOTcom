@@ -9,8 +9,10 @@ const project = 'vgsmfbupgydafvotkold';
 const password = 'SYNTHETIC-migration-%#secret';
 const confirmed = action => ({ DATABASE_PASSWORD: password, CONFIRM_HOSTED_MIGRATION: project, CONFIRM_MIGRATION_ACTION: action, CONFIRM_RECOVERY_POINT: project });
 const fixture = async fn => {
-  // Outside the checkout and OS temporary trees, matching the production guard.
-  const folder = await mkdtemp(join(dirname(fileURLToPath(new URL('../', import.meta.url))), 'backup-guard-test-'));
+  // Use an explicit synthetic-fixture parent on hosts whose home directory is
+  // itself a Git checkout. The production directory validator still runs.
+  const parent=process.env.TEST_EXTERNAL_BACKUP_PARENT??dirname(fileURLToPath(new URL('../', import.meta.url)));
+  const folder = await mkdtemp(join(parent, 'backup-guard-test-'));
   try { await fn(folder); } finally { await rm(folder, { recursive: true, force: true }); }
 };
 

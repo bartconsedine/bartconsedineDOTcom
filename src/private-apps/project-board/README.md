@@ -1,42 +1,156 @@
 # Project board
 
-Private Jira-style board at `/admin/apps/project-board`, registered in the existing workspace. Create/edit projects and tasks; use five status columns, priority, due date, search and reference links. Open a task to move its status. The phone layout stacks columns and expands details to the viewport. No drag-and-drop, deletion, sharing, background sync or automatic calendar writes in this first version.
+The existing owner-only board at `/admin/apps/project-board` is the live editor
+of the website's canonical Supabase task and job records. Google Calendar remains
+authoritative for calendar events. Dot remains the initial execution and schedule
+provider. This app does not run a second scheduler, migrate automations, or turn
+a task's date-only due date into a scheduled execution time.
 
-## Persistence and permissions
+## Canonical records
 
-Supabase `public.project_board_projects` and `public.project_board_tasks` are authoritative. Composite `(owner_id,id)` keys and an owner/project foreign key prevent cross-owner links. Rows have creation/update timestamps and integer revisions. Session-scoped Supabase, exact-origin shared API dispatch, server validation and owner-only site-admin RLS protect both operations and direct Data API access. App invitations do not grant access to these tables; the API explicitly rejects another owner's board. Nothing is stored in localStorage or a second service.
+Existing project and task UUIDs are preserved. All records remain owner-scoped;
+another site administrator or an app guest does not gain access to this board.
+Rows carry UTC creation/update timestamps and integer revisions.
 
-POST uses exactly `{op: "projects" | "tasks", value, expectedRevision}`. New rows require null revision; edits require the last returned integer revision. Atomic update predicates and a database trigger reject stale edits. UI confirms only returned saves; failure retains the open form and offers Save again. On a conflict, copy your draft, close, refresh and reconcile. GET never seeds or writes. A failed load does not turn into an empty board.
+| Collection | Purpose |
+| --- | --- |
+| `project_board_projects` | Projects and source references |
+| `project_board_tasks` | Tasks, waiting and historical items, priority, due date, next action, blocker and evidence references |
+| `project_board_jobs` | Dot job definitions, provider ID/revision, timezone, next action and evidence |
+| `project_board_schedules` | Observed provider schedule references, timezone, expression, next scheduled UTC time and last verification |
+| `project_board_runs` | A specific request and its exact parent revisions, approval requirement, observed lifecycle times and outcome evidence |
+| `project_board_approvals` | Decisions bound to an exact run revision |
+| `project_board_deliveries` | Separate notification/result delivery identities and scheduled, received, started, delivered and verified observations |
+| `project_board_events` | Deduplicated private reply observations and conflict evidence; read-only through ordinary editors |
 
-Projects: `id,title,description,source_url`. Tasks: `id,project_id,title,description,status,priority,due_date,source_url,calendar_id,event_id`. IDs are UUIDs; dates are ISO calendar dates or null. Calendar ID/event ID are both null or both present. Status is backlog/todo/in-progress/blocked/done; priority low/medium/high. The view fails explicitly beyond 1,000 projects or tasks, rather than silently dropping records.
+A missing provider ID, revision, timestamp or verified outcome remains missing.
+Provider-completed history is not promoted to independently verified work. A
+schedule expression saved here is an observation; editing it does not edit Dot.
+Calendar references still require live Google verification when added/replaced.
+Unchanged references can be retained if Google consent later expires.
 
-## Existing calendar entities
+Evidence references contain `label`, an HTTPS `url` (or empty when no link exists),
+and UTC `observed_at` or null. They hold concise facts and source pointers, not
+raw private conversations. The private candidate inventory is a temporary
+operator transfer only; canonical reconciled records live in Supabase.
 
-Calendar companion (PR #16) uses **Google Calendar as event source of truth**, not Supabase event tables. This board stores only an optional Google `calendar_id,event_id` reference per task. The task editor reads the existing protected calendar API; its snapshot includes real events, birthday occurrences, plans and sitter/reminder entries. Calendar month controls the companion snapshot, which also includes its planning horizon. Event details refresh through its existing detail reader; missing/deleted/inaccessible events retain a reference that can be unlinked. Live labels and Google links are disposable, not replicated task data.
+## Browser and chat editing
 
-On a new/changed reference, the server binds the provider credential to the independently verified workspace identity using `googleSession`, checks the calendar list and fetches the actual noncancelled event. Expired/missing consent blocks that new reference; unchanged references remain editable. Connect/reconnect in Calendar companion. Task status/due-date changes never edit Google. No new OAuth scopes, credentials or ACLs are introduced.
+The existing session-scoped, exact-origin, private/no-store app API is retained:
 
-## iMCP initial workflow
+- GET reads canonical collections and never dispatches, reconciles or seeds.
+- POST `{op, value, expectedRevision}` saves projects, tasks, jobs, schedules,
+  runs, approvals or deliveries. Creation uses null; updates compare the exact
+  current integer revision atomically. Stable IDs and creation times are immutable.
+- POST `{op:'reconcile'}` ingests observations from the already granted private
+  channel. It does not execute actions.
+- POST `{op:'dispatch',runId,id,expectedRevision}` atomically binds the exact
+  request to one private message and the existing durable notification outbox.
+  `id` is a stable message UUID retained for the same request.
+- POST `{op:'cancel',runId,expectedRevision}` records cancellation intent. An
+  in-flight action is not claimed cancelled without a provider outcome.
+- POST `{op:'deliver'}` pumps one existing private notification. A received
+  notification is not evidence of execution or delivery of the requested result.
 
-“Review iMCP setup” previews seven tasks from the user's explicit request and official project research, all in Backlog. “Add setup project” performs a single transaction through `project_board_start`, running with the signed-in user's privileges and RLS. Stable IDs and conflict-ignore make retry safe and preserve later edits. No records are seeded by migrations or GET. Adding the checklist does not install iMCP, approve permissions or verify an installed binary. Source: <https://github.com/mattt/iMCP>.
+The UI refreshes while visible and after reconnect/focus. Failures retain the
+last snapshot with a stale/error notice and keep an open draft in React state.
+Unsaved form input is temporary; it is not promised to survive closing a tab.
+There is no browser-storage fallback. Read back confirmed saves after reload
+and on an independent authenticated session. Missing workflow schema is an
+explicit setup error while the original projects/tasks remain accessible;
+ordinary database failures are errors, never substituted empty data.
 
-## Chat data maintenance
-
-Dedicated-table equivalent to the reviewed JSON tooling:
+Trusted chat maintenance uses the same validators and per-row revision guards:
 
 ```sh
 node scripts/project-board-sql.mjs read bartconsedine@gmail.com
 node scripts/project-board-sql.mjs write bartconsedine@gmail.com /absolute/private/change.json
 ```
 
-Follow `docs/CHAT_APP_DATA.md` identity/project verification and requested-owner rules. The generated object targets only project `vgsmfbupgydafvotkold`; pass it unchanged to the connected Supabase operator. Writes require a temporary 0600 JSON transfer with exactly `kind,value,expectedRevision`, the same validators, a fresh read, and the returned revision. The SQL verifies live enrollment, confirmed nonanonymous user and matching verified Google identity; it scopes every row by owner. It cannot add/change calendar references: use the browser's Google-verified workflow for those. Preserve unrelated fields and stable IDs; require `authorized:true,saved:true,revision`, then reread. False saves require reconciliation; uncertain outcomes require readback before retrying. Delete transfer files. Never publish the privileged generator as an endpoint or request service-role credentials.
+Follow [the app-data operating guide](../../../docs/CHAT_APP_DATA.md). A write
+transfer is a private 0600 file containing exactly `kind,value,expectedRevision`.
+Generate arguments, review the requested change, execute the returned SQL
+unchanged on `vgsmfbupgydafvotkold`, require `authorized:true,saved:true,revision`,
+then reread. False saves require reconciliation. After a timeout read before
+retrying. Do not expose the operator path as an endpoint or collect credentials.
+Chat writes cannot add/change Google event links. Events are not a writable
+collection. No import occurs on GET or migration.
 
-## Activation and validation
+## Existing Dot coordination
 
-Stacked on calendar PR #16 and its #12 dependency, with current main merged to retain Robot Party and the login continuation. The callback merge preserves both fixed calendar return and Robot Party's allowlisted continuation.
+The board reuses Robot Party's owner-granted personal channel, signed MCP Events,
+private read/reply tools and encrypted leased outbox. No browser bridge, new
+credential, grant or subscription is provisioned. The server verifies existing
+configuration and the grant/subscription again before dispatch. The database
+commits message/run/delivery identity together; retries cannot create a second
+request with changed content.
 
-Migration `20261027080423_project_board` and its checksum pin prepare the two tables, owner RLS, revision triggers and atomic starter import. **Not applied to hosted Supabase.** After code/dependency review, obtain separate schema authorization and use the existing guarded Prisma/cloud backup runbook. Do not use dashboard SQL, db push or a new migration history. No production seed/auth/access changes occurred.
+Action-mode requests require an approved exact run revision and matching linked
+job/task revisions. Editing a proposal invalidates its approval. The only
+approval-free dispatch is a fixed acknowledgment canary: user-entered instructions
+are excluded, and no external action is requested.
 
-Local verification: 158 tests passed, including real PostgreSQL/PGlite RLS, transaction rollback, starter retry, reload reads, cross-owner FK and stale revision behavior; API validation/error/auth/origin checks; real JSX load/edit/failure/retry/reload handlers; and both OAuth callback destinations. Prisma validation, production build and diff checks passed. Desktop and 390×844 phone **static actual-component fixtures with synthetic checklist data** were visually reviewed in native Chrome, including lower form controls. They do not establish a hosted session, live Google link, or cross-device Supabase persistence. Local screenshots are deliverables outside version control.
+The current private tool allows one reply per owner message. Requests explicitly
+ask Dot to save that slot for its final result, not an early acknowledgment.
+The structured final observation contains the stable run and event identity,
+observed status, provider run ID, evidence and independently supplied scheduled,
+accepted, started, completed and delivered times. Reconciliation binds it to the
+original message, channel and authenticated connection. Identical events are
+idempotent; changed payloads or incompatible state transitions are recorded as
+conflicts/uncertainty. An unstructured reply is an uncertain observation with a
+message pointer; its private prose is not copied into board records.
 
-The full `db:verify:local` backup/restore drill is unverified: no PostgreSQL client/server tools or disposable `TEST_DATABASE_URL` are available on this host. PGlite exercises fresh migrations and the entire existing-to-new migration sequence but is not a pg_dump/Prisma recovery drill. Hosted authenticated save/reload/fresh-session, live second-admin denial, Google link/consent and deployed mobile checks remain activation checks.
+Accepted, started, completed and verified outcomes are distinct. A successful
+outcome requires completion time and evidence. Delivery confirmation requires
+its own delivered time and evidence. Do not infer start from a webhook receipt,
+delivery from acceptance, or punctuality from a planned time.
+
+Notification retries use the same immutable event identity and the existing
+bounded outbox. They are not retries of an external action. Never retry an
+uncertain external effect blindly. Inspect the provider/result first; a new
+attempt needs a new reviewed request and approval. Cancelling a local request
+does not retract an already received provider action. Late results after a
+cancellation request remain visible for reconciliation.
+
+Stable notification identity is not a generic exactly-once guarantee for
+external effects. Requests instruct Dot to inspect prior results and use a
+provider's native idempotency support. If duplicate-safe execution cannot be
+established, Dot must report uncertainty rather than repeat the effect. Even an
+untouched notification queue cannot prove that Dot has not polled the persisted
+private request; post-dispatch cancellation remains a request for reconciliation.
+
+Outbox progress depends on an open owner page and an active finite-lived Dot
+subscription. Closing it can delay notification delivery; reopening resumes
+saved queued work. No exact execution timing or always-on dispatcher is promised.
+The approved Text Inbox sender/source association must be verified independently;
+third-party text cannot become owner authorization by appearing in a message.
+
+## Migration and recovery
+
+Read-only production inspection on 15 November 2026 confirmed all eleven prior
+migrations through `20261101014448_morning_news_progress` applied. The old
+October assertion that Project Board storage was unapplied is obsolete.
+
+The additive `20261115173745_project_board_workflow` migration must be reviewed,
+checksum-pinned and deployed through the existing main-only
+[cloud migration workflow](../../../docs/CLOUD_DATABASE_MIGRATIONS.md), with a
+current completed recovery point, production-database environment review and a
+fresh encrypted backup/upload/download/decryption check. Never replay SQL via
+connector DDL, alter applied migrations or edit ledger history. Ordinary website
+rollback does not reverse this additive schema or delete canonical records.
+
+The original optional iMCP checklist remains explicit and retry-safe; its
+presence is a historical setup template, not proof that its tasks are active or
+that software/permissions were installed. TV-calendar and laptop-sales releases
+remain separate PRs. See the sanitized
+[inventory and evidence boundaries](../../../docs/project-board-inventory.md).
+
+## Verification
+
+Relevant suites cover API authentication/origin checks, owner isolation, row
+revisions, parent bindings, approved dispatch, duplicate/conflicting events,
+cancellation and uncertainty. The database drill exercises real Prisma migration,
+logical backup and restore with synthetic data in a disposable loopback cluster.
+Local or injected fixtures do not establish hosted delivery, live second-owner
+access or cross-device behavior. Record actual command results and hosted
+acceptance evidence in the release report; unresolved checks remain explicit.

@@ -42,3 +42,13 @@ Use `scripts/project-board-sql.mjs` for owner-scoped project/task reads and guar
 The morning feed uses `morning-feed` / `screen-v1` with the shared `validateScreen` contract. Generate reads/writes with the same commands above, substituting `morning-feed` for `japan-trip`. Start absent records from `emptyScreen()`; preserve stable card IDs, card ordering, visibility and unrelated fields. The screen includes title, focus, time zone, slide interval and up to 24 ritual/briefing/link cards. See [the app README](../src/private-apps/morning-feed/README.md) for fields and limits.
 
 The morning API accepts `{ screen, expectedAt }`. All writers check the exact revision atomically. TV mode checks saved state every 30 seconds; ordinary editor views reload explicitly. Failed refreshes retain the previous snapshot with a visible stale notice. Saving a card does not connect external news, weather or calendars. Optional phone-approved TV pairing uses a separate reviewed authentication migration; see [TV access](../src/private-apps/morning-feed/tv/README.md). The feed data contract itself requires no new schema, enrollment or credentials. Local Postgres tests cover the new contract's roundtrip, stale writes, injection, identity denial and owner isolation; hosted acceptance remains unverified.
+
+The Project Board relational contract also supports jobs, provider schedule
+observations, runs, revision-bound approvals and notification/result deliveries.
+Provider events are read-only through ordinary maintenance. Use the same
+`kind,value,expectedRevision` transfer and preserve stable source identities,
+null unverified provider metadata, and unrelated records. Database UTC strings
+may use `+00:00`; normalize them to equivalent `Z` form for the shared validator,
+preserving precision. Reading or saving a schedule observation never changes a
+Dot automation. An uncertain external outcome requires provider inspection,
+not a blind retry. See the [current board model and coordination contract](../src/private-apps/project-board/README.md).

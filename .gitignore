@@ -129,6 +129,7 @@ dist
 
 .DS_Store
 .qa/
+.playwright-mcp/
 
 # Database connection files and logical backups
 .env.database*
