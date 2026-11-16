@@ -45,21 +45,11 @@ test('public text links keep destinations without decorative arrows', async () =
   assert.ok(html.includes('href="mailto:bartconsedine@gmail.com">Let’s talk.</a>'));
 });
 
-test('homepage Admin navigation requires a successful admin check on each render', async () => {
-  let result = { ok: true }, calls = 0;
-  const Home = component('app/page.js', {
-    '@/components/work-grid': () => null,
-    '@/lib/auth': { checkAdmin: async () => { calls++; return result; } },
-  });
-  assert.match(cleanMarkup(await Home()), /href="\/admin">Admin<\/a>/);
-  for (const reason of ['unauthenticated', 'forbidden', 'unavailable', 'unconfigured']) {
-    result = { ok: false, reason };
-    const html = cleanMarkup(await Home());
-    assert.doesNotMatch(html, /href="\/admin"/);
-    assert.match(html, /href="\/login">Private workspace<\/a>/);
-    assert.match(html, /href="#about">About<\/a>/);
-  }
-  assert.equal(calls, 5);
+test('homepage shows Admin navigation without requiring authentication', () => {
+  const Home = component('app/page.js', { '@/components/work-grid': () => null });
+  const html = cleanMarkup(React.createElement(Home));
+  assert.match(html, /<nav aria-label="Main navigation">.*href="\/admin">Admin<\/a>.*<\/nav>/);
+  assert.match(html, /href="\/login">Private workspace<\/a>/);
 });
 
 test('admin navigation, sign-out POST, app cards and empty state keep working text controls', async () => {
