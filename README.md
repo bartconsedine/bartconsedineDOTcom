@@ -18,6 +18,8 @@ Use the Node version in [.nvmrc](.nvmrc) and install the locked dependencies wit
 
 The public site works without credentials. Workspace pages and APIs require a verified identity and current authorization; missing configuration or unavailable authorization checks deny access. A validated server-only registry supplies the app grid, sidebar, and per-app routes. Owners can explicitly invite viewers or editors to supported app datasets; an invitation does not grant administrator access.
 
+The homepage navigation shows **Admin** at `/admin` only after the server's `checkAdmin()` confirms the current session, verified Google identity, and existing administrator membership. Signed-out visitors, guests, and failed checks keep the public navigation and footer's **Private workspace** login link.
+
 ## Deployment and live auth setup
 
 Follow the [auth setup checklist](docs/SUPABASE_SETUP_CHECKLIST.md) for the project, server environment variables, Google identity verification, administrative enrollment, and live acceptance checks. The approved administrator accounts are `bartconsedine@gmail.com` and `mjshah8@gmail.com`. Google sign-in can create an Auth identity; administrator membership requires the separate reviewed [enrollment SQL](supabase/admin/enroll_two_admins.sql).
