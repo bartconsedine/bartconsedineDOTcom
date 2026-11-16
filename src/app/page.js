@@ -1,14 +1,12 @@
 import Link from 'next/link';
 import WorkGrid from '@/components/work-grid';
-import { checkAdmin } from '@/lib/auth';
 import './portfolio.css';
 
-export default async function Home() {
-  const admin = await checkAdmin();
+export default function Home() {
   return <div className="portfolio">
     <header className="folio-header folio-width">
       <Link className="folio-signature" href="/" aria-label="Bart Consedine home">bc.</Link>
-      <nav aria-label="Main navigation"><a href="#about">About</a><a href="#work">Work</a><a href="#contact">Contact</a>{admin.ok === true && <Link href="/admin">Admin</Link>}</nav>
+      <nav aria-label="Main navigation"><a href="#about">About</a><a href="#work">Work</a><a href="#contact">Contact</a><Link href="/admin">Admin</Link></nav>
     </header>
     <main id="main">
       <section className="folio-hero folio-width" aria-labelledby="intro-title">

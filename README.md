@@ -18,7 +18,7 @@ Use the Node version in [.nvmrc](.nvmrc) and install the locked dependencies wit
 
 The public site works without credentials. Workspace pages and APIs require a verified identity and current authorization; missing configuration or unavailable authorization checks deny access. A validated server-only registry supplies the app grid, sidebar, and per-app routes. Owners can explicitly invite viewers or editors to supported app datasets; an invitation does not grant administrator access.
 
-The homepage navigation shows **Admin** at `/admin` only after the server's `checkAdmin()` confirms the current session, verified Google identity, and existing administrator membership. Signed-out visitors, guests, and failed checks keep the public navigation and footer's **Private workspace** login link.
+The homepage navigation always shows **Admin** at `/admin`. The destination still requires sign-in and current workspace authorization; showing the link does not grant access. The footer also offers the **Private workspace** login link.
 
 ## Deployment and live auth setup
 
