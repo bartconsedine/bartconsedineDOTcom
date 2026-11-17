@@ -3,15 +3,16 @@ import assert from 'node:assert/strict';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { tickerUi } from './helpers/ticker-ui.js';
 import { nodes, button } from './helpers/trip-ui.js';
+import { addDays, dayInZone } from '../src/private-apps/calendar-companion/model.js';
 import { fitHeadline, headlineSize, readingSeconds } from '../src/private-apps/morning-feed/tldr/layout.js';
 const view=ui=>renderToStaticMarkup(ui.render());
 test('paired TVs and shared viewers never request Calendar data; command input cannot claim delivery',async()=>{
- const calendar=tickerUi(()=>assert.fail('locked TV must never request calendar'),{locked:true,ownerLoginEnabled:true},false,'tv/calendar.js');await calendar.settle();assert.match(view(calendar),/approved for Morning signal only/);assert.ok(nodes(calendar.render()).some(n=>n.props?.autoStart===true&&n.props?.embedded===true));assert.doesNotMatch(view(calendar),/Open Calendar companion<\/a>/);calendar.close();
+ const calendar=tickerUi(()=>assert.fail('locked TV must never request calendar'),{locked:true,ownerLoginEnabled:true},false,'tv/calendar.js');await calendar.settle();assert.match(view(calendar),/Morning signal access only/);assert.match(view(calendar),/full owner access for up to 30 days/);assert.ok(nodes(calendar.render()).some(n=>n.props?.autoStart===true&&n.props?.embedded===true));assert.doesNotMatch(view(calendar),/Open Calendar companion<\/a>/);calendar.close();
  const commands=tickerUi(()=>assert.fail('paired TVs must not request private commands'),{paired:true,ownerLoginEnabled:true},false,'tv/command-box.js');await commands.settle();assert.equal(nodes(commands.render()).some(n=>n.type==='textarea'),false);assert.match(view(commands),/Morning signal and news reading progress/);assert.ok(nodes(commands.render()).some(n=>n.type==='a'&&n.props.href==='/login/qr'));commands.close();
 });
 test('owner TV agenda uses only existing Calendar GET and clears private data on access denial',async()=>{
- let denied=false,calls=0;
- const ui=tickerUi(async(url,options)=>{calls++;assert.equal(url,'/api/admin/apps/calendar-companion');assert.equal(options.method,undefined);return denied?Response.json({}, {status:403}):Response.json({connection:'connected',preferences:{settings:{timeZone:'America/New_York'}},loadedAt:'2026-10-31T23:00:00Z',events:[{id:'one',calendarId:'primary',summary:'Existing calendar event',start:{date:'2030-01-01'},end:{date:'2030-01-02'}}]});},{locked:false},false,'tv/calendar.js');
+ let denied=false,calls=0;const today=dayInZone(Date.now(),'America/New_York');
+ const ui=tickerUi(async(url,options)=>{calls++;assert.equal(url,'/api/admin/apps/calendar-companion');assert.equal(options.method,undefined);return denied?Response.json({}, {status:403}):Response.json({connection:'connected',preferences:{settings:{timeZone:'America/New_York'}},loadedAt:'2026-10-31T23:00:00Z',events:[{id:'one',calendarId:'primary',summary:'Existing calendar event',start:{date:today},end:{date:addDays(today,1)}}]});},{locked:false},false,'tv/calendar.js');
  await ui.settle();assert.match(view(ui),/Existing calendar event/);denied=true;button(ui.render(),'Refresh calendar').props.onClick();await ui.settle();assert.doesNotMatch(view(ui),/Existing calendar event/);assert.match(view(ui),/cannot open Calendar/);assert.equal(calls,2);ui.close();
 });
 test('headline sizing targets two lines without hiding long text; longer summaries receive longer reading time',()=>{

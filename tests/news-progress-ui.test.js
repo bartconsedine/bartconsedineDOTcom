@@ -111,3 +111,17 @@ test('minute progress refreshes retain the current story indefinitely', async ()
   await ui.advance(600000); await settled(ui); assert.equal(title(ui), 'newest');
   assert.equal(state.posts, 0); ui.close();
 });
+
+test('direct TV summary reading saves the same owner read marker once and retains the complete snapshot',async()=>{
+ const state=fixture();state.articles=[{...three,summary:'Complete original summary. The final sentence stays here.'}];const ui=state.ui();await waitForTitle(ui,'newest');
+ button(ui.render(),'Read summary').props.onClick();await settled(ui);assert.equal(state.posts,1);assert.equal(state.reads.has(await articleId(three.url)),true);assert.equal(nodes(ui.render()).some(node=>node.type==='iframe'),false);assert.match(html(ui),/The final sentence stays here/);
+ state.articles=[{...three,summary:'A changed source snapshot.'}];await ui.tick(60000);await settled(ui);assert.match(html(ui),/The final sentence stays here/);assert.equal(state.posts,1);ui.key('Backspace');await settled(ui);assert.match(html(ui),/You’re caught up/);ui.close();
+});
+
+test('compact TV progress warning opens full recovery controls in Sources without consuming a story',async()=>{
+ const state=fixture();let unavailable=true;const original=state.fetch;
+ state.fetch=(url,options)=>url==='/progress'&&options?.method!=='POST'&&unavailable?Promise.resolve(Response.json({state:'unavailable'},{status:503})):original(url,options);
+ const ui=state.ui();await waitForTitle(ui,'newest');assert.equal(button(ui.render(),'Retry loading progress'),undefined);assert.ok(button(ui.render(),'Read status needs attention'));
+ button(ui.render(),'Read status needs attention').props.onClick();await settled(ui);const dialog=()=>nodes(ui.render()).find(node=>node.props?.['aria-label']==='Issue dates and sources');assert.ok(dialog());assert.match(renderToStaticMarkup(dialog()),/Could not load reading progress/);
+ unavailable=false;await button(dialog(),'Retry loading progress').props.onClick();await settled(ui);assert.doesNotMatch(html(ui),/Read status needs attention/);assert.match(html(ui),/0 \/ 3 read · Synced/);assert.equal(state.posts,0);assert.equal(title(ui),'newest');button(dialog(),'Back to News').props.onClick();await settled(ui);assert.equal(dialog(),undefined);ui.close();
+});

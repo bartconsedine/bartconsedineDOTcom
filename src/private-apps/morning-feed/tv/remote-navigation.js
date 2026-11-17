@@ -25,8 +25,10 @@ export function nextRemoteTarget(items, current, direction) {
 }
 
 export function attachRemoteNavigation(root) {
+  if (!root) return () => {};
   const doc = root.ownerDocument, win = doc.defaultView;
   const originalTabIndex = root.getAttribute('tabindex');
+  const remembered = new WeakMap();
   let selected = null, lastRect = null, previousScope = null, queued = false, disposed = false;
   root.setAttribute('data-tv-remote', '');
   root.setAttribute('tabindex', '-1');
@@ -36,14 +38,18 @@ export function attachRemoteNavigation(root) {
     return style.visibility !== 'hidden' && style.visibility !== 'collapse' && style.display !== 'none';
   }
   function scope() {
-    return [...root.querySelectorAll('[role="dialog"][aria-modal="true"]')].filter(visible).sort((a, b) => (Number.parseInt(win.getComputedStyle(a).zIndex, 10) || 0) - (Number.parseInt(win.getComputedStyle(b).zIndex, 10) || 0)).at(-1) || root;
+    return [...root.querySelectorAll('[role="dialog"][aria-modal="true"]')].filter(visible).sort((a, b) => (Number.parseInt(win.getComputedStyle(a).zIndex, 10) || 0) - (Number.parseInt(win.getComputedStyle(b).zIndex, 10) || 0)).at(-1) || [...root.querySelectorAll('[data-tv-surface]')].filter(visible).at(-1) || root;
   }
   function targets(area) {
-    return [...area.querySelectorAll(controls)].filter(element => element.tabIndex >= 0 && !element.matches(':disabled') && element.getAttribute('aria-disabled') !== 'true' && visible(element));
+    // A cross-origin frame cannot bubble remote keys back to this controller.
+    // Keep spatial/Tab navigation on the reader toolbar; pointer interaction
+    // inside the embedded site remains available independently.
+    return [...area.querySelectorAll(controls)].filter(element => element.tagName !== 'IFRAME' && element.tabIndex >= 0 && !element.matches(':disabled') && element.getAttribute('aria-disabled') !== 'true' && visible(element));
   }
   function select(element, scroll = false) {
     if (selected !== element) selected?.removeAttribute('data-tv-selected');
     selected = element;
+    if (element !== scope()) remembered.set(scope(), element);
     element.setAttribute('data-tv-selected', '');
     lastRect = element.getBoundingClientRect();
     if (doc.activeElement !== element) element.focus({ preventScroll: true });
@@ -53,10 +59,18 @@ export function attachRemoteNavigation(root) {
     if (disposed) return;
     const area = scope(), list = targets(area), changed = previousScope !== area;
     previousScope = area;
+    if (doc.activeElement?.tagName === 'IFRAME' && area.contains(doc.activeElement) && visible(doc.activeElement)) {
+      selected?.removeAttribute('data-tv-selected'); selected = null; return;
+    }
     if (list.includes(doc.activeElement)) { select(doc.activeElement); return; }
     if (list.includes(selected)) { select(selected); return; }
-    let next = list[0];
-    if (!changed && lastRect && list.length) {
+    if (changed && list.includes(remembered.get(area))) { select(remembered.get(area), true); return; }
+    // Initial destinations belong to entry/first actionable focus. Recovering
+    // from a disabled pager in the same screen should stay near that pager.
+    const initial = changed || !lastRect || !remembered.has(area)
+      ? list.find(element => element.getAttribute('data-tv-initial') !== null) : null;
+    let next = initial || list[0];
+    if (!initial && !changed && lastRect && list.length) {
       const distance = element => { const r = element.getBoundingClientRect(); return ((r.left + r.right - lastRect.left - lastRect.right) / 2) ** 2 + ((r.top + r.bottom - lastRect.top - lastRect.bottom) / 2) ** 2; };
       next = list.reduce((best, element) => distance(element) < distance(best) ? element : best);
     }
@@ -78,15 +92,15 @@ export function attachRemoteNavigation(root) {
     repair();
     const area = scope(), list = targets(area);
     if (backKeys.includes(event.key)) {
-      const cancel = area.querySelector('[data-tv-cancel]');
+      const cancel = [...area.querySelectorAll('[data-tv-cancel]')].find(visible);
       const details = selected?.closest('details[open]');
-      const previous = area.querySelector('[data-tv-back]');
+      const previous = [...area.querySelectorAll('[data-tv-back]')].find(visible);
       if (!cancel && !details && !previous) return; // Home yields to browser/host exit.
       event.preventDefault(); event.stopPropagation();
       if (event.repeat) return;
-      if (cancel && !cancel.matches(':disabled')) cancel.click();
+      if (cancel) { if (list.includes(cancel)) cancel.click(); }
       else if (details) { details.open = false; select(details.querySelector('summary'), true); }
-      else if (previous && !previous.matches(':disabled')) previous.click();
+      else if (previous && list.includes(previous)) previous.click();
       return;
     }
     event.preventDefault(); event.stopPropagation();

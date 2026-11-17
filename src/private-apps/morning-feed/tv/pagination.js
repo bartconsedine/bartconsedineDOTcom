@@ -13,9 +13,19 @@ export function textPages(text, fits) {
       const chunk = text.slice(start, start + count), boundary = chunk.search(/\s+\S*$/);
       if (boundary > count / 2) count = boundary + 1;
       // Never split a UTF-16 surrogate pair between pages.
-      if (/[\uD800-\uDBFF]/.test(text[start + count - 1]) && count > 1) count--;
+      if (/[\uD800-\uDBFF]/.test(text[start + count - 1]) && /[\uDC00-\uDFFF]/.test(text[start + count])) count = count > 1 ? count - 1 : 2;
     }
     pages.push(text.slice(start, start + count)); start += count;
   }
   return pages;
+}
+
+// Locate the page containing the reader's original character after a font/size reflow.
+export function pageForOffset(pages, offset) {
+  let end = 0;
+  for (let index = 0; index < pages.length; index++) {
+    end += pages[index].length;
+    if (offset < end) return index;
+  }
+  return Math.max(0, pages.length - 1);
 }

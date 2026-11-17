@@ -1,0 +1,163 @@
+/* Calendar and Commands share Bart TV's viewport. Text pages own overflow. */
+.morning.morning-display :is(.tv-calendar-view,.tv-connect-panel,.tv-command-panel) {
+  --tv-panel-ink:#edf2ff; --tv-panel-muted:#aabbd5; --tv-panel-line:#34435e; --tv-panel-blue:#8cbbff;
+  color:var(--tv-panel-ink); background:linear-gradient(125deg,#17233b,#111a2c 70%); border:1px solid #32415b;
+  border-radius:clamp(16px,1.7vw,44px); padding:clamp(16px,2.1vh,44px) clamp(18px,2vw,76px); min-height:0; min-width:0; margin:0;
+}
+.morning.morning-display :is(.tv-calendar-view,.tv-connect-panel,.tv-command-panel) :is(button,a) {
+  font-size:clamp(15px,1.16vw,38px); line-height:1.3; min-height:clamp(42px,4.7vh,100px); border-radius:clamp(9px,.7vw,24px); padding:clamp(8px,.65vh,18px) clamp(12px,1.1vw,36px);
+}
+.morning.morning-display :is(.tv-calendar-view,.tv-connect-panel,.tv-command-panel) button { background:#202e46; border:1px solid #405371; color:var(--tv-panel-ink); }
+.morning.morning-display :is(.tv-calendar-view,.tv-connect-panel,.tv-command-panel) button:disabled { opacity:.4; }
+.morning.morning-display :is(.tv-calendar-view,.tv-connect-panel,.tv-command-panel) a { display:inline-flex; align-items:center; color:#b8d7ff; text-decoration:none; }
+.morning.morning-display :is(.tv-calendar-view,.tv-connect-panel,.tv-command-panel) .tv-panel-kicker { color:#97b6de; font:500 clamp(11px,.87vw,28px)/1.4 ui-monospace,SFMono-Regular,monospace; letter-spacing:.12em; margin:0 0 clamp(5px,.6vh,16px); }
+.morning.morning-display :is(.tv-calendar-view,.tv-connect-panel,.tv-command-panel) h2 { font-size:clamp(28px,3vw,94px); font-weight:500; line-height:1.06; letter-spacing:-.04em; margin:0; color:var(--tv-panel-ink); }
+.morning.morning-display :is(.tv-calendar-view,.tv-connect-panel,.tv-command-panel) .tv-panel-primary { background:#b7d5ff; border-color:#b7d5ff; color:#101b2e; font-weight:650; }
+.morning.morning-display :is(.tv-calendar-view,.tv-connect-panel,.tv-command-panel) .tv-panel-alert { color:#f2c797; background:#392c26; border:1px solid #7b5a3a; border-radius:12px; }
+.morning.morning-display .tv-calendar-view { display:grid; grid-template-rows:auto auto minmax(0,1fr) auto; gap:clamp(12px,1.65vh,36px); height:100%; overflow:visible; }
+.tv-calendar-heading { display:flex; justify-content:space-between; gap:10px 24px; align-items:center; flex-wrap:wrap; min-width:0; }
+.tv-calendar-freshness { display:flex; flex-direction:column; text-align:right; gap:6px; color:var(--tv-panel-muted); font-size:clamp(12px,1.05vw,32px); }
+.tv-calendar-heading .tv-panel-alert { flex-basis:100%; margin:0; padding:8px 12px; font-size:clamp(13px,1.05vw,30px); line-height:1.3; }
+.tv-calendar-days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:clamp(6px,.7vw,26px); }
+.morning.morning-display .tv-calendar-days button { display:grid; grid-template-columns:1fr auto; text-align:left; gap:3px 6px; padding:clamp(8px,1vh,24px) clamp(10px,1vw,34px); background:#0e182a; border-color:#2b3b58; }
+.tv-calendar-days button>span { font-size:clamp(13px,1.06vw,32px); color:#b6c7e1; align-self:center; }
+.tv-calendar-days button>strong { grid-row:1/3; grid-column:2; align-self:center; font-size:clamp(24px,2.2vw,66px); font-weight:500; letter-spacing:-.04em; }
+.tv-calendar-days button>small { font-size:clamp(10px,.85vw,26px); color:#91a7c7; }
+.morning.morning-display .tv-calendar-days button[aria-pressed=true] { background:#b8d8ff; border-color:#d1e4ff; color:#0d1b30; }
+.tv-calendar-days button[aria-pressed=true]>:is(span,small) { color:#243e61; }
+.tv-agenda-cards { list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:clamp(12px,1.3vw,42px); min-height:0; }
+.tv-agenda-card { display:flex; flex-direction:column; min-height:0; min-width:0; border:1px solid #364865; border-radius:clamp(12px,1.3vw,36px); background:linear-gradient(135deg,#23334f,#17243a); padding:clamp(14px,1.7vh,38px) clamp(16px,1.7vw,54px); gap:clamp(10px,1.35vh,28px); }
+.tv-agenda-card:only-child { grid-column:1/-1; }
+.tv-agenda-card>header { display:flex; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; align-items:center; }
+.tv-agenda-card time { color:#a6ceff; font-size:clamp(16px,1.45vw,44px); font-variant-numeric:tabular-nums; }
+.tv-agenda-card header>span { color:#e6bb7c; font:500 clamp(11px,.85vw,26px)/1.3 ui-monospace,monospace; }
+.tv-agenda-title { flex:1; min-height:0; min-width:0; font-size:clamp(25px,2.5vw,76px); line-height:1.18; letter-spacing:-.025em; }
+.tv-agenda-title .tv-paged { height:100%; }
+.morning.morning-display .tv-agenda-title .tv-page-controls { font-size:clamp(10px,.8vw,24px); color:#b0c2dd; gap:10px; min-height:0; }
+.morning.morning-display .tv-agenda-title .tv-page-controls button { min-height:clamp(30px,3.7vh,70px); padding:3px 12px; font-size:clamp(14px,1vw,30px); }
+.tv-agenda-source { margin:0; color:#a6b8d2; font-size:clamp(11px,.9vw,28px); }
+.tv-calendar-footer { display:flex; align-items:center; gap:clamp(8px,.75vw,26px); flex-wrap:nowrap; }
+.tv-calendar-range,.tv-calendar-paging { display:flex; gap:clamp(5px,.45vw,18px); align-items:center; }
+.tv-calendar-paging { margin-left:auto; }
+.tv-calendar-paging>span { white-space:nowrap; color:#aebfd9; font:clamp(11px,.85vw,27px)/1.3 ui-monospace,monospace; }
+.morning.morning-display .tv-calendar-paging button { padding-inline:clamp(10px,.8vw,30px); }
+.tv-agenda-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:clamp(8px,1vh,24px); min-height:0; padding:10px 8vw; border:1px solid #2f415e; border-radius:16px; background:#101b2d; }
+.tv-agenda-empty>span { color:#80b8ea; font-size:clamp(28px,3vw,100px); line-height:1; }
+.tv-agenda-empty h3 { font-size:clamp(24px,2.45vw,70px); margin:0; color:#e0eafa; }
+.tv-agenda-empty p { margin:0; max-width:50ch; font-size:clamp(15px,1.3vw,38px); color:#a8bbd7; line-height:1.45; }
+/* Connection consent remains explicit, alongside the unchanged phone approval controls. */
+.morning.morning-display .tv-connect-panel { display:grid; grid-template-columns:1.1fr 1fr; gap:clamp(24px,4vw,110px); align-items:center; height:100%; overflow:auto; }
+.tv-connect-copy { min-width:0; }
+.tv-connect-copy .tv-panel-symbol { display:block; font-size:clamp(36px,5vw,140px); line-height:1; color:#8ebcf7; margin:1vh 0 2vh; }
+.morning.morning-display .tv-connect-copy h2 { margin-bottom:2vh; }
+.tv-connect-copy p,.tv-connect-steps p,.tv-connection-empty { font-size:clamp(15px,1.25vw,38px); color:#b0c0d9; line-height:1.5; margin:1.5vh 0; }
+.tv-connect-copy .tv-panel-alert { padding:12px; }
+.tv-connect-steps { border:1px solid #354968; background:#17253d; padding:clamp(20px,2vw,60px); border-radius:20px; }
+.tv-connect-steps>div:not(.tv-panel-actions) { display:flex; gap:16px; align-items:center; }
+.tv-connect-steps>div>span { font:clamp(15px,1.2vw,34px)/1 ui-monospace,monospace; color:#8ab7ef; }
+.tv-connect-steps .tv-panel-actions { display:flex; flex-direction:column; align-items:stretch; gap:8px; margin-top:2vh; }
+/* Commands: a calm writing surface and a separate, truthful delivery receipt. */
+.morning.morning-display .tv-command-panel { display:flex; flex-direction:column; align-items:stretch; height:100%; overflow:visible; gap:clamp(14px,2vh,44px); }
+.tv-command-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; flex:none; }
+.tv-command-readiness { display:flex; gap:10px; align-items:center; color:#b2c1d8; font-size:clamp(13px,1.15vw,34px); white-space:nowrap; }
+.tv-command-readiness i { width:9px; height:9px; border-radius:50%; background:#e6bb7c; box-shadow:0 0 0 5px #e6bb7c12; }
+.tv-command-readiness[data-ready=true] i { background:#98d8bc; box-shadow:0 0 0 5px #98d8bc12; }
+.tv-command-workspace { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:clamp(16px,2vw,64px); }
+.morning.morning-display .tv-command-compose { display:flex; flex-direction:column; align-items:stretch; gap:clamp(10px,1.2vh,28px); padding:clamp(16px,1.8vw,56px); border:1px solid #3c4f6d; background:#0e192b; border-radius:clamp(14px,1.2vw,36px); min-height:0; }
+.tv-command-compose>label { flex:none; font-size:clamp(17px,1.45vw,44px); color:#e7efff; }
+.morning.morning-display .tv-command-compose textarea { flex:1; min-height:60px; margin:0; width:100%; border:1px solid #3c5272; background:#17263d; color:#edf2ff; border-radius:12px; padding:clamp(12px,1.3vw,40px); font-family:inherit; font-weight:400; font-size:clamp(20px,1.9vw,58px); line-height:1.45; resize:none; }
+.morning.morning-display .tv-command-compose textarea::placeholder { color:#819bbf; }
+.tv-command-submit { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.tv-command-submit>span { font:clamp(11px,.95vw,28px)/1.3 ui-monospace,monospace; color:#a7b9d4; }
+.tv-command-compose>p { color:#9fb1cc; font-size:clamp(12px,1.05vw,30px); line-height:1.4; margin:0; }
+.tv-command-support { display:flex; flex-direction:column; min-height:0; gap:clamp(12px,2vh,40px); padding:clamp(12px,1.2vw,36px) 0; }
+.tv-command-channel { display:flex; gap:clamp(12px,1.2vw,38px); align-items:center; }
+.tv-command-channel>span { font-size:clamp(34px,4.4vw,120px); color:#a8c7f7; line-height:1; }
+.tv-command-channel h3 { font-size:clamp(20px,1.9vw,56px); line-height:1.15; margin:0; color:#e6efff; }
+.tv-command-feedback { flex:1; min-height:0; display:flex; flex-direction:column; }
+.tv-command-explanation { height:100%; min-height:0; color:#acbfdc; font-size:clamp(15px,1.3vw,38px); line-height:1.5; }
+.tv-command-message { height:100%; min-height:0; font-size:clamp(17px,1.6vw,48px); line-height:1.4; color:#bcddc9; }
+.tv-command-message.tv-panel-alert { padding:14px; }
+.tv-command-saved { margin:8px 0 0; color:#bcddc9; font-size:clamp(13px,1.05vw,30px); }
+.morning.morning-display .tv-command-panel .tv-page-controls { font-size:clamp(10px,.8vw,24px); min-height:0; color:#aebed8; }
+.morning.morning-display .tv-command-panel .tv-page-controls button { min-height:clamp(30px,3.7vh,70px); padding:3px 12px; }
+.tv-command-support .tv-panel-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.morning.morning-display .tv-command-replies { border:1px solid #476081; background:#233651; gap:22px; }
+.tv-command-footnote { display:flex; gap:14px; align-items:center; color:#95aac8; flex:none; }
+.tv-command-footnote>span { color:#8bb4eb; font-size:clamp(20px,1.7vw,50px); }
+.tv-command-footnote p { font-size:clamp(12px,1.05vw,32px); margin:0; line-height:1.4; }
+.tv-command-locked { display:flex; flex:1; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:clamp(12px,2vh,42px); min-height:0; }
+.tv-command-locked>.tv-panel-symbol { font-size:clamp(50px,6vw,160px); color:#9fbeef; line-height:1; }
+.tv-command-locked h3 { margin:0; font-size:clamp(24px,2.8vw,80px); }
+.tv-command-locked p { margin:0; max-width:52ch; color:#aabedb; font-size:clamp(16px,1.4vw,42px); line-height:1.5; }
+@media(max-width:1100px) {
+  .morning.morning-display .tv-calendar-footer :is(button,a) { font-size:13px; padding-inline:10px; }
+  .tv-calendar-freshness { font-size:12px; }
+  .tv-calendar-days button>strong { font-size:23px; }
+  .tv-calendar-days button>small { font-size:10px; }
+}
+@media(max-height:650px) {
+  .morning.morning-display :is(.tv-calendar-view,.tv-connect-panel,.tv-command-panel) { padding:14px 18px; }
+  .morning.morning-display :is(.tv-calendar-view,.tv-connect-panel,.tv-command-panel) h2 { font-size:30px; }
+  .morning.morning-display .tv-calendar-view { gap:10px; }
+  .morning.morning-display .tv-calendar-days button { padding:7px 10px; }
+  .tv-agenda-card { padding:12px 16px; gap:7px; }
+  .tv-agenda-title { font-size:25px; }
+  .tv-command-workspace { gap:20px; }
+  .morning.morning-display .tv-command-compose { padding:16px; gap:8px; }
+  .tv-command-support { gap:12px; padding:0; }
+  .tv-command-explanation { font-size:15px; line-height:1.4; }
+  .tv-command-footnote p { font-size:12px; }
+  .tv-connect-copy .tv-panel-symbol { display:none; }
+  .tv-connect-copy p,.tv-connect-steps p { font-size:15px; }
+}
+@media(max-width:700px) {
+  .morning.morning-display .tv-calendar-view { gap:8px; padding:12px; }
+  .tv-calendar-heading { gap:8px; }
+  .tv-calendar-freshness { flex-direction:row; font-size:10px; text-align:left; }
+  .morning.morning-display .tv-calendar-view h2 { font-size:26px; }
+  .morning.morning-display .tv-calendar-days button { display:flex; flex-direction:column; align-items:center; padding:8px 2px; gap:2px; }
+  .tv-calendar-days button>span { font-size:11px; }
+  .tv-calendar-days button>strong { font-size:22px; }
+  .tv-calendar-days button>small { font-size:9px; }
+  .tv-agenda-cards { grid-template-columns:1fr; grid-template-rows:repeat(2,minmax(0,1fr)); gap:8px; }
+  .tv-agenda-card { padding:10px 12px; }
+  .tv-agenda-card:only-child { grid-row:1/-1; }
+  .tv-agenda-card time { font-size:14px; }
+  .tv-agenda-title { font-size:21px; }
+  .tv-agenda-source { font-size:10px; }
+  .tv-calendar-footer { flex-wrap:wrap; gap:6px; }
+  .tv-calendar-range { flex:1; }
+  .tv-calendar-paging { margin-left:0; }
+  .morning.morning-display .tv-calendar-footer :is(button,a) { font-size:11px; min-height:34px; padding:6px 8px; }
+  .tv-calendar-paging>span { font-size:10px; }
+  .morning.morning-display .tv-command-panel { padding:14px; gap:12px; overflow:auto; }
+  .tv-command-heading { flex-direction:column; align-items:flex-start; gap:8px; }
+  .tv-command-workspace { display:flex; flex-direction:column; flex:none; }
+  .morning.morning-display .tv-command-compose { min-height:260px; }
+  .tv-command-support { min-height:240px; }
+  .tv-command-footnote { align-items:flex-start; }
+  .tv-command-support .tv-panel-actions { flex-direction:row; }
+  .morning.morning-display .tv-connect-panel { grid-template-columns:1fr; align-content:start; gap:20px; }
+}
+/* The owner QR remains the existing full-access consent flow, styled in this panel only. */
+.morning.morning-display .tv-calendar-signin .qr-device { min-width:0; max-height:100%; overflow:auto; color:#edf2ff; background:#15243b; border:1px solid #405779; border-radius:clamp(16px,1.6vw,44px); padding:clamp(16px,2vh,40px) clamp(18px,1.6vw,48px); }
+.morning.morning-display .tv-calendar-signin .qr-device h2 { font-size:clamp(24px,2vw,64px); line-height:1.15; margin:8px 0 16px; }
+.morning.morning-display .tv-calendar-signin .qr-device p { color:#b7c8e3; font-size:clamp(14px,1.1vw,34px); line-height:1.4; margin:10px 0; }
+.morning.morning-display .tv-calendar-signin .qr-device .qr-eyebrow { color:#94b8e8; font-size:clamp(10px,.85vw,26px); }
+.morning.morning-display .tv-calendar-signin .qr-device img { width:min(24vw,32vh,700px); max-width:100%; padding:10px; background:white; border-radius:14px; }
+.morning.morning-display .tv-calendar-signin .qr-device label { color:#b8c9e3; font-size:clamp(16px,1.3vw,40px); }
+.morning.morning-display .tv-calendar-signin .qr-device input { background:#0c1728; border-color:#496589; font-size:clamp(18px,1.5vw,46px); }
+.morning.morning-display .tv-calendar-signin .qr-confirmation strong { color:#e6bb7c; font-size:clamp(20px,1.8vw,54px); }
+.morning.morning-display .tv-calendar-signin .qr-device button { background:#b7d5ff; border-color:#b7d5ff; color:#101b2e; }
+.morning.morning-display .tv-calendar-signin .qr-device .qr-instructions { font-size:clamp(12px,1vw,30px); }
+.morning.morning-display .tv-calendar-signin .qr-device .qr-error p { color:#f2c797; }
+@media(min-width:701px) and (max-height:650px) {
+  .morning.morning-display .tv-calendar-signin { gap:24px; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); }
+  .morning.morning-display .tv-calendar-signin .qr-device { padding:14px; }
+  .morning.morning-display .tv-calendar-signin .qr-device-request { gap:10px; }
+  .morning.morning-display .tv-calendar-signin .qr-device img { width:min(100%,170px); padding:6px; }
+  .morning.morning-display .tv-calendar-signin .qr-device h2 { font-size:22px; margin:0; }
+  .morning.morning-display .tv-calendar-signin .qr-device p { font-size:12px; margin:0; }
+  .morning.morning-display .tv-calendar-signin .qr-device .qr-instructions { font-size:12px; }
+}
