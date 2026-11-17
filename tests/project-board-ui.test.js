@@ -62,3 +62,22 @@ test('notification receipts remain separate from confirmed result deliveries and
 test('unchanged workflow editor normalizes database UTC offsets without losing microsecond evidence precision',async()=>{
  const {workflowDefaults,workflowRecord}=await import('../src/private-apps/project-board/workflow-model.js');const data=workflowData();data.runs=[{...workflowDefaults('runs'),request_summary:'Preserve UTC values',status:'succeeded',completed_at:'2026-11-15T17:01:00+00:00',verified_at:'2026-11-15T17:02:00+00:00',outcome:'Confirmed',evidence:[{label:'Observed',url:'',observed_at:'2026-11-15T17:01:00.123456+00:00'}],revision:4}];const posts=[];const ui=boardUi(async(_url,opts)=>{if(opts?.method==='POST'){const body=JSON.parse(opts.body);workflowRecord(body.op,body.value);posts.push(body);return Response.json({saved:true,record:{...body.value,revision:5}});}return Response.json(data);});let tree=await ui.mount();viewButton(tree,'Completed').props.onClick();tree=ui.render();nodes(tree).find(n=>n.props?.className==='workCard').props.onClick();tree=ui.render();button(tree,'Edit record').props.onClick();tree=ui.render();nodes(tree).find(n=>n.type==='form').props.onSubmit({preventDefault(){}});await tick();assert.equal(posts.length,1);assert.equal(posts[0].value.completed_at,'2026-11-15T17:01:00Z');assert.equal(posts[0].value.verified_at,'2026-11-15T17:02:00Z');assert.equal(posts[0].value.evidence[0].observed_at,'2026-11-15T17:01:00.123456Z');
 });
+
+test('task layout and priority filters operate on confirmed records without saving or losing a task',async()=>{
+ const data=structuredClone(initial);data.tasks[0].priority='high';const writes=[];
+ const ui=boardUi(async(url,options)=>{if(options?.method==='POST')writes.push(options);return Response.json(data);});await ui.mount();
+ const cards=()=>nodes(ui.render()).filter(n=>n.type==='button'&&n.props.className==='card');
+ assert.equal(cards().length,7);button(ui.render(),'List').props.onClick();assert.ok(nodes(ui.render()).some(n=>n.props.className==='taskList'));assert.equal(cards().length,7);
+ nodes(ui.render()).find(n=>n.props['aria-label']==='Task priority filter').props.onChange({target:{value:'high'}});assert.equal(cards().length,1);
+ cards()[0].props.onClick();assert.ok(nodes(ui.render()).some(n=>n.props['aria-label']==='Task details'));button(ui.render(),'Close').props.onClick();
+ button(ui.render(),'Clear task filters').props.onClick();assert.equal(cards().length,7);button(ui.render(),'Board').props.onClick();assert.ok(nodes(ui.render()).some(n=>n.props.className==='columns'));assert.equal(writes.length,0);ui.close();
+});
+
+test('work search handles empty matches and clears without changing saved data',async()=>{
+ const ui=boardUi(async()=>Response.json({...initial,jobs:[],runs:[],schedules:[],approvals:[],deliveries:[]}));await ui.mount();
+ const all=nodes(ui.render()).find(n=>n.type==='button'&&n.props.children?.[0]==='All work');all.props.onClick();
+ assert.equal(nodes(ui.render()).filter(n=>n.props.className==='workCard').length,7);
+ nodes(ui.render()).find(n=>n.type==='input'&&n.props.placeholder==='Search tasks, jobs, and requests…').props.onChange({target:{value:'NO MATCH EXISTS'}});
+ assert.equal(nodes(ui.render()).filter(n=>n.props.className==='workCard').length,0);assert.ok(button(ui.render(),'Clear work search'));
+ button(ui.render(),'Clear work search').props.onClick();assert.equal(nodes(ui.render()).filter(n=>n.props.className==='workCard').length,7);ui.close();
+});

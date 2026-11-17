@@ -179,3 +179,9 @@ is absent and no private connection access exists.
 Final local verification for this prepared revision: Prisma validation passed,
 all 222 repository tests passed, production build passed, and `git diff --check`
 passed. The paused board checkout and TV layout worker are untouched. The new private-chat migration/pin/models and recovery fixture are the only migration-related changes.
+
+### Conversation-first workspace layout
+
+Messages and the draft composer appear before connection administration. Connection & privacy is collapsed for a verified connection and open when setup or recovery is needed; all existing grant, revoke and status details remain available. Messages distinguish the owner and bound connection, including the verified connection ID on replies. **Ctrl+Enter** (or **Meta+Enter**) sends through the same guarded, idempotent path as the send button; blank text, IME composition and unverified/disconnected states cannot trigger sending. Character counts and draft-copy remain local presentation helpers; unsent drafts are still temporary and never persisted automatically.
+
+Local UI tests exercise the shortcut's denial/blank/composition paths and confirmed send, as well as uncertain-save recovery. These fixtures do not establish real webhook delivery or hosted connection identity.

@@ -59,3 +59,19 @@ test('riding filter selects a visible option and comparison can clear the filter
   assert.equal(ui.states[0], 'otaru'); assert.equal(ui.states[3], 0);
   assert.match(renderToStaticMarkup(tree), /ticket issuance unverified/);
 });
+
+test('timeline stepping reaches both bounds and option selection returns to the first day', () => {
+  const ui = explorerUi(plan); let tree = ui.render();
+  assert.equal(button(tree, 'Previous day').props.disabled, true);
+  for (let index = 0; index < 7; index++) {
+    button(tree, 'Next day').props.onClick(); tree = ui.render();
+  }
+  assert.equal(ui.states[1], 7);
+  assert.equal(button(tree, 'Next day').props.disabled, true);
+  assert.match(renderToStaticMarkup(tree), /Feb 4 · Tokyo/);
+  button(tree, 'Previous day').props.onClick(); tree = ui.render();
+  assert.equal(ui.states[1], 6);
+  button(tree, 'Canal town detour').props.onClick(); tree = ui.render();
+  assert.equal(ui.states[1], 0);
+  assert.equal(button(tree, 'Previous day').props.disabled, true);
+});

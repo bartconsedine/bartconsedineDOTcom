@@ -156,3 +156,9 @@ logical backup and restore with synthetic data in a disposable loopback cluster.
 Local or injected fixtures do not establish hosted delivery, live second-owner
 access or cross-device behavior. Record actual command results and hosted
 acceptance evidence in the release report; unresolved checks remain explicit.
+
+### Workspace navigation and tiled layouts
+
+The board uses the shared workspace's dark palette and responds to its available container width, including a half-width Omarchy browser. The opening counters jump to the matching work view; work search scans titles, descriptions and next actions across the currently loaded records. Projects retain their separate task search and now provide priority filtering, clear filters, and Board/List presentation. Switching projects clears task filters so a previous project's search cannot disguise the next project's records. Filters and layout are temporary presentation state; they never write to Supabase or imply a saved preference. Task cards still open the same revision-guarded editor.
+
+Local JSX regression tests cover switching layouts, filtering/resetting, opening the correct task from the list, empty work searches, and existing save/retry and coordination behavior. Hosted save/reload and real desktop/mobile verification are part of the repository release checks, not established by these fixtures.

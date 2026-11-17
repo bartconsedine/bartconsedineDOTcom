@@ -1,21 +1,80 @@
-.access-manager { margin-top:30px; max-width:980px; color:#d2dde1; font-size:14px; }
-.access-manager p { line-height:1.7; margin:14px 0; }
-.access-note { color:#abbac2; max-width:780px; }
-.access-panel { padding:26px; border:1px solid #34434e; border-radius:10px; margin:24px 0; background:#121a21; }
-.access-panel h2 { font-size:23px; margin:0 0 20px; }
-.access-manager fieldset { border:0; padding:0; display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:18px; min-width:0; }
-.access-manager label { display:flex; flex-direction:column; gap:10px; font-size:12px; min-width:0; }
-.access-manager input,.access-manager select { background:#0b1218; color:#e1eaf0; font:inherit; width:100%; padding:12px; border:1px solid #405360; border-radius:5px; min-height:44px; color-scheme:dark; }
-.access-manager button { background:#203840; color:#deeee9; padding:12px 16px; border:1px solid #51747a; border-radius:5px; min-height:44px; font:inherit; font-size:12px; }
-.access-manager fieldset>button { grid-column:1/-1; justify-self:start; }
-.access-manager :is(button,input,select,a):focus-visible { outline:2px solid #a6e4d6; outline-offset:3px; }
-.access-heading { display:flex; gap:18px; justify-content:space-between; align-items:baseline; }
-.access-person { display:grid; grid-template-columns:1.2fr 1fr; gap:18px; padding:24px 0; border-top:1px solid #34434e; }
-.access-person strong { overflow-wrap:anywhere; }
-.access-actions { grid-column:1/-1; display:flex; flex-wrap:wrap; align-items:center; gap:15px; }
-.access-actions a { color:#a6e4d6; text-decoration:underline; }
-.access-confirm { grid-column:1/-1; padding:18px; background:#362923; border:1px solid #85674e; }
-.access-confirm button { margin-right:12px; }
-.access-error { padding:18px; border:1px solid #a66e5c; color:#efb79f; }
-.access-success { color:#a6e4d6; }
-@media(max-width:650px) { .access-manager fieldset,.access-person { grid-template-columns:1fr; } .access-panel { padding:18px; } .access-heading { align-items:flex-start; flex-direction:column; } }
+.access-manager {
+  container: app-access / inline-size;
+  margin-top: 26px;
+  max-width: 1060px;
+  color: var(--ws-text, #c0caf5);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.access-manager p { line-height: 1.75; margin: 12px 0; }
+.access-manager .access-note {
+  max-width: none; padding: 18px 22px; margin: 0 0 24px;
+  border: 1px solid var(--ws-border, #30364c);
+  border-left: 3px solid var(--ws-accent, #7aa2f7); border-radius: 0 12px 12px 0;
+  background: var(--ws-surface, #1e2233); color: var(--ws-muted, #9aa6cf); font-size: 13px;
+}
+.access-panel {
+  padding: 26px; border: 1px solid var(--ws-border, #30364c); border-radius: 16px; margin: 20px 0;
+  color: var(--ws-text, #c0caf5); background: var(--ws-surface, #1e2233); box-shadow: 0 8px 24px #080b1417;
+}
+.access-panel h2 { font-size: 21px; font-weight: 600; letter-spacing: -.035em; margin: 0 0 22px; color: var(--ws-text, #c0caf5); }
+.access-manager fieldset {
+  border: 0; padding: 0; margin: 0; display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px; min-width: 0;
+}
+.access-manager label { display: flex; flex-direction: column; gap: 9px; font-size: 12px; font-weight: 500; line-height: 1.6; color: var(--ws-muted, #9aa6cf); min-width: 0; }
+.access-manager input, .access-manager select {
+  box-sizing: border-box; background: var(--ws-bg, #161923); color: var(--ws-text, #c0caf5);
+  font: inherit; font-size: 16px; font-weight: 400; width: 100%; min-width: 0; padding: 12px;
+  border: 1px solid #414b69; border-radius: 9px; min-height: 46px; color-scheme: dark;
+}
+.access-manager button, .access-panel > button {
+  background: var(--ws-elevated, #272e45); color: var(--ws-text, #c0caf5); padding: 10px 16px;
+  border: 1px solid #414b69; border-radius: 9px; min-height: 44px;
+  font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; transition: background .15s, border-color .15s;
+}
+.access-manager button:hover:not(:disabled), .access-panel > button:hover:not(:disabled) { background: #303d5b; border-color: var(--ws-accent, #7aa2f7); }
+.access-manager :is(button, input, select):disabled { opacity: .5; cursor: not-allowed; }
+.access-manager fieldset > button {
+  grid-column: 1 / -1; justify-self: start; min-width: 144px; background: var(--ws-accent, #7aa2f7);
+  color: #131827; border-color: var(--ws-accent, #7aa2f7); font-weight: 700;
+}
+.access-manager fieldset > button:hover:not(:disabled) { background: #9dbbfd; }
+.access-manager form > p { font-size: 12px; color: var(--ws-muted, #9aa6cf); margin: 16px 0 0; }
+.access-manager :is(button, input, select, a):focus-visible, .access-panel > button:focus-visible { outline: 3px solid var(--ws-accent, #7aa2f7); outline-offset: 3px; }
+.access-heading { display: flex; gap: 18px; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+.access-heading h2 { margin: 0; }
+.access-heading + p { padding: 24px 0 12px; border-top: 1px dashed #414b69; color: var(--ws-muted, #9aa6cf); }
+.access-person {
+  display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px 24px;
+  padding: 24px 0; border-top: 1px solid var(--ws-border, #30364c); align-items: center;
+}
+.access-person:last-child { padding-bottom: 0; }
+.access-person strong { display: block; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.access-person > div > p { font-size: 12px; color: var(--ws-muted, #9aa6cf); margin: 6px 0 0; }
+.access-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.access-actions a {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; box-sizing: border-box;
+  color: var(--ws-accent, #7aa2f7); font-size: 12px; text-decoration: underline; text-underline-offset: 4px; border-radius: 6px;
+}
+.access-actions > button:last-child { margin-left: auto; color: #f4adbb; background: #f7768e0a; border-color: #f7768e38; }
+.access-actions > button:last-child:hover:not(:disabled) { background: #f7768e1a; border-color: #f7768e80; }
+.access-confirm { grid-column: 1 / -1; padding: 18px; background: #f7768e0d; border: 1px solid #f7768e61; border-radius: 10px; }
+.access-person .access-confirm p { color: #f4bbc6; font-size: 13px; margin: 0 0 14px; }
+.access-confirm button { margin: 0 8px 6px 0; }
+.access-confirm button:first-of-type { color: #f4adbb; border-color: #f7768e80; }
+.access-manager .access-error, .access-manager .access-success { padding: 16px 20px; border-radius: 10px; font-size: 13px; }
+.access-manager .access-error { border: 1px solid #f7768e66; color: #f4adbb; background: #f7768e0c; }
+.access-manager .access-success { border: 1px solid #9ece6a55; color: #b9de91; background: #9ece6a0a; }
+@container app-access (max-width: 720px) {
+  .access-manager fieldset { grid-template-columns: minmax(0, 1fr); }
+}
+@container app-access (max-width: 480px) {
+  .access-panel { padding: 18px; border-radius: 12px; }
+  .access-manager fieldset, .access-person { grid-template-columns: minmax(0, 1fr); }
+  .access-manager fieldset > button { justify-self: stretch; }
+  .access-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .access-manager .access-note { padding: 15px 17px; }
+  .access-person { gap: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .access-manager button, .access-panel > button { transition: none; } }

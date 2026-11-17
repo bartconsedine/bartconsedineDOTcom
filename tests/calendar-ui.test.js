@@ -98,7 +98,8 @@ test('verified DJ listing opens a Google plan draft with exact show times, sourc
     calls.push(JSON.parse(options.body));
     return response({ saved: true, supportSynced: true });
   }, [], Date.parse('2026-11-10T15:00:00Z'));
-  const tree = await ui.mount();
+  await ui.mount(); button(ui.render(), 'Fill our calendar').props.onClick();
+  const tree = ui.render();
   assert.ok(nodes(tree).some(n => n.props?.children === 'No conflicts in your selected Google calendars'));
   button(tree, 'Plan this show').props.onClick();
   assert.equal(calls.length, 0);
@@ -114,7 +115,38 @@ test('verified DJ listing opens a Google plan draft with exact show times, sourc
 
 test('DJ listings surface sitter buffer conflicts and expire once the show starts', async () => {
   const busy = { start: { dateTime: '2026-11-14T20:40:00Z' }, end: { dateTime: '2026-11-14T20:55:00Z' } };
-  const render = now => calendarUi(async () => response(snapshot({ events: [busy] })), [], Date.parse(now)).mount();
+  const render = async now => { const ui = calendarUi(async () => response(snapshot({ events: [busy] })), [], Date.parse(now)); await ui.mount(); button(ui.render(), 'Fill our calendar').props.onClick(); return ui.render(); };
   assert.ok(nodes(await render('2026-11-10T15:00:00Z')).some(n => n.props?.children === 'Conflict on a selected Google calendar'));
   assert.equal(button(await render('2026-11-14T21:00:00Z'), 'Plan this show'), undefined);
+});
+
+test('agenda search filters event titles and calendar names without changing the loaded data or posting', async () => {
+  let posts = 0;
+  const events = [
+    { id: 'dinner', calendarId: 'family@example.com', summary: 'Dinner together', start: { date: '2030-01-12' }, end: { date: '2030-01-13' } },
+    { id: 'walk', calendarId: 'family@example.com', summary: 'Sunday walk', start: { date: '2030-01-13' }, end: { date: '2030-01-14' } },
+  ];
+  const ui = calendarUi(async (_, options) => { if (options?.method) posts++; return response(snapshot({ events })); }, [], Date.parse('2030-01-10T12:00:00Z'));
+  await ui.mount();
+  const eventButtons = () => nodes(ui.render()).filter(n => n.type === 'button' && n.props.className?.includes('cc-event'));
+  const search = value => nodes(ui.render()).find(n => n.props['aria-label'] === 'Search events').props.onChange({ target: { value } });
+  assert.equal(button(ui.render(), 'Agenda').props['aria-pressed'], true);
+  assert.equal(eventButtons().length, 2);
+  search('DINNER'); assert.equal(eventButtons().length, 1);
+  search('Family'); assert.equal(eventButtons().length, 2);
+  search('missing'); assert.equal(eventButtons().length, 0); assert.ok(button(ui.render(), 'Clear search'));
+  button(ui.render(), 'Clear search').props.onClick(); assert.equal(eventButtons().length, 2);
+  button(ui.render(), 'Month').props.onClick(); assert.equal(button(ui.render(), 'Month').props['aria-pressed'], true);
+  assert.equal(eventButtons().length, 2); assert.equal(posts, 0); assert.equal(ui.states[2].events.length, 2);
+  ui.close();
+});
+
+test('calendar summary opens the relevant planner and leaves an unsaved event form intact', async () => {
+  const ui = calendarUi(async () => response(snapshot())); await ui.mount();
+  button(ui.render(), '+ Make a plan').props.onClick(); editField(ui, 'Plan', 'An unsaved evening');
+  const overview = nodes(ui.render()).find(n => n.props['aria-label'] === 'Planning overview');
+  const tiles = nodes(overview).filter(n => n.type === 'button'); tiles[1].props.onClick();
+  assert.equal(button(ui.render(), 'Family birthdays').props['aria-pressed'], true);
+  assert.equal(field(ui.render(), 'Plan').props.children.props.value, 'An unsaved evening');
+  ui.close();
 });

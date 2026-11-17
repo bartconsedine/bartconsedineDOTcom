@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
 import React from 'react';
+import * as presentation from '../src/lib/workspace-presentation.js';
 import {loginReturn} from '../src/lib/login-return.js';
 import { renderToStaticMarkup } from 'react-dom/server';
 
@@ -22,6 +23,10 @@ function component(path, mocks = {}) {
   runInNewContext(code, { module, exports: module.exports, require: id => {
     if (id in mocks) return mocks[id];
     if (id === 'next/link') return Link;
+    if (id === 'react') return React;
+    if (id === '@/lib/workspace-presentation') return presentation;
+    if (id === './workspace-icon' || id === '@/components/workspace-icon') return component('components/workspace-icon.js');
+    if (id === '@/components/workspace-home') return component('components/workspace-home.js');
     if (id.endsWith('.css')) return {};
     if (id === 'react/jsx-runtime') return require(id);
     throw new Error(`Unexpected UI dependency: ${id}`);
@@ -53,15 +58,15 @@ test('homepage shows Admin navigation without requiring authentication', () => {
 });
 
 test('admin navigation, sign-out POST, app cards and empty state keep working text controls', async () => {
-  const AdminNav = component('components/admin-nav.js', { 'next/navigation': { usePathname: () => '/admin' } });
+  const AdminNav = component('components/admin-nav.js', { 'next/navigation': { usePathname: () => '/admin', useSearchParams: () => new URLSearchParams() } });
   const appModule = { listApps: async () => apps };
   const Layout = component('app/admin/layout.js', { '@/lib/auth': auth, '@/lib/admin-qr/api': {qrEnabled:()=>false}, '@/lib/apps': appModule, '@/components/admin-nav': AdminNav });
   const html = cleanMarkup(await Layout({ children: 'Workspace content' }));
-  assert.match(html, /href="\/">Public site<\/a>/);
-  assert.match(html, /href="\/admin" aria-current="page">My apps<\/a>/);
+  assert.match(html, /href="\/"[^>]*>.*?<span>Public site<\/span><\/a>/);
+  assert.match(html, /href="\/admin"[^>]*aria-current="page">.*?<span>My apps<\/span><\/a>/);
   assert.match(html, /<form action="\/auth\/signout" method="post"><button type="submit">Sign out<\/button>/);
   const Home = component('app/admin/page.js', { '@/lib/auth': auth, '@/lib/apps': appModule });
-  assert.match(cleanMarkup(await Home()), /href="\/admin\/apps\/sample"><h3>Sample app<\/h3>/);
+  assert.match(cleanMarkup(await Home()), /href="\/admin\/apps\/sample"[^>]*>.*?<h3>Sample app<\/h3>/);
   appModule.listApps = async () => [];
   assert.match(cleanMarkup(await Home()), /Capture an app idea<\/a>/);
   const App = component('app/admin/apps/[slug]/page.js', { '@/lib/auth': auth, '@/lib/apps': { getApp: async () => apps[0] }, 'next/navigation': { notFound: () => { throw new Error('not found'); } } });

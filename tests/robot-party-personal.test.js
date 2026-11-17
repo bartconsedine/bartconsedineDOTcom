@@ -117,5 +117,20 @@ test('connected UI sends only to its private endpoint, recovers a lost save rece
   await button(ui.render(), 'Check connection').props.onClick();
   assert.match(text(ui.render()), /Synthetic private answer/);
   assert.match(text(ui.render()), /Bound connection/);
+  assert.ok(text(ui.render()).includes(`Verified connection ${connectionId}`));
   assert.ok(requests.every(request => request.url === '/api/admin/robot-party/personal'));
+});
+
+test('personal composer shortcut requires verified connection and nonempty text; settings follow the composer',async()=>{
+ let connected=false;const writes=[];const ui=personalUi(async(url,options={})=>{
+  if(options.method==='POST'){writes.push(JSON.parse(options.body));return Response.json({saved:true});}
+  return Response.json({setupReady:true,state:connected?'connected':'disconnected',canSend:connected,identityVerified:connected,channelId:connected?'channel':null,connectionId:'connection',messages:[]});
+ });await ui.mount();
+ const textarea=()=>nodes(ui.render()).find(n=>n.type==='textarea');
+ const key=()=>({ctrlKey:true,key:'Enter',preventDefault(){}});
+ textarea().props.onChange({target:{value:'A private next step'}});textarea().props.onKeyDown(key());await new Promise(resolve=>setImmediate(resolve));assert.equal(writes.length,0);
+ connected=true;await button(ui.render(),'Check connection').props.onClick();textarea().props.onChange({target:{value:'  '}});textarea().props.onKeyDown(key());await new Promise(resolve=>setImmediate(resolve));assert.equal(writes.length,0);
+ textarea().props.onChange({target:{value:'A private next step'}});textarea().props.onKeyDown({...key(),nativeEvent:{isComposing:true}});await new Promise(resolve=>setImmediate(resolve));assert.equal(writes.length,0);
+ textarea().props.onKeyDown(key());await new Promise(resolve=>setImmediate(resolve));await new Promise(resolve=>setImmediate(resolve));assert.equal(writes.length,1);assert.equal(writes[0].body,'A private next step');
+ const sections=nodes(ui.render());assert.ok(sections.findIndex(n=>n.props.className==='rp-panel rp-personal-compose')<sections.findIndex(n=>n.props.className==='rp-panel rp-connection'));assert.equal(sections.find(n=>n.props.className==='rp-panel rp-connection').props.open,false);ui.close();
 });
