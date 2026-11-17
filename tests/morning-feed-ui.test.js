@@ -12,7 +12,7 @@ test('failed load cannot be edited; retry loads an honest empty state', async ()
   let fail = true;
   const ui = morningUi(async () => fail ? Response.json({}, { status: 503 }) : Response.json({ screen: null, updatedAt: null }));
   await ui.settle(); assert.match(view(ui), /Could not load/); assert.equal(button(ui.render(), 'Save morning'), undefined);
-  fail = false; await button(ui.render(), 'Retry loading').props.onClick(); await ui.settle(); assert.match(view(ui), /Big plans start/); ui.close();
+  fail = false; await button(ui.render(), 'Retry loading').props.onClick(); await ui.settle(); assert.match(view(ui), /No morning cards yet/); ui.close();
 });
 
 test('edits survive failed save, retry confirms, and a new session recovers the same saved screen', async () => {
@@ -43,7 +43,7 @@ test('conflicts preserve local drafts; invalid timezone input does not crash pre
 test('TV holds cards until navigation, handles remote keys, refreshes saved changes and labels stale data after a failed poll', async () => {
   let screen = { ...emptyScreen(), cards: [card('one'), card('two')] }, fail = false;
   const ui = morningUi(async () => fail ? Response.json({}, { status: 503 }) : Response.json({ screen, updatedAt: '2026-10-27T02:00:00Z' }));
-  await ui.settle(); button(ui.render(), 'TV mode ↗').props.onClick(); await ui.settle(); assert.match(view(ui), /ON AIR/); assert.match(view(ui), /Ritual one/);
+  await ui.settle(); button(ui.render(), 'TV mode').props.onClick(); await ui.settle(); assert.match(view(ui), /ON AIR/); assert.match(view(ui), /Ritual one/);
   await ui.tick(20000); assert.match(view(ui), /Ritual one/); nodes(ui.render()).find(n=>n.props?.['aria-label']==='Next card').props.onClick(); await ui.settle(); assert.match(view(ui), /Ritual two/); ui.key('ArrowLeft'); assert.match(view(ui), /Ritual one/);
   screen = { ...screen, focus: 'A saved change from my phone' }; await ui.tick(30000); assert.match(view(ui), /A saved change from my phone/);
   fail = true; await ui.tick(30000); assert.match(view(ui), /Display is offline/); assert.match(view(ui), /A saved change from my phone/);
@@ -53,7 +53,7 @@ test('TV holds cards until navigation, handles remote keys, refreshes saved chan
 test('completion, remove/undo and viewer controls respect editable state and explicit saves', async () => {
   const screen = { ...emptyScreen(), cards: [card('one'), card('two')] };
   const fetcher = async () => Response.json({ screen, updatedAt: null });
-  const ui = morningUi(fetcher); await ui.settle(); button(ui.render(), 'Mark complete').props.onClick(); assert.match(view(ui), /Done today/); assert.equal(button(ui.render(), 'TV mode ↗').props.disabled, true);
+  const ui = morningUi(fetcher); await ui.settle(); button(ui.render(), 'Mark complete').props.onClick(); assert.match(view(ui), /Done today/); assert.equal(button(ui.render(), 'TV mode').props.disabled, true);
   button(ui.render(), 'Edit morning').props.onClick(); await ui.settle(); button(ui.render(), 'Remove').props.onClick(); input(ui, 'Card 1 title').props.onChange({ target: { value: 'Keep my other edit' } }); button(ui.render(), 'Undo removal').props.onClick(); assert.match(view(ui), /Keep my other edit/); assert.equal(ui.states[0].cards.length, 2);
   const viewer = morningUi(fetcher, { permission: 'viewer' }); await viewer.settle(); assert.equal(button(viewer.render(), 'Edit morning'), undefined); assert.equal(button(viewer.render(), 'Save morning'), undefined); assert.equal(button(viewer.render(), 'Mark complete').props.disabled, true); ui.close(); viewer.close();
 });
@@ -77,14 +77,14 @@ test('paired TV starts read-only in display mode and clears the feed on revocati
 
 test('ticker-only TV mode opens with no routine cards and the morning briefing remains independently optional', async () => {
   const ui = morningUi(async () => Response.json({ screen: emptyScreen(), updatedAt: null }));
-  await ui.settle(); assert.equal(button(ui.render(), 'TV mode ↗').props.disabled, false);
-  button(ui.render(), 'TV mode ↗').props.onClick(); await ui.settle(); assert.match(view(ui), /morning-ticker-only/);
+  await ui.settle(); assert.equal(button(ui.render(), 'TV mode').props.disabled, false);
+  button(ui.render(), 'TV mode').props.onClick(); await ui.settle(); assert.match(view(ui), /morning-ticker-only/);
   assert.equal(button(ui.render(), 'No briefing cards').props.disabled, true); ui.close();
 });
 
 test('briefing Hide/Show and section navigation actually switch saved cards, survive refresh, and reload into an honest News view', async () => {
  const screen={...emptyScreen(),cards:[card('one')]};
- const ui=morningUi(async()=>Response.json({screen,updatedAt:'2026-10-30T12:00:00Z'}));await ui.settle();button(ui.render(),'TV mode ↗').props.onClick();await ui.settle();
+ const ui=morningUi(async()=>Response.json({screen,updatedAt:'2026-10-30T12:00:00Z'}));await ui.settle();button(ui.render(),'TV mode').props.onClick();await ui.settle();
  assert.equal(ui.render().props['data-tv-view'],'home');
  button(ui.render(),'Show morning briefing').props.onClick();await ui.settle();assert.equal(ui.render().props['data-tv-view'],'briefing');assert.doesNotMatch(ui.render().props.className,/ticker-only/);
  for(let i=0;i<3;i++){button(ui.render(),'Hide morning briefing').props.onClick();await ui.settle();assert.match(ui.render().props.className,/ticker-only/);await ui.tick(30000);assert.equal(ui.render().props['data-tv-view'],'news');button(ui.render(),'Show morning briefing').props.onClick();await ui.settle();assert.equal(ui.render().props['data-tv-view'],'briefing');}
@@ -99,7 +99,7 @@ test('TV briefing link opens the in-app article overlay without an external anch
  const story={...card('public'),kind:'link',title:'Saved article',body:'Saved original details',url:'https://example.com/article?v=7'};
  const ui=morningUi(async()=>Response.json({status:'connected',screen:{...emptyScreen(),cards:[story]},updatedAt:null}),{tv:true,permission:'viewer'});await ui.settle();
  assert.equal(nodes(ui.render()).some(n=>n.type==='a'&&n.props.href===story.url),false);
- button(ui.render(),'Open link ↗').props.onClick();assert.equal(ui.tvOpens.length,1);assert.equal(ui.tvOpens[0].kind,'article');assert.equal(ui.tvOpens[0].payload.cardId,story.id);assert.equal(JSON.stringify(ui.tvOpens[0]).includes(story.url),false);assert.equal(JSON.stringify(ui.tvOpens[0]).includes(story.body),false);assert.equal(ui.tvOpens[0].payload.kind,'card');ui.close();
+ button(ui.render(),'Open link').props.onClick();assert.equal(ui.tvOpens.length,1);assert.equal(ui.tvOpens[0].kind,'article');assert.equal(ui.tvOpens[0].payload.cardId,story.id);assert.equal(JSON.stringify(ui.tvOpens[0]).includes(story.url),false);assert.equal(JSON.stringify(ui.tvOpens[0]).includes(story.body),false);assert.equal(ui.tvOpens[0].payload.kind,'card');ui.close();
 });
 
 test('morning and news views preserve unsaved cards and editing returns to the morning workspace', async () => {
@@ -135,4 +135,23 @@ test('the minute precision clock rolls daily completions over without altering s
   assert.equal(button(ui.render(), 'Save morning').props.disabled, true);
   assert.equal(ui.states[0].cards[0].completedOn, '2030-01-01');
   assert.equal(reads, 1); ui.close();
+});
+
+
+test('workspace empty morning omits empty summary panels while saved focus and rituals remain visible', async () => {
+  const empty = morningUi(async () => Response.json({ screen: emptyScreen(), updatedAt: null }));
+  await empty.settle();
+  for (const name of ['morning-focus', 'morning-progress']) {
+    assert.equal(nodes(empty.render()).find(node => node.props.className === name).props.hidden, true);
+  }
+  assert.ok(button(empty.render(), 'Build your morning'));
+  assert.equal(nodes(empty.render()).find(node => node.props.className === 'morning-brand').props.hidden, true);
+  empty.close();
+  const saved = morningUi(async () => Response.json({ screen: { ...emptyScreen(), title: 'Daily check-in', focus: 'Finish one task', cards: [card('one')] }, updatedAt: '2026-11-17T00:00:00Z' }));
+  await saved.settle();
+  for (const name of ['morning-focus', 'morning-progress', 'morning-brand']) {
+    assert.equal(nodes(saved.render()).find(node => node.props.className === name).props.hidden, false);
+  }
+  assert.ok(button(saved.render(), 'Mark complete'));
+  saved.close();
 });

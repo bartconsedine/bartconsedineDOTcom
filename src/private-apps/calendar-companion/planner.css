@@ -105,3 +105,28 @@
 }
 @media(max-width:540px) { .cc-hero { padding:20px; } .cc-tabs button { flex-basis:40%; } .cc-stats button { padding:14px; } }
 @media(prefers-reduced-motion:reduce) { .cc button { transition:none; } }
+
+/* Compact working layout: keep controls and data ahead of decoration. */
+
+.cc { margin-top:12px; }
+.cc-hero { padding:0; margin:0 0 8px; border:0; background:none; }
+.cc-stats { gap:8px; margin:10px 0; }
+.cc-stats button { padding:10px; display:flex; align-items:center; gap:8px; }
+.cc-stats strong { font-size:20px; }
+.cc-stats span { margin:0; }
+.cc-tabs { margin-bottom:12px; }
+.cc-sectionhead { margin:12px 0; }
+@container calendar (max-width:600px) {
+ .cc-hero { padding:0; }
+ .cc-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .cc :is(input,select,textarea) { font-size:16px; }
+}
+
+.cc-export { display:block; padding:12px 16px; }
+.cc-export summary { min-height:44px; display:flex; align-items:center; font-size:13px; }
+.cc-export:not([open])>div,.cc-export:not([open])>a { display:none; }
+@container calendar (max-width:600px) {
+ .cc-tabs { flex-wrap:nowrap; overflow-x:auto; }
+ .cc-tabs button { flex:0 0 auto; }
+ .cc-sectionhead h2 { font-size:22px; }
+}

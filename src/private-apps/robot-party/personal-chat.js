@@ -68,7 +68,7 @@ export default function PersonalChat() {
   }
   const connected = status === 'connected';
   return <div className="rp rp-personal">
-    <section className="rp-personal-heading"><div><p className="rp-eyebrow">JUST YOU + YOUR DOT</p><h2>A quieter corner.</h2><p>A personal conversation with your existing dot.</p></div><span className="rp-private" data-connected={connected}>{connected?'● CONNECTED':'○ NOT CONNECTED'} · OWNER ONLY</span></section>
+    <section className="rp-personal-heading"><span className="rp-private" data-connected={connected}>{connected?'● CONNECTED':'○ NOT CONNECTED'} · OWNER ONLY</span></section>
     {info?.messages?.length > 0 && <section className="rp-panel rp-conversation" aria-label="Private messages"><div className="rp-conversation-label"><span>Your conversation</span><span>{info.messages.length} messages</span></div>{info.messages.map(message => <article className="rp-personal-message" data-sender={message.sender} key={message.id}><div className="rp-personal-message-head"><strong>{message.sender === 'owner' ? 'You' : 'Bound connection'}</strong>{message.created_at&&<time dateTime={message.created_at}>{new Date(message.created_at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</time>}</div><p className="rp-body">{message.body}</p><small>{message.sender === 'dot' ? `Verified connection ${message.robot_id}` : message.delivery === 'received' ? 'Webhook received · waiting for a reply' : message.delivery === 'failed' ? 'Delivery failed · no reply confirmed' : 'Saved · queued for delivery'}</small></article>)}</section>}
     <section className="rp-panel rp-personal-compose" aria-labelledby="personal-draft-title">
       <h3 id="personal-draft-title">What’s on your mind?</h3>
