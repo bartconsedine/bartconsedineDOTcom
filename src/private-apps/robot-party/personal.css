@@ -45,3 +45,9 @@
 .rp-personal-actions { justify-content:flex-end; }.rp-personal-actions+.rp-personal-send-help { margin-top:15px; }
 .rp-personal #personal-send-help { margin-top:16px; font-size:11px; }
 @container(max-width:500px) { .rp-personal .rp-personal-message,.rp-personal .rp-personal-message[data-sender=owner] { margin-inline:0; padding:15px; }.rp-personal-message-head { flex-wrap:wrap; }.rp-draft-meta { font-size:8px; } }
+
+/* Compact working layout: keep controls and data ahead of decoration. */
+
+.rp-personal-heading { margin:0 0 12px; padding:0; border:0; }
+.rp-personal .rp-panel { padding:16px; }
+.rp-personal .rp-conversation-label { margin-bottom:12px; }

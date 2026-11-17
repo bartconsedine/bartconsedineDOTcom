@@ -137,7 +137,7 @@ test('shared viewers can search and enter route comparison without enabling edit
   nodes(editor).find(node => node.type === 'a' && node.props.children === 'Review costs').props.onClick({ preventDefault() {} }); tree = ui.render();
   assert.equal(button(tree, 'Bookings').props['aria-current'], 'page');
   button(tree, 'Overview').props.onClick(); tree = ui.render();
-  button(tree, 'Browse 10 itineraries').props.onClick(); tree = ui.render();
+  button(tree, 'Explore 10 options').props.onClick(); tree = ui.render();
   assert.equal(button(tree, 'Explore 10 options').props['aria-current'], 'page');
   button(tree, 'Bookings').props.onClick(); tree = ui.render();
   const search = nodes(tree).find(node => node.type === 'input' && node.props.type === 'search');

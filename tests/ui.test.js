@@ -70,7 +70,7 @@ test('admin navigation, sign-out POST, app cards and empty state keep working te
   appModule.listApps = async () => [];
   assert.match(cleanMarkup(await Home()), /Capture an app idea<\/a>/);
   const App = component('app/admin/apps/[slug]/page.js', { '@/lib/auth': auth, '@/lib/apps': { getApp: async () => apps[0] }, 'next/navigation': { notFound: () => { throw new Error('not found'); } } });
-  assert.match(cleanMarkup(await App({ params: Promise.resolve({ slug: 'sample' }), searchParams: Promise.resolve({}) })), /href="\/admin">All apps<\/a>/);
+  assert.match(cleanMarkup(await App({ params: Promise.resolve({ slug: 'sample' }), searchParams: Promise.resolve({}) })), /<h1>Sample app<\/h1>.*href="\/admin\/access\?app=sample">Manage access<\/a>/);
 });
 
 test('Google sign-in keeps enabled, pending and unconfigured states with clean labels', async () => {

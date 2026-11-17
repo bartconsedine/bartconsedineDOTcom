@@ -46,7 +46,7 @@ export default function AdminNav({ apps, isAdmin = false, devicesEnabled = false
       <Link className="ws-nav-link" href="/" title="Public site"><WorkspaceIcon name="globe"/><span>Public site</span></Link>
     </nav>
     <dialog className="ws-launcher" ref={dialog} aria-labelledby="ws-launcher-title" onClose={() => (opener.current?.isConnected ? opener.current : trigger.current)?.focus()} onClick={event => { if (event.target === dialog.current) closeLauncher(); }}>
-      <div className="ws-launcher-inner"><div className="ws-launcher-heading"><h2 id="ws-launcher-title">Go somewhere.</h2><button onClick={closeLauncher} aria-label="Close app launcher">Esc</button></div>
+      <div className="ws-launcher-inner"><div className="ws-launcher-heading"><h2 id="ws-launcher-title">Find an app</h2><button onClick={closeLauncher} aria-label="Close app launcher">Esc</button></div>
         <label className="ws-launcher-search"><WorkspaceIcon name="search"/><span className="sr-only">Search your apps</span><input ref={input} value={query} placeholder="Search apps, plans, conversations…" onChange={event => { setQuery(event.target.value); setSelected(0); }} onKeyDown={event => {
           if (event.nativeEvent?.isComposing || event.isComposing) return;
           if (['ArrowDown', 'ArrowUp'].includes(event.key)) { event.preventDefault(); setSelected(results.length ? (activeIndex + (event.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length : 0); }

@@ -136,3 +136,16 @@
  .rp-topbar>div>.rp-primary { flex:1; }.rp-topbar>div>.rp-invite { width:100%; }
 }
 @media(prefers-reduced-motion:reduce) { .rp .rp-thread-card { transition:none; } }
+
+/* Compact working layout: keep controls and data ahead of decoration. */
+
+.rp { margin-top:12px; }
+.rp button { min-height:44px; }
+.rp-topbar { margin:0 0 12px; gap:8px; }
+@media(max-width:700px) {
+ .rp :is(input,select,textarea) { font-size:16px; }
+ .rp-panel { padding:14px; }
+}
+
+@container(max-width:600px) { .rp-filters { flex-wrap:nowrap; overflow-x:auto; }.rp-filters button { flex-shrink:0; } }
+.rp-welcome { min-height:0; padding:24px; }
