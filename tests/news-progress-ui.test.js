@@ -16,6 +16,19 @@ async function waitForTitle(ui,expected){
   do{await ui.settle();if(title(ui)===expected)return;await new Promise(resolve=>setTimeout(resolve,10));}while(Date.now()<deadline);
   assert.equal(title(ui),expected,'Wait for the observed feed state, not an arbitrary microtask count');
 }
+async function waitForReaderSave(ui,state,article,count){
+  const id=await articleId(article.url),deadline=Date.now()+5000;
+  const confirmed=()=>{
+    const tree=ui.render();
+    return nodes(tree).find(node=>node.type==='iframe')?.props.src===article.url &&
+      state.reads.size===count && state.reads.has(id) &&
+      nodes(tree).some(node=>node.type==='span' && node.props.children===`${count} / 3 read · Synced`);
+  };
+  // Reader selection updates before the async WebCrypto/save chain. Wait for
+  // both the selected frame and confirmed UI progress before the next key.
+  do{await ui.settle();if(confirmed())return;await new Promise(resolve=>setTimeout(resolve,10));}while(Date.now()<deadline);
+  assert.ok(confirmed(),`Expected ${article.title} in the reader with ${count} confirmed reads`);
+}
 function fixture() {
   const state={articles:[one,two,three],reads:new Map(),fail:false,posts:0};
   state.fetch=async(url,options={})=>{
@@ -55,11 +68,11 @@ test('a second session learns confirmed reads on refresh without auto-marking an
 });
 
 test('paused reader arrow navigation follows its own story and marks each newly opened article',async()=>{
-  const state=fixture();const ui=state.ui();await settled(ui);
-  button(ui.render(),'Open article').props.onClick();await settled(ui);
-  ui.key('ArrowRight');await settled(ui);
+  const state=fixture();const ui=state.ui();await waitForTitle(ui,'newest');
+  button(ui.render(),'Open article').props.onClick();await waitForReaderSave(ui,state,three,1);
+  ui.key('ArrowRight');await waitForReaderSave(ui,state,two,2);
   assert.equal(nodes(ui.render()).find(n=>n.type==='iframe').props.src,two.url);
-  ui.key('ArrowRight');await settled(ui);
+  ui.key('ArrowRight');await waitForReaderSave(ui,state,one,3);
   assert.equal(nodes(ui.render()).find(n=>n.type==='iframe').props.src,one.url);
   assert.equal(state.reads.size,3);ui.key('Backspace');await settled(ui);
   assert.match(html(ui),/You’re caught up/);ui.close();

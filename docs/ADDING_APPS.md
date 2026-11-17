@@ -51,6 +51,10 @@ Reuse the existing Supabase project. Runtime data access uses user-scoped Supaba
 
 Include RLS, grants, constraints, and any Storage policies in the reviewed change. Keep service-role keys and database credentials out of app clients. Missing schema, membership, or hosted setup is a reported prerequisite, never a reason to weaken authorization. Preparing an app or migration does not itself apply a hosted schema change.
 
+## Workspace presentation
+
+Follow the [workspace interaction and visual system](WORKSPACE_DESIGN.md) for app headers, keyboard navigation, responsive layouts and verification. Reuse the scoped `--ws-*` tokens where practical; keep the public site and TV layouts independent.
+
 ## Implementation steps
 
 1. Implement a component under `src/private-apps/<slug>/`. Keep secret/data access in server-only modules.

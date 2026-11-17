@@ -520,3 +520,70 @@
     padding:16px;
   }
 }
+
+/* Workspace presentation is isolated from the TV display. */
+.morning:not(.morning-display) {
+  --m-ink:#c0caf5; --m-muted:#9aa6cf; --m-line:#30364c; --m-lime:#7dcfff;
+  container-type:inline-size; container-name:morning-editor;
+  background:linear-gradient(145deg,#1a1d30,#151724 65%);
+  border:1px solid var(--m-line); border-radius:18px; padding:24px;
+  margin-top:20px; font-family:inherit; box-shadow:0 18px 60px #090b161f;
+}
+.morning:not(.morning-display) [hidden] { display:none!important; }
+.morning:not(.morning-display) button { border-radius:9px; border-color:var(--m-line); font-size:12px; background:#20243a; transition:background .15s,border-color .15s; }
+.morning:not(.morning-display) button:hover:not(:disabled) { background:#2c3553; border-color:#7aa2f7; }
+.morning:not(.morning-display) .morning-primary { color:#151724; background:var(--m-lime); border-color:var(--m-lime); }
+.morning:not(.morning-display) .morning-top { padding-bottom:16px; gap:12px; }
+.morning:not(.morning-display) .morning-brand { font-size:17px; letter-spacing:-.4px; }
+.morning:not(.morning-display) .morning-brand>span { font-size:24px; }
+.morning:not(.morning-display) .morning-tag { display:none; }
+.morning:not(.morning-display) .morning-hero { padding:28px 0 20px; background:radial-gradient(ellipse at 95% 50%,#7aa2f714,transparent 65%); flex-direction:row; }
+.morning:not(.morning-display) h2 { font-size:clamp(28px,3vw,42px); letter-spacing:-1.4px; }
+.morning:not(.morning-display) h2 em { font-family:inherit; font-style:normal; }
+.morning:not(.morning-display) .morning-subtitle { max-width:360px; font-size:12px; margin-top:12px; }
+.morning:not(.morning-display) .morning-kicker,.morning:not(.morning-display) .morning-card-meta,.morning:not(.morning-display) .morning-footer { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing:1px; }
+.morning:not(.morning-display) .morning-clock { text-align:right; }
+.morning:not(.morning-display) .morning-clock strong { font-size:32px; letter-spacing:-1px; color:#7aa2f7; }
+.morning:not(.morning-display) .morning-status { position:sticky; top:12px; z-index:4; background:#1b2033; border:1px solid var(--m-line); padding:10px 14px; border-radius:10px; min-height:64px; box-shadow:0 6px 20px #090b1633; }
+.morning:not(.morning-display) .morning-status p { color:var(--m-muted); }
+.morning:not(.morning-display) .morning-status [role=alert] { color:#f7afbd; }
+.morning-workspace-nav { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:0 0 18px; margin-bottom:20px; border-bottom:1px solid var(--m-line); }
+.morning .morning-workspace-nav button[aria-pressed=true] { background:#7aa2f71a; border-color:#7aa2f76b; color:#aac5ff; }
+.morning-workspace-nav>span { margin-left:auto; color:var(--m-muted); font-size:11px; }
+.morning:not(.morning-display) .morning-summary { grid-template-columns:1.4fr 1fr; gap:12px; }
+.morning:not(.morning-display) .morning-focus,.morning:not(.morning-display) .morning-progress { padding:20px; background:#1c2238; color:var(--m-ink); border-color:var(--m-line); }
+.morning:not(.morning-display) .morning-focus { background:linear-gradient(130deg,#253352,#1c2238); }
+.morning:not(.morning-display) .morning-focus .morning-kicker { color:#7dcfff; }
+.morning:not(.morning-display) .morning-focus h3 { font-family:inherit; font-size:24px; line-height:1.45; letter-spacing:-.7px; }
+.morning:not(.morning-display) .morning-focus>p:last-child { color:var(--m-muted); margin-top:8px; }
+.morning:not(.morning-display) .morning-progress strong { color:#7dcfff; font-size:32px; }
+.morning:not(.morning-display) .morning-progress strong span { color:var(--m-muted); font-size:20px; }
+.morning:not(.morning-display) progress,.morning:not(.morning-display) progress::-webkit-progress-bar { background:#30364c; }
+.morning:not(.morning-display) .morning-grid { gap:12px; }
+.morning:not(.morning-display) .morning-card { background:#1a1e30; border-color:var(--m-line); padding:20px; position:relative; overflow:hidden; }
+.morning:not(.morning-display) .morning-card::before { content:''; position:absolute; left:0; top:0; width:3px; height:100%; background:#7dcfff; }
+.morning:not(.morning-display) .morning-kind-briefing::before { background:#bb9af7; }
+.morning:not(.morning-display) .morning-kind-link::before { background:#7aa2f7; }
+.morning:not(.morning-display) .morning-card-meta { color:var(--m-muted); font-size:10px; }
+.morning:not(.morning-display) .morning-card h3 { font-size:21px; margin:18px 0 10px; letter-spacing:-.5px; }
+.morning:not(.morning-display) .morning-card>p { color:var(--m-muted); font-size:13px; }
+.morning:not(.morning-display) .morning-card button[aria-pressed=true] { color:#9ece6a; background:#9ece6a15; border-color:#9ece6a60; }
+.morning:not(.morning-display) .morning-editor { border-color:#7aa2f757; background:#171b2b; padding:20px; }
+.morning:not(.morning-display) .morning-editor legend { font-family:inherit; font-size:18px; letter-spacing:-.4px; }
+.morning:not(.morning-display) .morning-editor input,.morning:not(.morning-display) .morning-editor textarea,.morning:not(.morning-display) .morning-editor select { background:#111523; border-color:#3a4260; border-radius:8px; font-size:14px; }
+.morning:not(.morning-display) .morning-settings { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.morning:not(.morning-display) .morning-card-editor { padding:18px; border:1px solid var(--m-line); background:#1b2033; border-radius:12px; margin-bottom:16px; }
+.morning:not(.morning-display) .morning-empty { border-color:#3a4260; }
+.morning:not(.morning-display) .morning-empty h3 { font-family:inherit; font-size:25px; margin:12px 0; }
+.morning:not(.morning-display) .morning-footer { color:var(--m-muted); font-size:9px; }
+@container morning-editor (max-width:620px) {
+  .morning:not(.morning-display) .morning-hero { flex-direction:column; gap:18px; }
+  .morning:not(.morning-display) .morning-clock { text-align:left; }
+  .morning:not(.morning-display) .morning-clock strong { display:inline; font-size:25px; }
+  .morning:not(.morning-display) .morning-clock span { display:inline; margin-left:12px; }
+  .morning:not(.morning-display) .morning-summary,.morning:not(.morning-display) .morning-grid { grid-template-columns:1fr; }
+  .morning-workspace-nav>span { flex-basis:100%; margin:6px 0 0; }
+  .morning:not(.morning-display) .morning-settings { grid-template-columns:1fr; gap:0; }
+}
+@media(max-width:540px) { .morning:not(.morning-display) { padding:16px; } .morning:not(.morning-display) .morning-status { top:8px; gap:8px; } }
+@media(prefers-reduced-motion:reduce) { .morning:not(.morning-display) button { transition:none; } }

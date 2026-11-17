@@ -1,9 +1,9 @@
-.rp-personal { max-width:840px; }
-.rp-personal-heading { display:flex; justify-content:space-between; gap:24px; align-items:center; margin-bottom:30px; padding:30px 0; border-bottom:1px solid var(--rp-line); }
-.rp-personal-heading h2 { font-size:clamp(32px,5vw,48px); margin:0 0 12px; letter-spacing:-.04em; }
-.rp-personal-heading p { color:#b9ced0; }
+.rp-personal { max-width:980px; margin-inline:auto; }
+.rp-personal-heading { display:flex; justify-content:space-between; gap:24px; align-items:center; margin-bottom:22px; padding:12px 0 24px; border-bottom:1px solid var(--rp-line); }
+.rp-personal-heading h2 { font-size:clamp(30px,4vw,42px); margin:0 0 12px; letter-spacing:-.04em; }
+.rp-personal-heading p { color:#9aa5ce; }
 .rp-personal-heading .rp-private { margin:0; white-space:nowrap; }
-.rp-personal .rp-panel p { line-height:1.8; color:#b9ced0; }
+.rp-personal .rp-panel p { line-height:1.8; color:#9aa5ce; }
 .rp-personal .rp-connection { border-left:3px solid var(--rp-violet); }
 .rp-personal-compose label { margin:24px 0 18px; }
 .rp-personal-actions { display:flex; flex-wrap:wrap; gap:12px; }
@@ -18,3 +18,30 @@
 .rp-personal-message { padding:18px 0; border-bottom:1px solid var(--rp-line); }
 .rp-personal-message:last-child { border-bottom:0; }
 .rp-personal-message small { color:#a6bdc6; overflow-wrap:anywhere; }
+
+.rp-personal-heading .rp-private { color:#a7b4db; font:9px ui-monospace,monospace; letter-spacing:.05em; }
+.rp-personal-heading .rp-private[data-connected=true] { color:#9ece6a; }
+.rp-personal .rp-connection { border-left:1px solid var(--rp-line); margin-top:24px; }
+.rp-personal .rp-connection>summary { display:flex; justify-content:space-between; align-items:center; gap:12px; color:#bb9af7; font-size:13px; cursor:pointer; }
+.rp-personal .rp-connection>summary::after { content:'+'; font-size:20px; }
+.rp-personal .rp-connection[open]>summary::after { content:'−'; }
+.rp-personal .rp-connection>summary>span { margin-left:auto; color:#9aa5ce; font-size:10px; }
+.rp-personal .rp-connection>div { border-top:1px solid var(--rp-line); margin-top:18px; padding-top:20px; }
+.rp-personal .rp-connection h3 { font-size:19px; }
+.rp-conversation-label { display:flex; justify-content:space-between; gap:10px; font:10px ui-monospace,monospace; color:#8d9ac5; margin-bottom:22px; }
+.rp-personal .rp-conversation { background:#141827; }
+.rp-personal .rp-personal-message { padding:18px; border:1px solid #30364c; border-radius:12px 12px 12px 3px; margin:16px 40px 16px 0; background:#1d2338; }
+.rp-personal .rp-personal-message[data-sender=owner] { margin-left:40px; margin-right:0; background:#253451; border-color:#3c517b; border-radius:12px 12px 3px 12px; }
+.rp-personal-message-head { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:8px; }
+.rp-personal-message-head strong { color:#7dcfff; font-size:12px; }
+.rp-personal-message-head time { font-size:9px; color:#9aa5ce; }
+.rp-personal .rp-personal-message .rp-body { color:#c0caf5; margin:8px 0 14px; }
+.rp-personal-message small { font-size:10px; color:#9aa5ce; }
+.rp-personal .rp-personal-compose { border-color:#485a83; background:linear-gradient(135deg,#202a44,#1a1f32); }
+.rp-personal .rp-personal-compose>h3 { margin-bottom:8px; }
+.rp-personal .rp-personal-compose>p { font-size:11px; max-width:660px; }
+.rp-personal .rp-personal-compose label { margin:18px 0 8px; }
+.rp-draft-meta { display:flex; justify-content:space-between; gap:14px; font:9px ui-monospace,monospace; color:#9aa5ce; margin:10px 0 18px; }
+.rp-personal-actions { justify-content:flex-end; }.rp-personal-actions+.rp-personal-send-help { margin-top:15px; }
+.rp-personal #personal-send-help { margin-top:16px; font-size:11px; }
+@container(max-width:500px) { .rp-personal .rp-personal-message,.rp-personal .rp-personal-message[data-sender=owner] { margin-inline:0; padding:15px; }.rp-personal-message-head { flex-wrap:wrap; }.rp-draft-meta { font-size:8px; } }

@@ -101,3 +101,38 @@ test('TV briefing link opens the in-app article overlay without an external anch
  assert.equal(nodes(ui.render()).some(n=>n.type==='a'&&n.props.href===story.url),false);
  button(ui.render(),'Open link ↗').props.onClick();assert.equal(ui.tvOpens.length,1);assert.equal(ui.tvOpens[0].kind,'article');assert.equal(ui.tvOpens[0].payload.cardId,story.id);assert.equal(JSON.stringify(ui.tvOpens[0]).includes(story.url),false);assert.equal(JSON.stringify(ui.tvOpens[0]).includes(story.body),false);assert.equal(ui.tvOpens[0].payload.kind,'card');ui.close();
 });
+
+test('morning and news views preserve unsaved cards and editing returns to the morning workspace', async () => {
+  let posts = 0;
+  const ui = morningUi(async (_, options = {}) => { if (options.method) posts++; return Response.json({ screen: { ...emptyScreen(), cards: [card('one')] }, updatedAt: null }); });
+  await ui.settle(); button(ui.render(), 'Edit morning').props.onClick(); await ui.settle();
+  input(ui, 'Card 1 title').props.onChange({ target: { value: 'Keep this draft' } });
+  button(ui.render(), 'News & ideas').props.onClick(); await ui.settle();
+  const panel = className => nodes(ui.render()).find(node => node.props.className === className);
+  assert.equal(panel('morning-news-panel').props.hidden, false);
+  assert.equal(panel('morning-summary').props.hidden, true);
+  assert.equal(input(ui, 'Card 1 title'), undefined);
+  button(ui.render(), 'My morning').props.onClick(); await ui.settle();
+  assert.equal(input(ui, 'Card 1 title').props.value, 'Keep this draft');
+  assert.equal(panel('morning-news-panel').props.hidden, true);
+  button(ui.render(), 'Preview feed').props.onClick();
+  button(ui.render(), 'News & ideas').props.onClick();
+  button(ui.render(), 'Edit morning').props.onClick(); await ui.settle();
+  assert.equal(button(ui.render(), 'My morning').props['aria-pressed'], true);
+  assert.equal(input(ui, 'Card 1 title').props.value, 'Keep this draft'); assert.equal(posts, 0);
+  ui.close();
+});
+
+test('the minute precision clock rolls daily completions over without altering saved cards', async () => {
+  let now = Date.parse('2030-01-01T23:59:45Z'), reads = 0;
+  class Clock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } }
+  const savedCard = { ...card('daily'), completedOn: '2030-01-01' };
+  const screen = { ...emptyScreen(), timezone: 'UTC', cards: [savedCard] };
+  const ui = morningUi(async () => { reads++; return Response.json({ screen, updatedAt: '2030-01-01T20:00:00Z' }); }, {}, { Clock });
+  await ui.settle(); assert.ok(button(ui.render(), '✓ Done today'));
+  now += 30000; await ui.tick(30000);
+  assert.ok(button(ui.render(), 'Mark complete'));
+  assert.equal(button(ui.render(), 'Save morning').props.disabled, true);
+  assert.equal(ui.states[0].cards[0].completedOn, '2030-01-01');
+  assert.equal(reads, 1); ui.close();
+});

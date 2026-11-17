@@ -2,6 +2,12 @@
 
 Private enhanced Google Calendar client at `/admin/apps/calendar-companion`: a combined calendar, family birthdays, sitter booking queue, planning suggestions, and configurable planning rhythm. Registered through the normal protected app registry and shared API dispatcher.
 
+## Workspace flow
+
+The calendar opens as a chronological **Agenda**. **Month** switches to the grid in a wide window; narrow tiled windows use readable day groups. Search matches event titles and selected calendar names without changing loaded events, availability calculations or Google records. An empty search offers **Clear search**. Summary tiles jump to plans, birthdays, sitter follow-through and open evenings. These presentation controls are temporary React state.
+
+Outing picks now live under **Fill our calendar** beside planning suggestions, leaving the primary agenda immediately accessible. Event forms receive focus when opened and remain intact when moving between planner sections. Display times use a 12-hour clock; native time inputs keep their required 24-hour values. Tokyo Night surfaces, visible focus and container queries support Omarchy split windows. Google write confirmation, etags, failed-draft recovery and Supabase preference revisions are unchanged.
+
 ## Source of truth and sharing
 
 The user explicitly requested **Google Calendar as the event source of truth**. Google owns event dates, yearly birthdays, notes, sitter status, coverage windows and booking nudges. The app reads directly from Google on load/refresh and writes directly to its API. No event replica, authoritative snapshot, birthday table, calendar export/import sync, or browser storage is used. The existing `model.js` planner shape is a disposable calculation projection, never the persisted event store.

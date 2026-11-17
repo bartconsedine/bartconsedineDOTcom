@@ -178,3 +178,9 @@ for its artifact, approval steps, actor responsibilities, installed-connector
 verification gate, and local/live test limits. Storage/key setup is authorized; hosted migration and completed recovery-point
 verification remain pending. No private grant, subscription or TV command
 capability has been created.
+
+### Workspace reading flow
+
+The board shares the workspace's Tokyo Night palette, with cyan actions and violet conversation details. At narrow container widths, opening a thread or composer shows the conversation pane; **All conversations** returns to the feed. This avoids scrolling past the entire feed on every reply. Temporary post/reply drafts and message edits remain in component state while moving between these views and are lost on navigation/reload until publishing is confirmed. Message edits retain the original saved revision, so a newer server version still conflicts safely. **Cancel editing** explicitly discards that message edit. Returning to the feed restores keyboard focus to the opened conversation, with a feed fallback if it has disappeared; cancelling a new composition restores its launch button. **Clear filters** resets type, status and submitted search together, retaining the authorized owner selector. Search and filter operations remain reads through the protected board API.
+
+The JSX fixtures cover narrow-mode state, draft preservation, owner-scoped filter resets, publishing failures/retries and viewer restrictions. Actual hosted interaction and viewport screenshots remain release verification responsibilities.

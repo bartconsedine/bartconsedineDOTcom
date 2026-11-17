@@ -19,14 +19,14 @@ export function tripUi(fetcher, initial = [], props = {}) { return componentUi('
 export function accessUi(fetcher) { return componentUi('../../app/admin/access/access-manager.js', fetcher, []); }
 export function explorerUi(plan) { return componentUi('option-explorer.js', null, [], { plan }); }
 function componentUi(file, fetcher, initial, props = {}) {
-  const runtime = createUiRuntime(initial), timers = manualIntervals(), navigations = [];
+  const runtime = createUiRuntime(initial), timers = manualIntervals(), navigations = [], listeners = new Map();
   const { code } = transformSync(readFileSync(new URL(`../../src/private-apps/japan-trip/${file}`, import.meta.url), 'utf8'), {
     babelrc: false, configFile: false,
     presets: [[require('next/dist/compiled/babel/preset-react'), { runtime: 'automatic' }]],
     plugins: [require('next/dist/compiled/babel/plugin-transform-modules-commonjs')],
   });
   const module = { exports: {} };
-  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, setInterval: timers.setInterval, clearInterval: timers.clearInterval, TextEncoder, URL, Blob, crypto: globalThis.crypto, navigator: { clipboard: { writeText: async () => {} } }, window: { location: { origin: 'https://site.example', assign(url){navigations.push(url);} }, addEventListener() {}, removeEventListener() {} }, require: id => {
+  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, setInterval: timers.setInterval, clearInterval: timers.clearInterval, TextEncoder, URL, Blob, crypto: globalThis.crypto, navigator: { clipboard: { writeText: async () => {} } }, window: { location: { origin: 'https://site.example', assign(url){navigations.push(url);} }, addEventListener(name, listener) { if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(listener); }, removeEventListener(name, listener) { listeners.get(name)?.delete(listener); } }, require: id => {
     if (id === 'react') return runtime.hooks;
     if (id === '@/lib/workspace-policy') return workspace;
     if (id === './model.js') return partyModel;
@@ -42,6 +42,7 @@ function componentUi(file, fetcher, initial, props = {}) {
   return {
     states: runtime.states,
     navigations,
+    async dispatch(name, event) { for (const listener of listeners.get(name) ?? []) listener(event); await tick(); return this.render(); },
     render() { return runtime.render(component); },
     mount() { return runtime.mount(component); },
     async tick(delay) { await timers.tick(delay); await tick(); return this.render(); },

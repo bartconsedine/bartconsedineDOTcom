@@ -4,6 +4,12 @@ A private morning feed at `/admin/apps/morning-feed`: editable ritual, briefing 
 
 The [Omarchy desktop launcher](../../../desktop/morning-signal/README.md) opens this same live app in a dedicated Chrome window, preserving the existing sign-in and Supabase save/read behavior. It also offers display and normal-browser sign-in actions; no separate backend or desktop copy of records is introduced.
 
+## Workspace flow
+
+The admin screen opens on **My morning** with intention, ritual progress and saved cards. **News & ideas** gives the TLDR reader its own view, so reading does not push editing and daily actions down the page. Switching views retains unsaved input; **Edit morning** always returns to the personal feed. The save status stays visible while scrolling, and completion changes still require an explicit confirmed save. Navigation selection is temporary React state.
+
+Admin styling uses compact Tokyo Night surfaces, visible keyboard focus and container-based reflow for narrow Omarchy windows. TV presentation and its direct-child layout remain separate. The existing TV and connection actions are preserved.
+
 ## Data and access
 
 One small whole-document record in existing Supabase `public.app_data`: app `morning-feed`, key `screen-v1`, schema `version: 1`. Includes title, focus, IANA timezone, rotationSeconds (10–300), and at most 24 cards. Each card has a stable id, kind, title, body, minutes, URL, visibility and last completed calendar date. Completion resets visually each day in the configured zone; this is not a history log. Screen preferences, order and completion dates are durable. Display mode, current slide and unsaved edits are temporary React state.

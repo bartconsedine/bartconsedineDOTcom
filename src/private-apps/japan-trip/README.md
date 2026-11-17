@@ -2,6 +2,16 @@
 
 Private planning document at `/admin/apps/japan-trip`, registered in the workspace grid and sidebar. Overview shows booking deadlines, budget forecast, riding days, timing risks and editable notes. Itinerary, bookings/costs, checklist and settings are editable. “On request” means pending; only “Booked” counts as confirmed.
 
+## Workspace flow
+
+The Tokyo Night visual treatment uses a compact trip header, a sticky save bar, a horizontal section switcher and layouts that respond to the app's available width. Narrow Omarchy tiles use stacked panels and a route picker instead of a long option sidebar. Keyboard focus remains visible; movement and color transitions respect reduced-motion preferences. **Ctrl/Cmd+S** saves an editable, dirty plan through the same guarded save action as **Save changes**.
+
+Itinerary search matches dates, places and daily notes. Booking search matches the item, provider, confirmation and notes, and combines with the booking-status filter. Checklist search combines with open/completed filters, with a progress bar for the entire checklist. **Clear filters** restores the full list; adding a row clears its filters so the new entry remains visible. Switching sections clears the search. Filters are disposable presentation state and never alter saved records. Viewers can search/filter and enter the route explorer while the editor remains disabled.
+
+The itinerary explorer summarizes riding days, Tokyo nights and hotel moves next to the selected route. Flight evidence is in an expandable summary; proposal status and booking cautions remain visible. **Previous day / Next day**, location buttons and the timeline slider control the same selected day. Choosing another itinerary resets the day to its arrival. These controls do not adopt a proposed itinerary or write any records.
+
+Local verification for this redesign: Node 22.23.2 with `node --test tests/japan-trip-ui.test.js tests/japan-options.test.js tests/japan-trip.test.js` passed. Added UI cases exercise combined filtering, empty-result recovery, new-task visibility, viewer navigation, and timeline boundaries/reset. Existing save/retry, stale-revision, import and API tests passed. Hosted authenticated visuals and persistence checks are separate release checks; the tests use injected networking and do not establish a production save.
+
 ## Persistence and ownership
 
 The whole plan is one small owner-scoped JSON document in Supabase `public.app_data`, slug `japan-trip`, key `plan-v1`. It uses `readAppData` / `compareAndWriteAppData` and the existing signed-in session and admin/owner RLS. There are no new tables, migrations, credentials or browser persistence. Each admin has a separate plan. Temporary edits remain in React until **Save changes** succeeds. Failed reads block editing; failed saves preserve input for retry. A successful save survives a new GET/session. Unsaved edits warn on browser unload.
