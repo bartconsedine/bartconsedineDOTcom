@@ -587,3 +587,23 @@
 }
 @media(max-width:540px) { .morning:not(.morning-display) { padding:16px; } .morning:not(.morning-display) .morning-status { top:8px; gap:8px; } }
 @media(prefers-reduced-motion:reduce) { .morning:not(.morning-display) button { transition:none; } }
+
+/* Compact working layout: keep controls and data ahead of decoration. */
+
+.morning:not(.morning-display) { margin-top:12px; }
+.morning:not(.morning-display) .morning-hero { padding:8px 0; gap:8px; flex-direction:row; flex-wrap:wrap; background:none; }
+.morning:not(.morning-display) .morning-clock { padding:0; border:0; min-width:0; text-align:left; }
+.morning:not(.morning-display) .morning-clock strong { font-size:18px; }
+.morning:not(.morning-display) .morning-clock span { font-size:11px; }
+.morning:not(.morning-display) .morning-kicker { margin:0; font-size:11px; }
+.morning:not(.morning-display) .morning-empty { padding:20px 14px; min-height:0; }
+.morning:not(.morning-display) .morning-empty h3 { font-size:20px; }
+.morning:not(.morning-display) button { min-height:44px; }
+@media(max-width:700px) { .morning:not(.morning-display) :is(input,select,textarea) { font-size:16px; } }
+
+.morning:not(.morning-display) { padding:0; border:0; background:none; box-shadow:none; }
+.morning:not(.morning-display) .morning-top { padding-bottom:8px; }
+.morning:not(.morning-display) .morning-summary:not(:has(article:not([hidden]))) { display:none; }
+.morning:not(.morning-display) .morning-brand[hidden],.morning:not(.morning-display) .morning-summary article[hidden] { display:none; }
+.morning:not(.morning-display) .morning-workspace-nav { margin-bottom:12px; padding-bottom:8px; }
+.morning:not(.morning-display) .morning-tv-help { margin-top:16px; padding-top:12px; }

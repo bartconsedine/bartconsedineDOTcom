@@ -210,3 +210,24 @@
 
 .jp-nav-link { display:inline-flex; align-items:center; min-height:42px; border:1px solid #414868; background:#24283b; color:#c0caf5; border-radius:12px; padding:10px 15px; font-size:12px; margin-top:20px; }
 .jp-nav-link:hover { border-color:#7dcfff; }
+
+/* Compact working layout: keep controls and data ahead of decoration. */
+
+.jp { margin-top:12px; }
+.jp-hero { min-height:0; padding:0; border:0; background:none; gap:8px; border-radius:0; }
+.jp-hero::after { display:none; }
+.jp-hero h2 { font-size:22px; max-width:100%; }
+.jp-hero p:not(.jp-kicker) { margin-top:6px; font-size:12px; }
+.jp button { min-height:44px; }
+.jp-toolbar { padding:8px 0; }
+.jp-tabs { padding:4px 0 12px; }
+.jp-metrics { gap:8px; margin-bottom:12px; }
+.jp-metrics>div { padding:12px; }
+.jp-metrics strong { font-size:22px; }
+.jp-metrics span { margin-top:4px; }
+@container trip (max-width:600px) {
+ .jp-hero { padding:0; min-height:0; }
+ .jp-hero h2 { font-size:22px; }
+ .jp-panel { padding:14px; }
+ .jp :is(input,select,textarea) { font-size:16px; }
+}

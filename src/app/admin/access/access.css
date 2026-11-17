@@ -78,3 +78,11 @@
   .access-person { gap: 14px; }
 }
 @media (prefers-reduced-motion: reduce) { .access-manager button, .access-panel > button { transition: none; } }
+
+/* Compact working layout: keep controls and data ahead of decoration. */
+
+.access-manager { margin-top:16px; }
+.access-manager .access-note { padding:12px 16px; margin-bottom:12px; }
+.access-panel { padding:18px; margin:12px 0; }
+.access-panel h2 { margin-bottom:14px; font-size:20px; }
+.access-heading { margin-bottom:14px; }

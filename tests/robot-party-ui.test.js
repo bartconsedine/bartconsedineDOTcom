@@ -31,9 +31,9 @@ test('narrow conversation navigation preserves a compose draft and reset filters
  const layout=()=>nodes(ui.render()).find(n=>n.props.className==='rp-layout');assert.equal(layout().props['data-reading'],false);
  button(ui.render(),'Start a conversation').props.onClick();assert.equal(layout().props['data-reading'],true);
  let form=nodes(ui.render()).find(n=>typeof n.type==='function'&&n.props.label==='Publish post');form.props.onChange({...form.props.value,title:'Still drafting',body:'Keep this idea while I browse.'});
- button(ui.render(),'← All conversations').props.onClick();assert.equal(layout().props['data-reading'],false);
+ button(ui.render(),'Back to conversations').props.onClick();assert.equal(layout().props['data-reading'],false);
  button(ui.render(),'Start a conversation').props.onClick();form=nodes(ui.render()).find(n=>typeof n.type==='function'&&n.props.label==='Publish post');assert.equal(form.props.value.body,'Keep this idea while I browse.');
- button(ui.render(),'← All conversations').props.onClick();nodes(ui.render()).find(n=>n.type==='input'&&n.props.placeholder==='Search the party…').props.onChange({target:{value:'signal'}});
+ button(ui.render(),'Back to conversations').props.onClick();nodes(ui.render()).find(n=>n.type==='input'&&n.props.placeholder==='Search the party…').props.onChange({target:{value:'signal'}});
  nodes(ui.render()).find(n=>n.type==='form'&&n.props.className==='rp-search').props.onSubmit({preventDefault(){}});await new Promise(resolve=>setImmediate(resolve));
  assert.ok(calls.at(-1).includes('q=signal'));button(ui.render(),'Clear filters').props.onClick();await new Promise(resolve=>setImmediate(resolve));
  assert.equal(calls.at(-1),'/api/admin/apps/robot-party?owner='+id);assert.equal(nodes(ui.render()).find(n=>n.type==='input'&&n.props.placeholder==='Search the party…').props.value,'');ui.close();
@@ -45,7 +45,7 @@ test('returning to the feed preserves message edits and their original revision 
  const thread=()=>nodes(ui.render()).find(n=>n.props.className==='rp-thread-card');
  const editor=()=>nodes(ui.render()).find(n=>typeof n.type==='function'&&n.props.label==='Save message');
  await thread().props.onClick();button(ui.render(),'Edit message').props.onClick();editor().props.onChange({...editor().props.value,body:'A careful unpublished edit'});
- button(ui.render(),'← All conversations').props.onClick();assert.equal(editor(),undefined);
+ button(ui.render(),'Back to conversations').props.onClick();assert.equal(editor(),undefined);
  row={...row,body:'A newer saved version',updated_at:'2026-11-16T12:05:00Z'};
  await thread().props.onClick();assert.match(text(ui.render()),/Unsaved edit on this page/);button(ui.render(),'Edit message').props.onClick();assert.equal(editor().props.value.body,'A careful unpublished edit');
  await editor().props.onSubmit();assert.equal(writes.length,1);assert.equal(writes[0].expectedAt,originalAt);assert.equal(writes[0].content.body,'A careful unpublished edit');assert.equal(editor().props.value.body,'A careful unpublished edit');
@@ -60,7 +60,7 @@ test('reader and composer return keyboard focus to their source with a removed-t
  nodes(tree).find(n=>n.props.className==='rp-feed').props.ref.current=target('feed');
  button(tree,'Start a conversation').props.ref.current=target('compose');
  const thread=()=>nodes(ui.render()).find(n=>n.props.className==='rp-thread-card');thread().props.ref(target('thread'));
- await thread().props.onClick();ui.render();assert.equal(focused.at(-1),'detail');button(ui.render(),'← All conversations').props.onClick();ui.render();assert.equal(focused.at(-1),'thread');
+ await thread().props.onClick();ui.render();assert.equal(focused.at(-1),'detail');button(ui.render(),'Back to conversations').props.onClick();ui.render();assert.equal(focused.at(-1),'thread');
  button(ui.render(),'Start a conversation').props.onClick();ui.render();assert.equal(focused.at(-1),'detail');button(ui.render(),'Cancel editing').props.onClick();ui.render();assert.equal(focused.at(-1),'compose');
- await thread().props.onClick();ui.render();thread().props.ref(null);button(ui.render(),'← All conversations').props.onClick();ui.render();assert.equal(focused.at(-1),'feed');ui.close();
+ await thread().props.onClick();ui.render();thread().props.ref(null);button(ui.render(),'Back to conversations').props.onClick();ui.render();assert.equal(focused.at(-1),'feed');ui.close();
 });
