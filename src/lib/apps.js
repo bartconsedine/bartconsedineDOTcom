@@ -18,6 +18,9 @@ import { boardStorage } from '@/private-apps/robot-party/storage';
 import JapanTrip from '@/private-apps/japan-trip/command-center';
 import { createTripApi } from '@/private-apps/japan-trip/api';
 import { startingPlan } from '@/private-apps/japan-trip/starter';
+import LaptopSales from '@/private-apps/laptop-sales/screen';
+import { createLaptopSalesApi } from '@/private-apps/laptop-sales/api';
+import { supportConfig } from '@/private-apps/laptop-sales/support';
 import { readAppData, compareAndWriteAppData } from './app-data';
 
 // Register only implemented apps here. Never place private app data in /public.
@@ -42,6 +45,14 @@ const registry = createAppRegistry([{
   slug: 'calendar-companion', name: 'Calendar companion',
   description: 'Your Google calendars, family birthdays and sitter plans. More time for the good things.',
   Component: CalendarCompanion, api: createCalendarApi({ readAppData, compareAndWriteAppData, googleSession, connectGoogle }),
+}, {
+  slug: 'laptop-sales', name: 'Laptop sales',
+  description: 'Prepare used Omarchy laptops, share checkout links, and track fulfillment.',
+  Component: LaptopSales,
+  api: createLaptopSalesApi({
+    readAppData, compareAndWriteAppData,
+    supportEmail: () => supportConfig(process.env)?.inbox ?? null,
+  }),
 }], requireWorkspace);
 
 export async function listApps() {
