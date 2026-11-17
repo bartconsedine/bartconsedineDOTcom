@@ -13,7 +13,9 @@ export function matchesWorkspaceApp(app, query) {
   const text = `${app.name} ${app.description} ${appPresentation(app.slug).category} ${app.role ? roleLabel(app.role) : ''}`.toLocaleLowerCase();
   return terms.every(term => text.includes(term));
 }
-export function activeWorkspaceApp(app, pathname, owner) {
+export function activeWorkspaceApp(app, pathname, owner, apps = []) {
   const path = `/admin/apps/${app.slug}`;
-  return (pathname === path || pathname?.startsWith(`${path}/`)) && (owner ? app.ownerId === owner : app.role === 'owner');
+  const contexts = apps.filter(candidate => candidate.slug === app.slug);
+  const defaultContext = contexts.find(candidate => candidate.role === 'owner') ?? (contexts.length === 1 ? contexts[0] : null);
+  return (pathname === path || pathname?.startsWith(`${path}/`)) && (owner ? app.ownerId === owner : defaultContext ? app.ownerId === defaultContext.ownerId : app.role === 'owner');
 }

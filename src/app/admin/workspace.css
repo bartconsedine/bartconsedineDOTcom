@@ -109,10 +109,10 @@
 @media(max-width:1240px) { .ws-app-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .admin-main { padding:26px; } .ws-welcome { grid-template-columns:minmax(0,1fr) 220px; gap:15px; } .ws-orbit { transform:scale(.82); width:260px; margin-inline:-20px; } }
 @media(min-width:701px) and (max-width:1080px) {
   .admin-shell { grid-template-columns:76px minmax(0,1fr); }
-  .admin-sidebar { padding:24px 10px 12px; align-items:center; gap:20px; }
+  .admin-sidebar { padding:24px 10px 12px; align-items:center; gap:20px; flex-direction:column; flex-wrap:nowrap; border-right:1px solid #2b3144; border-bottom:0; }
   .ws-brand { padding:0 0 10px; } .ws-brand-name,.ws-nav-label,.ws-launcher-trigger span,.ws-launcher-trigger kbd,.ws-account>span:not(.ws-avatar) { display:none; }
   .admin-sidebar .ws-launcher-trigger { justify-content:center; padding:10px; }
-  .admin-sidebar .ws-navigation { width:100%; }
+  .admin-sidebar .ws-navigation { width:100%; flex-direction:column; }
   .admin-sidebar .ws-nav-link { justify-content:center; padding:12px; position:relative; }
   .ws-nav-link>span { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
   .ws-nav-divider { margin:10px 4px; } .ws-sidebar-foot { padding:15px 0 0; width:100%; text-align:center; } .ws-account { justify-content:center; }

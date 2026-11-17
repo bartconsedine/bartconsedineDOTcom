@@ -102,6 +102,12 @@ test('launcher filters by all search words and navigates the selected owner-scop
   ui.input(' JAPAN  VIEW ');
   let results = byClass(ui.render(), 'ws-launcher-result'); assert.equal(results.length, 1);
   assert.equal(results[0].props.href, '/admin/apps/japan-trip?owner=friend');
+  assert.equal(ui.inputKey('Enter', { nativeEvent: { isComposing: true } }), false);
+  assert.deepEqual(ui.navigations, [], 'IME commit must not launch an app');
+  ui.input('Japan');
+  assert.equal(ui.inputKey('ArrowDown', { nativeEvent: { isComposing: true } }), false);
+  assert.equal(byClass(ui.render(), 'ws-launcher-result')[0].props['data-selected'], true, 'IME candidate navigation must not change launcher selection');
+  ui.input(' JAPAN VIEW ');
   assert.equal(ui.inputKey('Enter'), true);
   assert.deepEqual(ui.navigations, ['/admin/apps/japan-trip?owner=friend']); assert.equal(ui.dialog.open, false);
   ui.key('k', { ctrlKey: true }); ui.input('Japan');
@@ -137,8 +143,23 @@ test('guest navigation exposes authorized destinations without access-management
   const ui = workspaceUi('admin-nav.js', { apps: [apps[2]], isAdmin: false });
   const destinations = byClass(ui.render(), 'ws-nav-link').map(node => node.props.href);
   assert.deepEqual(destinations, ['/admin', '/admin/apps/japan-trip?owner=friend', '/']);
+  ui.route.pathname = '/admin/apps/japan-trip';
+  const active = byClass(ui.render(), 'ws-nav-link').filter(node => node.props['aria-current'] === 'page');
+  assert.equal(active.length, 1, 'a guest with one grant has a valid default owner context');
+  assert.equal(active[0].props.href, '/admin/apps/japan-trip?owner=friend');
   ui.key('k', { ctrlKey: true }); ui.input('People');
   assert.equal(byClass(ui.render(), 'ws-launcher-result').length, 0); ui.close();
+});
+
+test('the launcher retains device management on narrow screens only for enabled administrators', () => {
+  const admin = workspaceUi('admin-nav.js', { apps, isAdmin: true, devicesEnabled: true });
+  admin.key('k', { ctrlKey: true }); admin.input('devices');
+  assert.deepEqual(byClass(admin.render(), 'ws-launcher-result').map(node => node.props.href), ['/auth/qr']);
+  admin.close();
+  for (const props of [{ apps, isAdmin: true, devicesEnabled: false }, { apps: [apps[2]], isAdmin: false, devicesEnabled: true }]) {
+    const ui = workspaceUi('admin-nav.js', props); ui.key('k', { ctrlKey: true }); ui.input('devices');
+    assert.equal(byClass(ui.render(), 'ws-launcher-result').length, 0); ui.close();
+  }
 });
 
 test('home filtering preserves authorized URLs and can recover from no matching apps', () => {

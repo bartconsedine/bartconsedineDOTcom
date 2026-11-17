@@ -6,14 +6,15 @@ import { useEffect, useRef, useState } from 'react';
 import WorkspaceIcon from './workspace-icon';
 import { activeWorkspaceApp, appPresentation, matchesWorkspaceApp, roleLabel } from '@/lib/workspace-presentation';
 
-export default function AdminNav({ apps, isAdmin = false }) {
+export default function AdminNav({ apps, isAdmin = false, devicesEnabled = false }) {
   const pathname = usePathname();
   const owner = useSearchParams().get('owner');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(0);
   const dialog = useRef(null), input = useRef(null), trigger = useRef(null), opener = useRef(null);
   const destinations = [{ slug: 'home', name: 'My apps', description: 'Workspace overview', href: '/admin' }, ...apps,
-    ...(isAdmin ? [{ slug: 'people', name: 'People & access', description: 'Manage invitations', href: '/admin/access' }] : [])];
+    ...(isAdmin ? [{ slug: 'people', name: 'People & access', description: 'Manage invitations', href: '/admin/access' }] : []),
+    ...(isAdmin && devicesEnabled ? [{ slug: 'devices', name: 'Manage admin devices', description: 'QR sign-in and connected devices', href: '/auth/qr' }] : [])];
   const results = destinations.filter(app => matchesWorkspaceApp(app, query));
   function openLauncher() {
     if (document.querySelector('dialog[open]') || document.querySelector('[role="dialog"][aria-modal="true"]')) return;
@@ -39,7 +40,7 @@ export default function AdminNav({ apps, isAdmin = false }) {
     <nav className="ws-navigation" aria-label="Workspace navigation">
       <Link className="ws-nav-link" href="/admin" title="My apps" aria-current={pathname === '/admin' ? 'page' : undefined}><WorkspaceIcon name="home"/><span>My apps</span></Link>
       <p className="ws-nav-label">YOUR APPS</p>
-      {apps.map(app => <Link className="ws-nav-link" key={app.href} href={app.href} title={`${app.name} · ${roleLabel(app.role)}`} style={{ '--app-color': appPresentation(app.slug).color }} aria-current={activeWorkspaceApp(app, pathname, owner) ? 'page' : undefined}><WorkspaceIcon name={app.slug}/><span>{app.name}{app.role !== 'owner' && <small>{roleLabel(app.role)}</small>}</span></Link>)}
+      {apps.map(app => <Link className="ws-nav-link" key={app.href} href={app.href} title={`${app.name} · ${roleLabel(app.role)}`} style={{ '--app-color': appPresentation(app.slug).color }} aria-current={activeWorkspaceApp(app, pathname, owner, apps) ? 'page' : undefined}><WorkspaceIcon name={app.slug}/><span>{app.name}{app.role !== 'owner' && <small>{roleLabel(app.role)}</small>}</span></Link>)}
       <div className="ws-nav-divider"/>
       {isAdmin && <Link className="ws-nav-link" href="/admin/access" title="People & access" aria-current={pathname === '/admin/access' ? 'page' : undefined}><WorkspaceIcon name="people"/><span>People & access</span></Link>}
       <Link className="ws-nav-link" href="/" title="Public site"><WorkspaceIcon name="globe"/><span>Public site</span></Link>
@@ -47,7 +48,7 @@ export default function AdminNav({ apps, isAdmin = false }) {
     <dialog className="ws-launcher" ref={dialog} aria-labelledby="ws-launcher-title" onClose={() => (opener.current?.isConnected ? opener.current : trigger.current)?.focus()} onClick={event => { if (event.target === dialog.current) closeLauncher(); }}>
       <div className="ws-launcher-inner"><div className="ws-launcher-heading"><h2 id="ws-launcher-title">Go somewhere.</h2><button onClick={closeLauncher} aria-label="Close app launcher">Esc</button></div>
         <label className="ws-launcher-search"><WorkspaceIcon name="search"/><span className="sr-only">Search your apps</span><input ref={input} value={query} placeholder="Search apps, plans, conversations…" onChange={event => { setQuery(event.target.value); setSelected(0); }} onKeyDown={event => {
-          if (event.isComposing) return;
+          if (event.nativeEvent?.isComposing || event.isComposing) return;
           if (['ArrowDown', 'ArrowUp'].includes(event.key)) { event.preventDefault(); setSelected(results.length ? (activeIndex + (event.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length : 0); }
           if (event.key === 'Enter' && results.length) { event.preventDefault(); dialog.current?.querySelectorAll('[data-launcher-result]')[activeIndex]?.click(); }
         }} aria-describedby="ws-launcher-help" aria-controls="ws-launcher-results"/></label>
