@@ -90,3 +90,19 @@ Automatic headline advancement has been removed for all users, including TV and 
 ### Newsletter filter (November 2)
 
 News has a top-row newsletter filter: All newsletters (default), Tech, AI, Dev, InfoSec and DevOps. The temporary view selection applies before unread filtering and controls headline navigation, Up Next, counts and source summary versions across latest/history pages and refreshes. Shared URLs remain deduplicated, with only the selected newsletter’s metadata and summary shown. Changing filters resets to the first matching story without marking anything read. An empty selection offers other newsletters or older issues. This disposable view selection resets on remount; no saved preference or database write is introduced.
+
+## TV reading redesign — November 2026
+
+TV News now uses a midnight-blue editorial surface, warm-white type and cyan focus accents. Typography and controls scale with viewport height. A single newsletter row scopes the current story; the upcoming rail shows two full headlines on wide screens and yields its space to reading below 1200 CSS pixels. The ordinary admin news feed keeps its existing layout and three-story rail.
+
+**Read summary** opens the complete selected newsletter summary directly in the full-screen reader. **Open article** continues to open the same public URL in the sandboxed iframe. Both use the existing idempotent owner read marker, retain the selected source snapshot and return through the same history entry. The TV iframe is removed from sequential keyboard selection so a remote can reach Back and the summary controls; pointer interaction and the publisher’s own content remain possible. The sandbox, no-referrer policy and framing restrictions are unchanged.
+
+The TV masthead keeps **Issue dates & sources** within reach. Read progress shares the bottom control row; failure buttons open Sources with the full error and retry, without shrinking the story. Newsletter summary versions share the source-label row. On compact TV surfaces, source details become five readable rows.
+
+In TV mode, **Issue dates & sources** owns Newer issues, Older issues and Latest. It keeps source dates, stale/unavailable states, loading and retry feedback together. Moving through issues or changing newsletter filters never writes a read marker. A failed feed refresh retains the last loaded stories and offers **Retry news** as well as the existing minute retry. Confirmed read progress and failed-save retries remain separate from feed freshness.
+
+Both the TV headline and the full-screen reader title have bounded, lossless pages, so even the maximum 500-character imported title leaves room for the summary. Headline page controls sit beside the text; selecting a headline still opens its original article. The full reader title is also exposed as an accessible heading.
+
+Measured summary pages remain a lossless partition of the original text, including paragraph breaks and surrogate pairs. Resize and font reflow now keep the character being read on screen instead of resetting to page one; a different source text starts on its first page. Paging labels announce the page change. No durable preference, new data store, API capability, credential or schema is introduced.
+
+Node 22.23.2 component/model fixtures cover direct summary entry, iframe security and TV focusability, archive retry/no-write behavior, read-marker persistence semantics, source snapshot retention and pager reflow. Actual TV viewport screenshots, publisher behavior and physical remote/host Back still require the release’s browser/device verification; these local fixtures are not hosted or physical-device evidence.

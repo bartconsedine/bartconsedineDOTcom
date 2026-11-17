@@ -76,3 +76,77 @@ test('Back activates a previous-screen control, closes overlays first, and yield
  const modal=root.append(element('section',0,100));modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.zIndex='5500';const cancel=modal.append(element('button',0,100));cancel.setAttribute('data-tv-cancel','');cancel.onClick=()=>root.remove(modal);dom.mutate();dom.key('Backspace');dom.mutate();assert.equal(cancel.clicks,1);assert.equal(back.clicks,1);
  root.remove(back);dom.mutate();assert.equal(dom.key('BrowserBack').defaultPrevented,undefined);assert.equal(home.clicks,0);cleanup();
 });
+
+test('closing nested dialogs restores the exact usable control in the previous screen', () => {
+  const dom = remoteDom(), { root, element, doc } = dom;
+  root.append(element('button', 0, 0));
+  const trigger = root.append(element('button', 200, 0));
+  const cleanup = attachRemoteNavigation(root); trigger.focus(); dom.flush();
+  const dialog = root.append(element('section', 0, 100)); dialog.setAttribute('role', 'dialog'); dialog.setAttribute('aria-modal', 'true'); dialog.zIndex = '5000';
+  dialog.append(element('button', 0, 100));
+  const nestedTrigger = dialog.append(element('button', 200, 100)); dom.mutate(); nestedTrigger.focus(); dom.flush();
+  const nested = dialog.append(element('section', 0, 200)); nested.setAttribute('role', 'dialog'); nested.setAttribute('aria-modal', 'true'); nested.zIndex = '6000';
+  nested.append(element('button', 0, 200)); dom.mutate();
+  dialog.remove(nested); dom.mutate(); assert.equal(doc.activeElement, nestedTrigger);
+  root.remove(dialog); dom.mutate(); assert.equal(doc.activeElement, trigger);
+  cleanup();
+});
+
+test('remote arrows and Tab stay on article controls instead of entering a cross-origin iframe', () => {
+  const dom = remoteDom(), { root, element, doc } = dom;
+  const close = root.append(element('button', 0, 0)); close.setAttribute('data-tv-cancel', '');
+  const details = root.append(element('button', 200, 0));
+  const frame = root.append(element('iframe', 0, 100, 800, 500)); frame.setAttribute('tabindex', '0');
+  const cleanup = attachRemoteNavigation(root); dom.flush();
+  dom.key('ArrowDown'); assert.notEqual(doc.activeElement, frame);
+  dom.key('Tab'); assert.notEqual(doc.activeElement, frame);
+  frame.focus(); dom.flush(); assert.equal(doc.activeElement, frame, 'Explicit pointer/frame focus is not stolen');
+  details.focus(); dom.flush(); dom.key('Escape'); assert.equal(close.clicks, 1);
+  cleanup();
+});
+
+test('Back skips hidden cancel controls and cannot activate an aria-disabled modal action', () => {
+  const dom = remoteDom(), { root, element } = dom;
+  const hidden = root.append(element('button', 0, 0)); hidden.hidden = true; hidden.setAttribute('data-tv-cancel', '');
+  const back = root.append(element('button', 0, 100)); back.setAttribute('data-tv-back', '');
+  const cleanup = attachRemoteNavigation(root); dom.flush();
+  dom.key('Escape'); assert.equal(hidden.clicks, 0); assert.equal(back.clicks, 1);
+  const modal = root.append(element('section', 0, 200)); modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.zIndex = '5000';
+  const cancel = modal.append(element('button', 0, 200)); cancel.setAttribute('data-tv-cancel', ''); cancel.setAttribute('aria-disabled', 'true');
+  dom.mutate(); assert.equal(dom.key('Escape').defaultPrevented, true); assert.equal(cancel.clicks, 0); assert.equal(back.clicks, 1);
+  cleanup();
+});
+
+test('initial destination preference does not steal a valid selection on refresh', () => {
+  const dom = remoteDom(), { root, element, doc } = dom;
+  const utility = root.append(element('button', 0, 0));
+  const content = root.append(element('button', 0, 100)); content.setAttribute('data-tv-initial', '');
+  const cleanup = attachRemoteNavigation(root); dom.flush(); assert.equal(doc.activeElement, content);
+  utility.focus(); dom.flush(); dom.mutate(); assert.equal(doc.activeElement, utility);
+  const extra = root.append(element('button', 0, 200)); extra.setAttribute('data-tv-initial', ''); dom.mutate();
+  assert.equal(doc.activeElement, utility); cleanup();
+});
+
+test('a loading TV surface receives focus when its fixed-position parent has no controls', () => {
+  const dom = remoteDom(), { root, element, doc } = dom;
+  const loading = root.append(element('section', 0, 0, 960, 540)); loading.setAttribute('data-tv-surface', 'true'); loading.setAttribute('tabindex', '-1');
+  const cleanup = attachRemoteNavigation(root); dom.flush(); assert.equal(doc.activeElement, loading);
+  assert.ok(loading.attrs.has('data-tv-selected'));
+  loading.append(element('button', 450, 250));
+  const retry = loading.append(element('button', 50, 300)); retry.setAttribute('data-tv-initial', '');
+  dom.mutate(); assert.equal(doc.activeElement, retry, 'Initial action wins over geometric proximity to the loading region');
+  cleanup();
+});
+
+test('a disabled or removed pager keeps focus nearby instead of jumping to the initial navigation', () => {
+  const dom = remoteDom(), { root, element, doc } = dom;
+  const nav = root.append(element('button', 0, 0)); nav.setAttribute('data-tv-initial', '');
+  const previous = root.append(element('button', 400, 400));
+  const next = root.append(element('button', 530, 400));
+  const cleanup = attachRemoteNavigation(root); dom.flush(); assert.equal(doc.activeElement, nav);
+  next.focus(); dom.flush(); next.disabled = true; dom.mutate();
+  assert.equal(doc.activeElement, previous, 'Last page stays with the remaining pager control');
+  next.disabled = false; dom.mutate(); next.focus(); dom.flush(); root.remove(next); dom.mutate();
+  assert.equal(doc.activeElement, previous, 'A removed pager recovers to the nearby control');
+  cleanup();
+});

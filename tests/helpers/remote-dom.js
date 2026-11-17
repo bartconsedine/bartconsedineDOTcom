@@ -10,6 +10,7 @@ export function remoteDom() {
     if (selector === '[role="dialog"][aria-modal="true"]') return element.getAttribute('role') === 'dialog' && element.getAttribute('aria-modal') === 'true';
     if (selector === '[data-tv-back]') return element.attrs.has('data-tv-back');
     if (selector === '[data-tv-cancel]') return element.attrs.has('data-tv-cancel');
+    if (selector === '[data-tv-surface]') return element.attrs.has('data-tv-surface');
     if (selector === 'details[open]') return element.tag === 'details' && element.open;
     if (selector === 'summary') return element.tag === 'summary';
     if (selector.includes('[hidden]')) return element.hidden || element.attrs.has('inert') || element.getAttribute('aria-hidden') === 'true';
@@ -18,11 +19,12 @@ export function remoteDom() {
   }
   function element(tag, x, y, width = 100, height = 40) {
     return {
-      tag, attrs: new Map(), ownerDocument: doc, children: [], parent: null, disabled: false, hidden: false, clicks: 0,
+      tag, tagName: tag.toUpperCase(), attrs: new Map(), ownerDocument: doc, children: [], parent: null, disabled: false, hidden: false, clicks: 0,
       get tabIndex() { return this.attrs.has('tabindex') ? Number(this.attrs.get('tabindex')) : ['button','a','summary','input','textarea','select'].includes(tag) ? 0 : -1; },
       setAttribute(name, value) { this.attrs.set(name, String(value)); }, getAttribute(name) { return this.attrs.get(name) ?? null; }, removeAttribute(name) { this.attrs.delete(name); },
       matches(selector) { return matches(this, selector); },
       closest(selector) { for (let node = this; node; node = node.parent) if (matches(node, selector)) return node; return null; },
+      contains(element) { for (let node = element; node; node = node.parent) if (node === this) return true; return false; },
       getClientRects() { return this.closest('[hidden]') ? [] : [this.getBoundingClientRect()]; },
       getBoundingClientRect() { return { left: x, top: y, right: x + width, bottom: y + height, width, height }; },
       querySelectorAll(selector) { return this.children.flatMap(child => [...(matches(child, selector) ? [child] : []), ...child.querySelectorAll(selector)]); },

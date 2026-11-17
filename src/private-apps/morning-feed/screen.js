@@ -11,6 +11,7 @@ import TldrTicker from './tldr/ticker';
 import { dayInZone, emptyScreen, KINDS, moveCard, validateScreen } from './model.js';
 import './screen.css';
 import './tv/viewport.css';
+import './tv/news.css';
 
 function safeLink(value) {
   try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : ''; } catch { return ''; }
@@ -24,17 +25,21 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   const [dirty, setDirty] = useState(false);
   const [editing, setEditing] = useState(false);
   const [tvView, setTvView] = useState('home');
-  const [showBriefing, setShowBriefing] = useState(true);
   const [display, setDisplay] = useState(tv);
   const [now, setNow] = useState(null);
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(null);
   const [notice, setNotice] = useState('');
   const [removed, setRemoved] = useState(null);
   const root = useRef(null);
   const busy = useRef(false);
+  const launchButton = useRef(null), wasDisplay = useRef(false);
   const [feedPanel, setFeedPanel] = useState('morning');
   const endpoint = tv ? '/api/tv' : `/api/admin/apps/morning-feed${workspaceOwner ? `?owner=${encodeURIComponent(workspaceOwner)}` : ''}`;
   const canEdit = !tv && permission !== 'viewer';
+  useEffect(() => {
+    if (!tv && wasDisplay.current && !display) launchButton.current?.focus();
+    wasDisplay.current = display;
+  }, [display, tv]);
   useEffect(() => {
     if (tv || !window.location) return;
     const restore = () => { if (TV_VIEWS.includes(new URL(window.location.href).searchParams.get('view'))) setDisplay(true); };
@@ -43,10 +48,10 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   useEffect(() => {
     if (!display) return;
     const stop = !tv ? startTvHistory(window) : () => {};
-    const unsubscribe = subscribeTvHistory(window, location => { if (location) { setTvView(location.view); if (location.view === 'briefing') setShowBriefing(true); } });
+    const unsubscribe = subscribeTvHistory(window, location => { if (location) setTvView(location.view); });
     return () => { unsubscribe(); stop(); };
   }, [display, tv]);
-  function navigate(value) { if (!navigateTv(window, value)) setTvView(value); if (value === 'briefing') setShowBriefing(true); }
+  function navigate(value) { if (!navigateTv(window, value)) setTvView(value); }
   function goBack() { if (!backTv(window)) navigate('home'); }
 
   useEffect(() => { if (display && !tv && root.current) return attachRemoteNavigation(root.current); }, [display, phase, tv]);
@@ -61,7 +66,7 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
       if (signal?.aborted) return;
       if (tv && data.status !== 'connected') { setScreen(null); setPhase('expired'); onTvExpired?.(); return; }
       const value = data.screen === null ? emptyScreen() : validateScreen(data.screen);
-      setScreen(value); setRevision(data.updatedAt); setDirty(false); setPhase('ready'); setNotice(''); setRemoved(null);
+      setScreen(value); setActive(value.cards.find(card => card.enabled)?.id ?? null); setRevision(data.updatedAt); setDirty(false); setPhase('ready'); setNotice(''); setRemoved(null);
     } catch { if (signal?.aborted) return; setPhase('error'); setError('Could not load your morning. Check your connection or sign in again, then retry.'); }
   }
   useEffect(() => { const controller = new AbortController(); load(controller.signal); return () => controller.abort(); }, [endpoint]); // Each owner context loads independently.
@@ -92,25 +97,15 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   }, [display, endpoint]);
   const visible = screen?.cards.filter(card => card.enabled) ?? [];
   useEffect(() => {
-    if (!display) return;
-    root.current?.focus();
+    if (!display || tv) return;
     function key(event) {
-      if (event.defaultPrevented) return;
-      if (event.key === 'Tab') {
-        const controls = root.current?.querySelectorAll('button:not(:disabled), a[href]');
-        if (controls?.length) {
-          const first = controls[0], last = controls[controls.length - 1];
-          if (event.shiftKey && (document.activeElement === first || document.activeElement === root.current)) { event.preventDefault(); last.focus(); }
-          else if (!event.shiftKey && (document.activeElement === last || document.activeElement === root.current)) { event.preventDefault(); first.focus(); }
-        }
-      }
-      if (event.key === 'Escape' && !tv && tvView === 'home') exitDisplay();
-      if (event.key === 'ArrowRight') { event.preventDefault(); setActive(index => (index + 1) % Math.max(1, visible.length)); }
-      if (event.key === 'ArrowLeft') { event.preventDefault(); setActive(index => (index - 1 + Math.max(1, visible.length)) % Math.max(1, visible.length)); }
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.isComposing || event.target?.closest('input,textarea,select,[contenteditable="true"]')) return;
+      // Spatial navigation owns arrows and Tab. Only Home yields Escape to exit.
+      if (event.key === 'Escape' && tvView === 'home') { event.preventDefault(); exitDisplay(); }
     }
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [display, visible.length, tvView]);
+  }, [display, tv, tvView]);
 
   function change(next) { setScreen(next); setDirty(true); setNotice(''); setError(''); }
   function updateCard(id, patch) { change({ ...screen, cards: screen.cards.map(card => card.id === id ? { ...card, ...patch } : card) }); }
@@ -131,7 +126,9 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
   }
   async function fullscreen() {
     try {
-      if (!document.fullscreenElement && root.current?.requestFullscreen) await root.current.requestFullscreen();
+      const surface = tv ? root.current?.parentElement : root.current;
+      // Paired dialogs are siblings of the feed, so keep the entire TV controller in fullscreen.
+      if (!document.fullscreenElement && surface?.requestFullscreen) await surface.requestFullscreen();
       else setNotice('Use your browser’s full-screen control for an edge-to-edge view.');
     } catch { setNotice('Full screen is unavailable here. TV mode is still active.'); }
   }
@@ -140,29 +137,50 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
     try { if (document.fullscreenElement) await document.exitFullscreen(); } catch { /* The display still exits if the browser denies fullscreen changes. */ }
   }
 
-  if (phase === 'loading') return <section className="morning" aria-busy="true"><p role="status">Tuning in to your morning…</p></section>;
-  if (phase === 'expired') return <section className="morning"><p role="status">This TV connection ended.</p><a href="/tv">Connect the TV again</a></section>;
-  if (phase === 'error') return <section className="morning"><p role="alert">{error}</p><button onClick={() => load()}>Retry loading</button></section>;
+  if (['loading', 'expired', 'error'].includes(phase)) return <section ref={root} className={`morning${display ? ' morning-display tv-state' : ''}`} data-tv-surface={display ? true : undefined} aria-label={display ? 'Bart TV' : 'Morning signal'} aria-busy={phase === 'loading'} tabIndex={display ? -1 : undefined}>
+    {display && <div className="tv-state-brand"><img src="/tv/icon.svg" alt="" width="48" height="48"/> BART TV</div>}
+    <div className="tv-state-copy"><p className="tv-panel-kicker">{phase === 'loading' ? 'YOUR SIGNAL IS ON ITS WAY' : phase === 'expired' ? 'CONNECTION ENDED' : 'LET’S RECONNECT'}</p>
+      <h2>{phase === 'loading' ? 'Tuning in to your morning…' : phase === 'expired' ? 'This TV connection ended.' : 'Your morning will be here.'}</h2>
+      {phase === 'loading' ? <p role="status">Loading your saved screen.</p> : phase === 'expired' ? <a href="/tv">Connect the TV again</a> : <><p role="alert">{error}</p><button onClick={() => load()}>Retry loading</button></>}
+    </div>
+  </section>;
   let timezone = screen.timezone;
   try { new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format(); } catch { timezone = 'UTC'; }
   const today = now ? dayInZone(now, timezone) : '';
   const rituals = visible.filter(card => card.kind === 'ritual');
   const done = rituals.filter(card => card.completedOn === today).length;
-  const featured = visible[active % Math.max(1, visible.length)];
+  const featured = visible.find(card => card.id === active) || visible[0];
+  const activeIndex = Math.max(0, visible.indexOf(featured));
   const clock = now ? new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', minute: '2-digit' }).format(now) : '—';
   const date = now ? new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'long', month: 'long', day: 'numeric' }).format(now) : 'Your morning, on your time';
 
-  return <section ref={root} className={`morning${display ? ' morning-display' : ''}${display && (!visible.length || !showBriefing || tvView !== 'briefing') ? ' morning-ticker-only' : ''}`} data-tv-view={display ? tvView : undefined} aria-label="Morning signal" role={display ? 'dialog' : undefined} aria-modal={display ? true : undefined} tabIndex={display ? -1 : undefined}>
-    <header className="morning-top"><span className="morning-brand">{display ? <img src="/tv/icon.svg" alt="" width="28" height="28"/> : <span aria-hidden="true">✳</span>} {display ? 'Bart TV' : screen.title}</span><span className="morning-tag">YOUR OWN FREQUENCY</span><div className="morning-actions">
-      {display ? <><button onClick={fullscreen}>Full screen</button><button disabled={!visible.length} title={!visible.length ? 'No enabled briefing cards are saved. Add cards from Edit morning on your phone or computer.' : undefined} aria-pressed={visible.length > 0 && showBriefing && tvView === 'briefing'} onClick={() => { if (tvView === 'briefing' && showBriefing) { setShowBriefing(false); navigate('news'); } else { setShowBriefing(true); navigate('briefing'); } }}>{!visible.length ? 'No briefing cards' : tvView === 'briefing' && showBriefing ? 'Hide morning briefing' : 'Show morning briefing'}</button><button onClick={tv ? onDisconnect : exitDisplay}>{tv ? 'Disconnect TV' : 'Exit TV mode'}</button></> : <><button disabled={saving || dirty} title={dirty ? 'Save your changes before opening TV mode.' : undefined} onClick={() => { setActive(0); setDisplay(true); setEditing(false); setError(''); }}>TV mode ↗</button>{canEdit && <button disabled={saving} onClick={() => { setEditing(!editing); setFeedPanel('morning'); }}>{editing ? 'Preview feed' : 'Edit morning'}</button>}</>}
-    </div></header>
-    {display && <nav className="morning-tv-nav" aria-label="TV sections">{[['home','Home'],['news','News'],['briefing','Briefing'],['calendar','Calendar'],['commands','Commands']].map(([value,label]) => <button key={value} aria-pressed={tvView === value} onClick={() => navigate(value)}>{label + (value === 'calendar' && (tv || permission !== 'owner') ? ' · locked' : '')}</button>)}{tvView !== 'home' && <button data-tv-back onClick={goBack}>← Back</button>}<span>D-pad · OK selects · Back returns</span></nav>}
-    {display && tvView === 'home' && <section className="tv-home"><p className="tv-panel-kicker">BART TV / YOUR SIGNAL, IN FOCUS</p><h2>A clearer view.<br/><em>Of your world.</em></h2><div className="tv-home-grid">{[['news','01','News','Full TLDR stories. Five editions.'],['briefing','02','Briefing',visible.length ? `${visible.length} saved cards. Your morning, your pace.` : 'No briefing cards saved yet.'],['calendar','03','Calendar',tv || permission !== 'owner' ? 'Private · owner authorization required.' : 'Your existing Calendar companion agenda.'],['commands','04','Your dot',tv ? 'Private commands · owner sign-in required.' : 'Check your private dot connection and send a command.']].map(([value,number,title,copy]) => <button key={value} onClick={() => navigate(value)}><small>{number} /</small><strong>{title}<span>↗</span></strong><p>{copy}</p></button>)}</div><p className="tv-home-help">Choose a screen with the D-pad. Press OK to open it. Back exits only from Home.</p></section>}
-    {display && tvView === 'briefing' && !visible.length && <section className="tv-panel"><p className="tv-panel-kicker">MORNING BRIEFING</p><h2>No briefing cards saved.</h2><p>Add or enable cards in Edit morning on your phone or computer. News works independently.</p><button onClick={() => navigate('news')}>Back to News</button></section>}
+  const hour = now ? Number(new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', hourCycle: 'h23' }).format(now)) : 8;
+  const greeting = hour < 12 ? 'Good morning.' : hour < 17 ? 'Good afternoon.' : 'Good evening.';
+  const channels = [
+    ['news', '01', 'News', 'A wider perspective.', 'TLDR · five editions'],
+    ['briefing', '02', 'Briefing', 'A little intention.', `${visible.length} ${visible.length === 1 ? 'card' : 'cards'} ready · your pace`],
+    ['calendar', '03', 'Calendar', 'Space for what’s next.', tv || permission !== 'owner' ? 'Owner sign-in required' : 'Your personal agenda'],
+    ['commands', '04', 'Your dot', 'An idea into action.', tv ? 'Owner sign-in required' : 'Your private command queue'],
+  ];
+
+  return <section ref={root} className={`morning${display ? ' morning-display' : ''}${display && (!visible.length || tvView !== 'briefing') ? ' morning-ticker-only' : ''}`} data-tv-view={display ? tvView : undefined} data-tv-surface={display ? true : undefined} aria-label={display ? 'Bart TV' : 'Morning signal'} role={display ? 'dialog' : undefined} aria-modal={display ? true : undefined} tabIndex={display ? -1 : undefined}>
+    <header className="morning-top"><span className="morning-brand">{display ? <img src="/tv/icon.svg" alt="" width="40" height="40"/> : <span aria-hidden="true">✳</span>} {display ? 'Bart TV' : screen.title}</span>
+      {display ? <div className="tv-masthead-time"><span>{date}</span><time>{clock}</time></div> : <span className="morning-tag">YOUR OWN FREQUENCY</span>}
+      <div className="morning-actions">{display ? <><button onClick={fullscreen}>Full screen</button><button onClick={tv ? onDisconnect : exitDisplay}>{tv ? 'Disconnect TV' : 'Exit TV mode'}</button></> : <><button ref={launchButton} disabled={saving || dirty} title={dirty ? 'Save your changes before opening TV mode.' : undefined} onClick={() => { setActive(visible[0]?.id ?? null); setDisplay(true); setEditing(false); setError(''); }}>TV mode ↗</button>{canEdit && <button disabled={saving} onClick={() => { setEditing(!editing); setFeedPanel('morning'); }}>{editing ? 'Preview feed' : 'Edit morning'}</button>}</>}</div>
+    </header>
+    {display && <nav className="morning-tv-nav" aria-label="TV sections"><div>{[['home','Home'],['news','News'],['briefing','Briefing'],['calendar','Calendar'],['commands','Commands']].map(([value,label]) => <button key={value} data-tv-initial={tvView !== 'home' && tvView === value ? true : undefined} aria-current={tvView === value ? 'page' : undefined} aria-pressed={tvView === value} onClick={() => navigate(value)}>{label}</button>)}</div>{tvView !== 'home' && <button data-tv-back onClick={goBack}>← Back</button>}</nav>}
+    {display && tvView === 'home' && <section className="tv-home" aria-label="TV home">
+      <div className="tv-home-intro"><p className="tv-panel-kicker">{greeting}</p><h2 className="tv-home-clock">{clock}</h2><p className="tv-home-zone">{timezone.replaceAll('_', ' ')}</p>
+        <div className="tv-home-intention"><p className="tv-panel-kicker">TODAY’S INTENTION</p><div><PagedText text={screen.focus || 'Make room for a good day. Choose a screen to begin.'} label="Intention"/></div></div>
+        <div className="tv-home-momentum"><span><strong>{done}<small> / {rituals.length}</small></strong> rituals complete</span><span><strong>{rituals.reduce((total, card) => total + card.minutes, 0)}<small> min</small></strong> planned today</span></div>
+      </div>
+      <div className="tv-home-grid">{channels.map(([value,number,title,copy,meta]) => <button key={value} className={`tv-channel tv-channel-${value}`} data-tv-initial={value === 'news' ? true : undefined} onClick={() => navigate(value)}><span className="tv-channel-top"><small>{number}</small><TvGlyph kind={value}/><span aria-hidden="true">↗</span></span><strong>{title}</strong><p>{copy}</p><span className="tv-channel-meta">{meta}</span></button>)}</div>
+    </section>}
+    {display && tvView === 'briefing' && !visible.length && <section className="tv-panel tv-briefing-empty"><TvGlyph kind="briefing"/><p className="tv-panel-kicker">YOUR MORNING BRIEFING</p><h2>A little room for intention.</h2><p>{screen.cards.length ? 'Your saved cards are switched off. Enable cards in Edit morning on your phone or computer.' : 'No briefing cards saved. Add cards in Edit morning on your phone or computer.'} They’ll appear here after the next refresh.</p><button onClick={() => navigate('news')}>Explore News →</button></section>}
     {display && tvView === 'calendar' && <TvCalendar locked={tv || permission !== 'owner'} ownerLoginEnabled={tv && ownerLoginEnabled}/>}
     {display && tvView === 'commands' && <TvCommandBox paired={tv} ownerLoginEnabled={ownerLoginEnabled}/>}
     <div className="morning-hero"><div><p className="morning-kicker">{date}</p><h2>{display ? <>Make room for<br/><em>a good morning.</em></> : <>A little intention.<br/><em>A lot of possibility.</em></>}</h2><p className="morning-subtitle">A little intention. A little momentum. All your morning in one place.</p></div><div className="morning-clock"><strong>{clock}</strong><span>{timezone.replaceAll('_', ' ')}</span></div></div>
-    <div className="morning-status" aria-live="polite">{error ? <p role="alert">{error}</p> : notice ? <p>{notice}</p> : <p>{dirty ? 'Unsaved changes · save before opening TV mode' : revision ? 'Saved morning' : 'Your screen is ready to build'}</p>}{!display && canEdit && <button className="morning-primary" disabled={saving || !dirty} onClick={save}>{saving ? 'Saving…' : error && dirty ? 'Retry save' : 'Save morning'}</button>}</div>
+    <div className="morning-status" hidden={display && !error && !notice} aria-live="polite">{error ? <p role="alert">{error}</p> : notice ? <p>{notice}</p> : <p>{dirty ? 'Unsaved changes · save before opening TV mode' : revision ? 'Saved morning' : 'Your screen is ready to build'}</p>}{!display && canEdit && <button className="morning-primary" disabled={saving || !dirty} onClick={save}>{saving ? 'Saving…' : error && dirty ? 'Retry save' : 'Save morning'}</button>}</div>
     {!display && <nav className="morning-workspace-nav" aria-label="Morning views"><button aria-pressed={feedPanel === 'morning'} onClick={() => setFeedPanel('morning')}>My morning</button><button aria-pressed={feedPanel === 'news'} onClick={() => setFeedPanel('news')}>News &amp; ideas</button><span>{visible.length} cards · {done}/{rituals.length} rituals complete</span></nav>}
     <div className="morning-news-panel" hidden={display ? tvView !== 'news' : feedPanel !== 'news'}><TldrTicker key={endpoint} cardStories={visible} endpoint={endpoint} progressEndpoint={tv ? '/api/tv/news-progress' : permission === 'owner' ? '/api/admin/news-progress' : null} display={display} visible={display ? tvView === 'news' : feedPanel === 'news'} onExpired={tv ? onTvExpired : undefined}/></div>
     {editing && !display && canEdit && feedPanel === 'morning' && <fieldset className="morning-editor" disabled={saving}>
@@ -180,12 +198,22 @@ export default function MorningFeed({ workspaceOwner, permission = 'owner', tv =
       {removed && <button onClick={() => { const cards = [...screen.cards]; cards.splice(Math.min(removed.index, cards.length), 0, removed.card); change({ ...screen, cards }); setRemoved(null); }}>Undo removal</button>}
       <button disabled={screen.cards.length >= 24} onClick={addCard}>+ Add card</button>
     </fieldset>}
-    <div className="morning-summary" hidden={!display && feedPanel !== 'morning'}><article className="morning-focus"><p className="morning-kicker">THE INTENTION</p><h3>{screen.focus || 'Start with what matters.'}</h3>{!screen.focus && <p>Add a morning intention in Edit morning.</p>}</article><article className="morning-progress"><p className="morning-kicker">BUILD YOUR MOMENTUM</p><strong>{done}<span> / {rituals.length}</span></strong><p>rituals complete today · {rituals.reduce((total, card) => total + card.minutes, 0)} minutes planned</p><progress value={done} max={Math.max(1, rituals.length)} aria-label="Today's ritual progress"/></article></div>
-    {display && featured ? <div className="morning-feature"><p className="morning-kicker">ON AIR · {featured.kind} {featured.minutes > 0 && `· ${featured.minutes} MIN`}</p><h3>{featured.title}</h3><div className="morning-feature-body"><PagedText text={featured.body || 'Take a breath. Give this moment your attention.'} label="Briefing"/></div>{safeLink(featured.url) && <button onClick={event => { event?.currentTarget?.focus({preventScroll:true}); openTvOverlay(window, 'article', { kind:'card', cardId:featured.id }); }}>Open link ↗</button>}<div className="morning-slide-controls"><button aria-label="Previous card" onClick={() => setActive(index => (index - 1 + visible.length) % visible.length)}>←</button><span>{(active % visible.length) + 1} / {visible.length}</span><button aria-label="Next card" onClick={() => setActive(index => (index + 1) % visible.length)}>→</button></div></div> : <>
+    {!display && <div className="morning-summary" hidden={feedPanel !== 'morning'}><article className="morning-focus"><p className="morning-kicker">THE INTENTION</p><h3>{screen.focus || 'Start with what matters.'}</h3>{!screen.focus && <p>Add a morning intention in Edit morning.</p>}</article><article className="morning-progress"><p className="morning-kicker">BUILD YOUR MOMENTUM</p><strong>{done}<span> / {rituals.length}</span></strong><p>rituals complete today · {rituals.reduce((total, card) => total + card.minutes, 0)} minutes planned</p><progress value={done} max={Math.max(1, rituals.length)} aria-label="Today's ritual progress"/></article></div>}
+    {display && tvView === 'briefing' && featured && <section className="morning-feature" aria-label="Saved briefing">
+      <div className="tv-briefing-meta"><p className="morning-kicker">ON AIR · {featured.kind}{featured.minutes > 0 && ` · ${featured.minutes} MIN`}</p><span>{String(activeIndex + 1).padStart(2, '0')} <small>/ {String(visible.length).padStart(2, '0')}</small></span></div>
+      <h3>{featured.title}</h3><div className="morning-feature-body"><PagedText key={featured.id} text={featured.body || 'Take a breath. Give this moment your attention.'} label="Briefing"/></div>
+      <div className="tv-briefing-bottom"><span>{featured.kind === 'ritual' && featured.completedOn === today ? '✓ Completed today' : 'Stay a while. This screen moves at your pace.'}</span><div className="morning-slide-controls">{safeLink(featured.url) && <button onClick={event => { event?.currentTarget?.focus({preventScroll:true}); openTvOverlay(window, 'article', { kind:'card', cardId:featured.id }); }}>Open link ↗</button>}<button disabled={visible.length < 2} aria-label="Previous card" onClick={() => setActive(visible[(activeIndex - 1 + visible.length) % visible.length].id)}>← Previous</button><button disabled={visible.length < 2} aria-label="Next card" onClick={() => setActive(visible[(activeIndex + 1) % visible.length].id)}>Next card →</button></div></div>
+    </section>}
+    {!display && <>
       <div className="morning-section-head" hidden={!display && feedPanel !== 'morning'}><h3>Your morning lineup</h3><span>{visible.length} cards · in your order</span></div>
       {!visible.length ? <div className="morning-empty" hidden={!display && feedPanel !== 'morning'}><span aria-hidden="true">↗</span><h3>{screen.cards.length ? 'Your lineup is taking a breather.' : 'Big plans start with a small ritual.'}</h3><p>{screen.cards.length ? 'Enable a card in the editor to bring it back on screen.' : 'Build a feed of routines, personal briefings and links. Make it as simple or as wonderfully elaborate as you like.'}</p>{canEdit && <button disabled={saving} onClick={() => { if (!screen.cards.length) addCard(); else setEditing(true); }}>{screen.cards.length ? 'Edit cards' : 'Build your morning'}</button>}</div> : <div className="morning-grid" hidden={!display && feedPanel !== 'morning'}>{visible.map((card, index) => <article className={`morning-card morning-kind-${card.kind}`} key={card.id}><div className="morning-card-meta"><span>{String(index + 1).padStart(2, '0')} / {card.kind.toUpperCase()}</span><span>{card.minutes ? `${card.minutes} MIN` : 'AT YOUR PACE'}</span></div><h3>{card.title}</h3><p>{card.body || 'Your next small step.'}</p><div className="morning-card-footer">{safeLink(card.url) && <a href={safeLink(card.url)} target="_blank" rel="noopener noreferrer">Open link ↗</a>}{card.kind === 'ritual' && <button disabled={saving || !canEdit || !today} aria-pressed={card.completedOn === today} onClick={() => updateCard(card.id, { completedOn: card.completedOn === today ? '' : today })}>{card.completedOn === today ? '✓ Done today' : 'Mark complete'}</button>}</div></article>)}</div>}
     </>}
     {!display && <details className="morning-tv-help"><summary>Take your morning to the big screen</summary><p><a href="/tv">Connect a TV with QR code</a> · <a href="/auth/tv">Manage connected TVs</a></p><p>Save your morning, then open bartconsedine.com/tv in a compatible TV browser. Scan the QR code and approve it on your phone. You can also mirror this browser from a connected device. Support depends on your TV and streaming device.</p><p>Briefing cards stay selected until you choose another card. TV mode checks for saved changes every 30 seconds. Edit and save on another signed-in device to update the screen. Use arrow keys and OK to navigate. Back returns through sections; Escape exits TV mode from Home. Full screen is optional.</p><p>Briefings and links are curated by you. TLDR stories come from public archives and advance when you choose. Calendar uses your existing Calendar companion connection in an owner browser session. Paired TVs need owner sign-in for Calendar and private commands.</p>{dirty && <button onClick={() => { if (window.confirm('Discard unsaved edits and load the saved morning?')) load(); }}>Discard edits and reload</button>}</details>}
-    <footer className="morning-footer"><span>LESS SCROLL. MORE SIGNAL.</span><span>{display ? 'Manual advance · refreshes every 30 seconds' : 'MADE FOR YOUR MORNING, BUILT TO GROW.'}</span></footer>
+    <footer className="morning-footer">{display ? <><span><kbd>↑ ↓ ← →</kbd> Move <kbd>OK</kbd> Select <kbd>Back</kbd> Return</span><span>{tv ? 'Paired display' : 'Private workspace'} · advances at your pace</span></> : <><span>LESS SCROLL. MORE SIGNAL.</span><span>MADE FOR YOUR MORNING, BUILT TO GROW.</span></>}</footer>
   </section>;
+}
+
+function TvGlyph({ kind }) {
+  const paths = { news: 'M5 4h14v16H5z M8 8h8 M8 12h8 M8 16h4', briefing: 'M12 3v4 M12 17v4 M3 12h4 M17 12h4 M5.6 5.6l2.8 2.8 M15.6 15.6l2.8 2.8 M5.6 18.4l2.8-2.8 M15.6 8.4l2.8-2.8', calendar: 'M5 6h14v14H5z M5 10h14 M8 3v5 M16 3v5 M8 14h2 M14 14h2', commands: 'M4 7l5 5-5 5 M12 17h8' };
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[kind]}/></svg>;
 }

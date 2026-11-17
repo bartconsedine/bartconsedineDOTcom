@@ -1,21 +1,130 @@
-.tv-pair { min-height:100vh; background:#102a28; color:#f6f2e7; padding:clamp(28px,6vw,100px); display:flex; align-items:center; justify-content:space-between; gap:48px; }
-.tv-pair-copy { max-width:700px; }
-.tv-eyebrow { font:600 12px/1.5 monospace; letter-spacing:.16em; }
-.tv-pair h1 { font-size:clamp(40px,5vw,90px); line-height:1.05; margin:32px 0; letter-spacing:-.04em; }
-.tv-pair h1 em { color:#d2e59e; font-family:Georgia,serif; font-weight:400; }
-.tv-pair p { line-height:1.6; font-size:clamp(16px,1.5vw,23px); }
-.tv-pair .tv-code,.tv-code { font:700 clamp(28px,4vw,52px)/1.2 monospace; letter-spacing:.15em; margin:24px 0; }
-.tv-pair button,.tv-consent button { background:#d2e59e; color:#102a28; padding:14px 24px; border:0; border-radius:6px; font-size:16px; font-weight:600; line-height:1.4; font-family:inherit; cursor:pointer; }
-.tv-pair button:disabled,.tv-consent button:disabled { opacity:.55; cursor:wait; }
-.tv-pair a { color:inherit; text-decoration:underline; }
-.tv-qr { flex-shrink:0; padding:24px; color:#102a28; background:white; text-align:center; border-radius:12px; }
-.tv-qr img { width:min(360px,60vw); height:auto; image-rendering:pixelated; }
-.tv-qr p { margin:12px 0; font-weight:600; }
-.tv-qr a { font-size:13px; }
+/* Phone consent remains separate from the television onboarding surface. */
+.tv-code { font:700 clamp(28px,4vw,52px)/1.2 monospace; letter-spacing:.15em; margin:24px 0; }
 .tv-consent { max-width:760px; margin:0 auto; padding:48px 24px; line-height:1.65; }
 .tv-consent h1 { font-size:clamp(32px,6vw,52px); line-height:1.1; }
 .tv-consent h2 { margin-top:32px; }
 .tv-consent li { margin:18px 0; }
 .tv-consent a { text-decoration:underline; }
-.tv-overlay-error { position:fixed; bottom:10px; left:20px; right:20px; z-index:3000; padding:16px; color:white; background:#802929; }
-@media(max-width:800px) { .tv-pair { flex-direction:column; align-items:flex-start; gap:24px; } .tv-qr { align-self:center; } }
+.tv-consent button { background:#d2e59e; color:#102a28; padding:14px 24px; border:0; border-radius:6px; font-size:16px; font-weight:600; line-height:1.4; font-family:inherit; cursor:pointer; }
+.tv-consent button:disabled { opacity:.55; cursor:wait; }
+
+.tv-pair.tv-onboarding {
+  --tv-ink:#edf2ff; --tv-muted:#b4bfd8; --tv-line:#33415e; --tv-accent:#91cded;
+  box-sizing:border-box; height:100dvh; min-height:0; overflow:auto; overscroll-behavior:contain;
+  display:grid; grid-template-rows:auto minmax(0,1fr) auto; gap:clamp(18px,2.2vh,40px);
+  padding:clamp(22px,3.8vh,72px) clamp(26px,4.5vw,172px);
+  background:radial-gradient(ellipse at 80% 40%,#27395644,transparent 62%),#0b1020;
+  color:var(--tv-ink); font-family:Arial,Helvetica,sans-serif;
+}
+.tv-onboarding *, .tv-disconnect * { box-sizing:border-box; }
+.tv-onboarding-header { display:flex; justify-content:space-between; align-items:center; gap:24px; }
+.tv-onboarding-brand { display:flex; align-items:center; gap:16px; }
+.tv-onboarding-brand img { width:clamp(36px,3vw,70px); height:auto; }
+.tv-onboarding-brand > span { font-size:clamp(22px,1.8vw,42px); font-weight:600; letter-spacing:-.04em; }
+.tv-onboarding-brand small { display:block; margin-top:6px; color:var(--tv-muted); font:500 clamp(9px,.68vw,18px)/1.3 monospace; letter-spacing:.12em; }
+.tv-pair.tv-onboarding .tv-remote-help { display:flex; flex-wrap:wrap; gap:12px 22px; margin:0; color:var(--tv-muted); font:500 clamp(12px,.9vw,22px)/1.5 monospace; }
+.tv-onboarding-body { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); align-items:center; gap:clamp(32px,7vw,240px); min-height:0; }
+.tv-pair.tv-onboarding .tv-pair-copy { min-width:0; max-width:1100px; }
+.tv-pair.tv-onboarding .tv-eyebrow, .tv-disconnect .tv-eyebrow { color:#91cded; font:600 clamp(11px,.85vw,20px)/1.5 monospace; letter-spacing:.12em; margin:0 0 18px; }
+.tv-pair.tv-onboarding h1 { font:500 clamp(42px,4.5vw,116px)/1.05 Arial,Helvetica,sans-serif; letter-spacing:-.055em; margin:0 0 24px; }
+.tv-pair.tv-onboarding h1 em { color:#e6bb7c; font-family:Georgia,serif; font-weight:400; }
+.tv-pair.tv-onboarding p { font-size:clamp(16px,1.25vw,30px); line-height:1.55; }
+.tv-pair.tv-onboarding .tv-pair-intro { max-width:34em; color:var(--tv-muted); margin:0 0 28px; }
+.tv-pair-options { display:grid; gap:18px; }
+.tv-pair-option { border:1px solid var(--tv-line); border-radius:16px; padding:22px 26px; background:#151e32; }
+.tv-pair.tv-onboarding .tv-pair-option .tv-eyebrow { font-size:clamp(10px,.8vw,18px); margin:0 0 10px; color:#a9c6f5; }
+.tv-pair-option h2 { font:600 clamp(20px,1.6vw,38px)/1.3 Arial,Helvetica,sans-serif; letter-spacing:-.025em; margin:0; }
+.tv-pair.tv-onboarding .tv-pair-option > p:not(.tv-eyebrow) { margin:10px 0 20px; font-size:clamp(14px,1.05vw,25px); color:var(--tv-muted); }
+.tv-pair.tv-onboarding button, .tv-pair-owner a {
+  display:inline-flex; justify-content:space-between; align-items:center; gap:32px; min-height:50px;
+  padding:13px 22px; border:1px solid #9fc5ed; border-radius:10px; background:#b6d7fa;
+  color:#0b1020; font:600 clamp(16px,1.1vw,26px)/1.4 Arial,Helvetica,sans-serif; cursor:pointer; text-decoration:none;
+}
+.tv-pair.tv-onboarding button:disabled { opacity:.5; cursor:wait; }
+.tv-pair.tv-onboarding .tv-pair-secondary { color:var(--tv-ink); border-color:#586885; background:#19243a; }
+.tv-pair.tv-onboarding :is(button,a):focus-visible { outline:4px solid #91cded; outline-offset:5px; }
+.tv-pair-owner { display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:4px 2px; }
+.tv-pair-owner strong { font-size:clamp(16px,1.15vw,28px); font-weight:500; }
+.tv-pair.tv-onboarding .tv-pair-owner p { color:var(--tv-muted); font-size:clamp(13px,1vw,24px); margin:7px 0 0; }
+.tv-pair-owner a { background:transparent; color:#b6d7fa; border-color:#435879; font-size:clamp(14px,1.05vw,24px); gap:16px; }
+.tv-onboarding-preview { position:relative; isolation:isolate; overflow:hidden; border:1px solid #3d4b66; background:linear-gradient(150deg,#1f2e48,#151d30 72%); border-radius:24px; padding:clamp(28px,4vw,96px); min-height:55vh; display:flex; flex-direction:column; justify-content:center; }
+.tv-preview-orbit { position:absolute; z-index:-1; width:36vw; height:36vw; min-width:300px; min-height:300px; border:1px solid #8cc2e82b; border-radius:50%; right:-22vw; top:-12vw; box-shadow:0 0 0 55px #8cc2e808,0 0 0 110px #8cc2e807; }
+.tv-pair.tv-onboarding .tv-onboarding-preview .tv-eyebrow { color:#b4bfd8; font-size:clamp(10px,.75vw,18px); }
+.tv-onboarding-preview h2 { font:500 clamp(34px,3.5vw,88px)/1.1 Arial,Helvetica,sans-serif; margin:12px 0 36px; letter-spacing:-.045em; }
+.tv-onboarding-preview h2 em { font-family:Georgia,serif; color:#91cded; font-weight:400; }
+.tv-preview-features { display:grid; gap:20px; font-size:clamp(16px,1.4vw,34px); }
+.tv-preview-features > span { display:flex; align-items:center; gap:20px; }
+.tv-preview-features b { color:#e6bb7c; font:400 clamp(12px,1vw,24px)/1 monospace; }
+.tv-pair.tv-onboarding .tv-onboarding-preview > p:last-child { color:var(--tv-muted); margin:34px 0 0; font-size:clamp(12px,1vw,24px); }
+.tv-pair-steps { display:grid; gap:22px; list-style:none; padding:0; margin:28px 0; }
+.tv-pair-steps li { display:flex; gap:18px; align-items:flex-start; }
+.tv-pair-steps li > span { padding:7px 0; flex-shrink:0; color:#e6bb7c; font:500 clamp(12px,1vw,24px)/1 monospace; }
+.tv-pair-steps strong { display:block; font-size:clamp(18px,1.5vw,36px); font-weight:500; line-height:1.3; letter-spacing:-.02em; }
+.tv-pair.tv-onboarding .tv-pair-steps p { color:var(--tv-muted); font-size:clamp(14px,1.1vw,26px); margin:7px 0 0; }
+.tv-pair-actions { display:flex; flex-wrap:wrap; gap:14px; }
+.tv-pair.tv-onboarding .tv-qr { justify-self:center; display:flex; flex-direction:column; align-items:center; min-width:0; max-width:100%; padding:clamp(18px,2vw,50px); background:#f5f7ff; color:#17213a; border:1px solid #fff; border-radius:20px; box-shadow:0 24px 80px #0004; }
+.tv-qr-label { font:700 clamp(11px,.85vw,20px)/1.4 monospace; letter-spacing:.14em; margin-bottom:12px; }
+.tv-pair.tv-onboarding .tv-qr img { display:block; width:min(35vw,42vh,680px); height:auto; max-width:100%; image-rendering:pixelated; }
+.tv-qr-identity { width:100%; margin-top:14px; padding-top:14px; border-top:1px solid #c3cce0; text-align:center; }
+.tv-qr-identity > span { font-size:clamp(12px,.95vw,22px); }
+.tv-pair.tv-onboarding .tv-qr .tv-code { display:block; font:700 clamp(30px,3vw,72px)/1.2 monospace; letter-spacing:.13em; margin:8px 0 0; }
+.tv-pair.tv-onboarding .tv-pair-wait { font-size:clamp(12px,.9vw,22px); font-weight:600; margin:16px 0 0; }
+.tv-pair-wait i { display:inline-block; width:7px; height:7px; border-radius:50%; background:#3d6d66; margin-right:8px; }
+.tv-pair.tv-onboarding .tv-pair-countdown { margin:4px 0 6px; font-size:clamp(12px,.85vw,20px); color:#52617b; }
+.tv-pair-countdown strong { color:#17213a; font-variant-numeric:tabular-nums; }
+.tv-pair.tv-onboarding .tv-qr a { display:inline-flex; align-items:center; min-height:40px; color:#243f72; font-size:clamp(12px,.85vw,20px); text-decoration:underline; text-underline-offset:4px; border-radius:5px; padding:6px 10px; }
+.tv-pair.tv-onboarding .tv-pair-error, .tv-pair-error { border:1px solid #eea3a366; border-radius:10px; background:#713c402e; padding:14px 18px; color:#f9c0be; font-size:clamp(14px,1.1vw,26px); line-height:1.5; margin:16px 0 0; }
+.tv-onboarding-footer { display:flex; justify-content:space-between; gap:14px; color:var(--tv-muted); font:500 clamp(10px,.75vw,18px)/1.6 monospace; letter-spacing:.04em; }
+.tv-overlay-error { position:fixed; bottom:16px; left:24px; right:24px; z-index:3000; padding:16px; color:#ffd2ce; border:1px solid #c18480; border-radius:10px; background:#3d2434; }
+
+.tv-disconnect { position:fixed; inset:0; z-index:6000; display:grid; place-items:center; padding:clamp(24px,4vw,96px); background:#080d1ff5; color:#edf2ff; overflow:auto; }
+.tv-disconnect-card { width:min(100%,1000px); border:1px solid #44516c; background:#151e32; border-radius:22px; padding:clamp(28px,4vw,70px); box-shadow:0 28px 100px #0005; }
+.tv-disconnect h2 { font:500 clamp(32px,3.4vw,68px)/1.1 Arial,Helvetica,sans-serif; letter-spacing:-.04em; margin:0 0 22px; }
+.tv-disconnect p { max-width:40em; font-size:clamp(17px,1.3vw,28px); line-height:1.65; color:#bdc8df; }
+.tv-disconnect-actions { display:flex; flex-wrap:wrap; gap:24px; margin:30px 0 22px; }
+.tv-disconnect button { min-height:52px; padding:14px 24px; background:#b6d7fa; color:#0b1020; border:1px solid #9fc5ed; border-radius:10px; font:600 clamp(16px,1.2vw,28px)/1.4 Arial,Helvetica,sans-serif; cursor:pointer; }
+.tv-disconnect .tv-disconnect-confirm { color:#f6bfba; background:#432e3a; border-color:#9e6a75; }
+.tv-disconnect button:disabled { opacity:.5; cursor:wait; }
+.tv-disconnect .tv-dialog-hint { font:500 clamp(12px,.9vw,20px)/1.4 monospace; color:#93a3c1; margin:0; }
+@media (max-height:700px) and (min-width:700px) {
+  .tv-pair.tv-onboarding { padding:20px 4vw; gap:16px; }
+  .tv-pair.tv-onboarding h1 { font-size:clamp(34px,4vw,60px); margin-bottom:16px; }
+  .tv-pair.tv-onboarding .tv-eyebrow { margin-bottom:12px; }
+  .tv-onboarding-brand small { display:none; }
+  .tv-pair.tv-onboarding .tv-pair-intro { font-size:16px; margin-bottom:18px; }
+  .tv-pair-option { padding:16px 20px; }
+  .tv-pair-option h2 { font-size:20px; }
+  .tv-pair.tv-onboarding .tv-pair-option > p:not(.tv-eyebrow) { font-size:14px; margin:8px 0 14px; }
+  .tv-pair.tv-onboarding button, .tv-pair-owner a { min-height:44px; padding:10px 16px; font-size:15px; }
+  .tv-pair-options { gap:12px; }
+  .tv-pair-owner { gap:8px; }
+  .tv-pair.tv-onboarding .tv-pair-owner p { font-size:13px; margin:4px 0 0; }
+  .tv-onboarding-preview { min-height:0; height:100%; padding:30px; }
+  .tv-onboarding-preview h2 { font-size:40px; margin:8px 0 22px; }
+  .tv-preview-features { gap:16px; font-size:18px; }
+  .tv-pair-steps { gap:14px; margin:18px 0 22px; }
+  .tv-pair-steps strong { font-size:18px; }
+  .tv-pair.tv-onboarding .tv-pair-steps p { font-size:14px; margin-top:4px; }
+  .tv-pair.tv-onboarding .tv-qr { padding:16px; }
+  .tv-pair.tv-onboarding .tv-qr img { width:min(32vw,36vh); }
+  .tv-qr-identity { padding-top:10px; margin-top:10px; }
+  .tv-pair.tv-onboarding .tv-qr .tv-code { font-size:30px; margin-top:4px; }
+  .tv-pair.tv-onboarding .tv-pair-wait { margin-top:10px; }
+  .tv-pair.tv-onboarding .tv-qr a { min-height:32px; }
+  .tv-pair.tv-onboarding .tv-pair-error { font-size:13px; padding:10px 12px; }
+}
+@media (max-width:699px) {
+  .tv-pair.tv-onboarding { height:100dvh; padding:24px; display:flex; flex-direction:column; gap:26px; }
+  .tv-onboarding-header { width:100%; }
+  .tv-onboarding-brand small { font-size:8px; }
+  .tv-pair.tv-onboarding .tv-remote-help { display:none; }
+  .tv-onboarding-body { width:100%; display:flex; flex-direction:column; align-items:stretch; gap:28px; }
+  .tv-pair.tv-onboarding h1 { font-size:42px; }
+  .tv-onboarding-preview { min-height:280px; }
+  .tv-pair.tv-onboarding .tv-qr { align-self:center; width:100%; max-width:420px; }
+  .tv-pair.tv-onboarding .tv-qr img { width:min(70vw,300px); }
+  .tv-onboarding-footer { width:100%; margin-top:auto; flex-direction:column; gap:4px; }
+  .tv-disconnect { padding:24px; }
+  .tv-disconnect-card { padding:24px; }
+  .tv-disconnect-actions { flex-direction:column; gap:16px; }
+}

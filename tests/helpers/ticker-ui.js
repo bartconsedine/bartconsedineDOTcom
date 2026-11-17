@@ -26,7 +26,7 @@ export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/tick
     if (id.endsWith('/qr-device')) return props => require('react').createElement('section', {'data-qr-auto-start': props.autoStart, 'aria-label':'Owner QR sign-in controls'}, 'Phone QR sign-in');
     if (id === '../tv/card-article.js') return cardReader;
     if (id === 'react-dom') return {createPortal: node => node};
-    if (id.endsWith('/paged-text')) return ({text}) => text;
+    if (id.endsWith('/paged-text')) return ({text,onActivate,activationRef,activationClassName,activationLabel,textClassName}) => onActivate ? require('react').createElement('button',{ref:activationRef,className:activationClassName,'aria-label':activationLabel,onClick:onActivate},require('react').createElement('span',{className:textClassName},text)) : text;
     if (['./history', './tv/history', '../tv/history.js'].includes(id)) return {...tvHistory, subscribeTvHistory:(win,listener)=>{historyListeners.add(listener);const off=tvHistory.subscribeTvHistory(win,listener);return()=>{historyListeners.delete(listener);off();};}};
     if (id === 'qrcode') return { toDataURL: async url => 'data:image/png;base64,' + Buffer.from(url).toString('base64') };
     if (id === '../../calendar-companion/model.js') return calendarModel;

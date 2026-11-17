@@ -21,7 +21,7 @@ test('history is separate from routine cards, empty/errors are honest, and manua
  let history=0; const ui=tickerUi(async url=>{ history=Number(new URL(url,'https://example.com').searchParams.get('history')); return Response.json(feed([item('one'),item('two')],history));},{endpoint:'/api/admin/apps/morning-feed?owner=owner',display:true},true);
  await ui.settle(); await ui.tick(24000); assert.match(view(ui),/MANUAL/); assert.match(view(ui),/one/);
  ui.key('ArrowRight'); await ui.settle(); assert.match(view(ui),/two/);
- button(ui.render(),'Older issues').props.onClick(); await ui.settle(); assert.equal(history,1); assert.match(view(ui),/page 2/);
+ button(ui.render(),'Latest public issues · Issue dates & sources').props.onClick(); await ui.settle(); button(ui.render(),'Older issues').props.onClick(); await ui.settle(); assert.equal(history,1); assert.match(view(ui),/page 2/);
  button(ui.render(),'Latest').props.onClick(); await ui.settle(); assert.equal(history,0); ui.close();
  const empty=tickerUi(async()=>Response.json(feed([])),{endpoint:'/api/tv'}); await empty.settle(); assert.match(view(empty),/No headlines available/); assert.equal(button(empty.render(),'Open article').props.disabled,true); empty.close();
 });
@@ -108,4 +108,24 @@ test('newsletter selection survives refresh and issue history without marking st
  await ui.tick(60000);button(ui.render(),'Older issues').props.onClick();await ui.settle();
  assert.equal(button(ui.render(),'AI').props['aria-pressed'],true);assert.match(view(ui),/AI copy/);assert.doesNotMatch(view(ui),/tech-story/);assert.equal(posts,0);
  button(ui.render(),'All stories').props.onClick();await ui.settle();assert.doesNotMatch(view(ui),/tech-story/);ui.close();
+});
+
+test('TV can open the complete selected summary directly, then switch to the same sandboxed site',async()=>{
+ const story={...item('source'),editions:[{edition:'tech',date:'2026-11-16',summary:'The complete tech account.'},{edition:'ai',date:'2026-11-16',summary:'The complete AI account, including its final sentence.'}]};
+ const ui=tickerUi(async()=>Response.json(feed([story])),{endpoint:'/api/tv',display:true});await ui.settle();button(ui.render(),'AI summary').props.onClick();await ui.settle();
+ button(ui.render(),'Read summary').props.onClick();await ui.settle();assert.match(view(ui),/Article reader/);assert.equal(nodes(ui.render()).some(node=>node.type==='iframe'),false);assert.match(view(ui),/The complete AI account, including its final sentence/);
+ button(ui.render(),'Read site').props.onClick();await ui.settle();const frame=nodes(ui.render()).find(node=>node.type==='iframe');assert.equal(frame.props.src,story.url);assert.equal(frame.props.tabIndex,-1);assert.equal(frame.props.sandbox,'allow-scripts allow-same-origin');assert.equal(frame.props.referrerPolicy,'no-referrer');ui.close();
+ const admin=tickerUi(async()=>Response.json(feed([story])),{endpoint:'/feed'});await admin.settle();assert.equal(button(admin.render(),'Read summary'),undefined);assert.ok(button(admin.render(),'Older issues'));button(admin.render(),'Open article').props.onClick();await admin.settle();assert.equal(nodes(admin.render()).find(node=>node.type==='iframe').props.tabIndex,0);admin.close();
+});
+
+test('TV archive controls and retry feedback stay in Sources without saving reading progress',async()=>{
+ let failed=false,calls=0,posts=0;const ui=tickerUi(async(url,options={})=>{calls++;if(options.method==='POST')posts++;if(failed)throw Error('offline');const history=Number(new URL(url,'https://example.com').searchParams.get('history'));return Response.json(feed([item('one')],history));},{endpoint:'/feed',display:true});await ui.settle();
+ assert.equal(button(ui.render(),'Older issues'),undefined);button(ui.render(),'Latest public issues · Issue dates & sources').props.onClick();await ui.settle();failed=true;button(ui.render(),'Older issues').props.onClick();await ui.settle();
+ const modal=()=>nodes(ui.render()).find(node=>node.props?.['aria-label']==='Issue dates and sources');assert.match(renderToStaticMarkup(modal()),/Keeping the last loaded headlines/);const previousCalls=calls;failed=false;button(modal(),'Retry news').props.onClick();await ui.settle();assert.equal(calls,previousCalls+1);assert.match(renderToStaticMarkup(modal()),/page 2/);assert.doesNotMatch(renderToStaticMarkup(modal()),/Keeping the last loaded headlines/);assert.equal(posts,0);ui.close();
+});
+
+test('maximum imported title uses bounded TV headline and reader stages while keeping the full accessible heading',async()=>{
+ const title='A complete imported headline with all of its original context. '.repeat(9).slice(0,500),story=item('maximum-title',title);
+ const ui=tickerUi(async()=>Response.json(feed([story])),{endpoint:'/api/tv',display:true});await ui.settle();assert.ok(nodes(ui.render()).find(node=>node.props?.className==='tldr-headline-stage'));
+ button(ui.render(),'Read summary').props.onClick();await ui.settle();assert.equal(nodes(ui.render()).find(node=>node.props?.className==='tv-reader-accessible-title').props.children,title);assert.ok(nodes(ui.render()).find(node=>node.props?.className==='tv-article-title-stage'));assert.match(view(ui),/This is the final sentence/);ui.close();
 });

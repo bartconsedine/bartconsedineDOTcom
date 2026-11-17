@@ -37,8 +37,54 @@ test('disconnect uses a remote-selectable app dialog; cancel and failed requests
   });
   await ui.settle(); button(ui, 'Cancel pairing').props.onClick(); await ui.settle();
   assert.ok(nodes(ui.render()).find(node => node.props?.role === 'dialog' && node.props?.['aria-modal']));
-  button(ui, 'Keep connected').props.onClick(); await ui.settle(); assert.equal(writes, 0);
+  button(ui, 'Keep pairing').props.onClick(); await ui.settle(); assert.equal(writes, 0);
   button(ui, 'Cancel pairing').props.onClick(); await ui.settle();
-  await button(ui, 'Disconnect TV').props.onClick(); await ui.settle(); assert.match(text(ui.render()), /Disconnect failed/); assert.match(text(ui.render()), /1234ABCD/);
-  fail = false; await button(ui, 'Disconnect TV').props.onClick(); await ui.settle(); assert.ok(button(ui, 'Show QR code')); assert.equal(nodes(ui.render()).find(node => node.props?.role === 'dialog'), undefined); ui.close();
+  await nodes(ui.render()).find(node => node.props?.className === 'tv-disconnect-confirm').props.onClick(); await ui.settle(); assert.match(text(ui.render()), /Disconnect failed/); assert.match(text(ui.render()), /1234ABCD/);
+  fail = false; await nodes(ui.render()).find(node => node.props?.className === 'tv-disconnect-confirm').props.onClick(); await ui.settle(); assert.ok(button(ui, 'Show QR code')); assert.equal(nodes(ui.render()).find(node => node.props?.role === 'dialog'), undefined); ui.close();
+});
+
+test('an unavailable initial connection retries by reading state, without starting a new pairing', async () => {
+  let fail = true, requests = 0;
+  const ui = tvUi('tv-screen', async (_, options) => {
+    requests++; assert.equal(options?.method, undefined);
+    if (fail) throw Error('offline');
+    return Response.json({ status: 'unpaired' });
+  }, { ownerLoginEnabled: true });
+  await ui.settle(); assert.match(text(ui.render()), /Could not check your TV connection/);
+  assert.ok(button(ui, 'Retry connection'));
+  assert.ok(nodes(ui.render()).some(node => node.type === 'a' && node.props.href === '/login/qr'));
+  fail = false; await button(ui, 'Retry connection').props.onClick(); await ui.settle();
+  assert.ok(button(ui, 'Show QR code')); assert.equal(requests, 2);
+  assert.equal(nodes(ui.render()).some(node => node.props?.role === 'alert'), false); ui.close();
+});
+
+test('rapid activation creates one pairing request and owner sign-in is absent when disabled', async () => {
+  let release, writes = 0;
+  const gate = new Promise(resolve => { release = resolve; });
+  const ui = tvUi('tv-screen', async (_, options) => {
+    if (!options?.method) return Response.json({ status: 'unpaired' });
+    writes++; await gate;
+    return Response.json({ status: 'pending', expiresAt: new Date(Date.now() + 600000).toISOString(), code: '1234ABCD', qr: 'data:image/png;base64,fixture', approvalUrl: 'https://example.com/fixture' });
+  });
+  await ui.settle(); const action = button(ui, 'Show QR code').props.onClick;
+  const first = action(); await action(); assert.equal(writes, 1);
+  release(); await first; await ui.settle(); assert.match(text(ui.render()), /1234ABCD/);
+  assert.equal(nodes(ui.render()).some(node => node.type === 'a' && node.props.href === '/login/qr'), false); ui.close();
+});
+
+test('disconnect needs explicit server confirmation and an old approval poll cannot restore a cancelled pairing', async () => {
+  let pollRelease, reads = 0, confirmed = false;
+  const pending = { status: 'pending', expiresAt: new Date(Date.now() + 600000).toISOString(), code: '1234ABCD', qr: 'data:image/png;base64,fixture', approvalUrl: 'https://example.com/fixture' };
+  const ui = tvUi('tv-screen', async (_, options) => {
+    if (options?.method) return Response.json({ disconnected: confirmed });
+    reads++; if (reads === 1) return Response.json(pending);
+    return new Promise(resolve => { pollRelease = () => resolve(Response.json(pending)); });
+  });
+  await ui.settle(); button(ui, 'Cancel pairing').props.onClick(); await ui.settle();
+  const confirm = () => nodes(ui.render()).find(node => node.props?.className === 'tv-disconnect-confirm');
+  await confirm().props.onClick(); await ui.settle(); assert.match(text(ui.render()), /Disconnect was not confirmed/);
+  assert.ok(confirm());
+  const poll = ui.tick(5000); confirmed = true;
+  await confirm().props.onClick(); pollRelease(); await poll; await ui.settle();
+  assert.ok(button(ui, 'Show QR code')); assert.doesNotMatch(text(ui.render()), /1234ABCD/); ui.close();
 });
