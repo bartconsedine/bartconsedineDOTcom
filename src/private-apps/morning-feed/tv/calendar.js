@@ -21,13 +21,23 @@ function projectEvent(event, zone) {
 // Read-only projection of the existing owner Calendar companion API.
 export default function TvCalendar({ locked, ownerLoginEnabled = false }) {
   const [data, setData] = useState(null), [error, setError] = useState(''), [page, setPage] = useState(0), [retry, setRetry] = useState(0);
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (locked) return;
+    const clock = setInterval(() => setNow(Date.now()), 30000);
+    const refresh = () => { setNow(Date.now()); setRetry(value => value + 1); };
+    const interval = setInterval(refresh, 300000);
+    window.addEventListener('focus', refresh);
+    window.addEventListener('pageshow', refresh);
+    return () => { clearInterval(clock); clearInterval(interval); window.removeEventListener('focus', refresh); window.removeEventListener('pageshow', refresh); };
+  }, [locked]);
   const [needsConnection, setNeedsConnection] = useState(false), [connecting, setConnecting] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null), [week, setWeek] = useState(0), [refreshing, setRefreshing] = useState(true);
   useEffect(() => {
-    if (locked) return;
+    if (locked) { setData(null); return; }
     const controller = new AbortController(); let disposed = false;
     setRefreshing(true);
-    fetch('/api/admin/apps/calendar-companion', { cache: 'no-store', signal: controller.signal }).then(async response => {
+    fetch('/api/admin/apps/calendar-companion', { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) }).then(async response => {
       if (!response.ok) {
         if ([401, 403].includes(response.status) && !disposed) setData(null);
         throw Error('Your existing owner sign-in cannot open Calendar here. Open Calendar companion on your phone or computer.');
@@ -55,7 +65,7 @@ export default function TvCalendar({ locked, ownerLoginEnabled = false }) {
   if (locked) return <section className="tv-panel tv-calendar-signin tv-connect-panel"><div className="tv-connect-copy"><p className="tv-panel-kicker">CALENDAR / PHONE SIGN-IN</p><span className="tv-panel-symbol" aria-hidden="true">◷</span><h2>Your plans.<br/>On the big screen.</h2><p>Scan to connect Calendar. This paired TV has Morning signal access only.</p><p>Approve full owner access for up to 30 days, including private apps. Anyone using this screen can act as you. Match the code and use the same Google account.</p><a href="/admin/apps/morning-feed?view=calendar">Open existing owner Calendar view</a></div>{ownerLoginEnabled ? <QrDevice autoStart embedded/> : <div className="tv-connection-empty"><strong>Phone sign-in is not available yet.</strong><p>Owner QR sign-in needs server setup.</p></div>}</section>;
   if (needsConnection) return <section className="tv-panel tv-calendar-reconnect tv-connect-panel"><div className="tv-connect-copy"><p className="tv-panel-kicker">CALENDAR / RECONNECT</p><span className="tv-panel-symbol" aria-hidden="true">◷</span><h2>A fresh connection.</h2><p>Your website sign-in is active. Google Calendar needs to reconnect.</p><p>This signs out only this screen, then opens a QR code for full owner sign-in. Your phone stays signed in. Approve the same Google account and Calendar permissions.</p>{error && <p className="tv-panel-alert" role="alert">{error}</p>}</div><div className="tv-connect-steps"><p className="tv-panel-kicker">CONTINUE ON YOUR PHONE</p><div><span>01</span><p>Show the code on this screen.</p></div><div><span>02</span><p>Scan, compare, and approve.</p></div><div><span>03</span><p>Return to your calendar.</p></div><div className="tv-panel-actions"><button className="tv-panel-primary" disabled={connecting} onClick={reconnect}>{connecting ? 'Opening phone sign-in…' : 'Sign out this screen and show QR code'}</button><a href="/admin/apps/calendar-companion">Connect Google on this screen instead</a><button disabled={refreshing} onClick={() => setRetry(retry + 1)}>Refresh calendar</button></div></div></section>;
   const zone = data?.preferences?.settings?.timeZone ?? 'UTC';
-  const now = Date.now(), today = dayInZone(now, zone);
+  const today = dayInZone(now, zone);
   const projected = (data?.events ?? []).map(event => projectEvent(event, zone)).filter(Boolean).filter(row => row.end > now).sort((a, b) => a.start - b.start || eventKey(a.event).localeCompare(eventKey(b.event)));
   const lastDay = projected.reduce((last, row) => row.last > last ? row.last : last, today);
   const maxWeek = Math.max(0, Math.floor((Date.parse(`${lastDay}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / 604800000));

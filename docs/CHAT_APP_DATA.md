@@ -52,3 +52,7 @@ may use `+00:00`; normalize them to equivalent `Z` form for the shared validator
 preserving precision. Reading or saving a schedule observation never changes a
 Dot automation. An uncertain external outcome requires provider inspection,
 not a blind retry. See the [current board model and coordination contract](../src/private-apps/project-board/README.md).
+
+## Laptop inventory
+
+`laptop-sales` / `inventory` uses the shared JSON generator and the exact browser inventory validator. Its value is an array of up to 50 stable-ID laptop listings; absent records start with `[]`. Preserve unrelated listings and use the exact `updated_at` revision. Support email is saved per listing and is a manual contact address, not a connected email integration. See the [app contract](../src/private-apps/laptop-sales/README.md). No schema, credential or membership operation is needed for inventory maintenance.

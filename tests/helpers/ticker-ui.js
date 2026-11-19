@@ -10,7 +10,7 @@ import * as layout from '../../src/private-apps/morning-feed/tldr/layout.js';
 import * as model from '../../src/private-apps/morning-feed/model.js';
 const require = createRequire(import.meta.url);
 const { transformSync } = require('next/dist/compiled/babel/core');
-export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/ticker.js') {
+export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/ticker.js', environment = {}) {
   const historyListeners = new Set();
   const states = [], effects = [], pending = [], timers = new Map(), keys = new Map(); let slot = 0, timerId = 0, time = 0;
   const hooks = {
@@ -21,7 +21,7 @@ export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/tick
   };
   const { code } = transformSync(readFileSync(new URL(`../../src/private-apps/morning-feed/${file}`, import.meta.url), 'utf8'), { babelrc: false, configFile: false, presets: [[require('next/dist/compiled/babel/preset-react'), { runtime: 'automatic' }]], plugins: [require('next/dist/compiled/babel/plugin-transform-modules-commonjs')] });
   const module = { exports: {} };
-  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, URL, AbortController, AbortSignal, crypto: globalThis.crypto, setInterval(fn, ms) { const id = ++timerId; timers.set(id, { fn, ms, at: time + ms }); return id; }, clearInterval(id) { timers.delete(id); }, document: { activeElement: null }, window: { matchMedia: () => ({ matches: reduced, addEventListener() {}, removeEventListener() {} }), addEventListener: (key, fn) => keys.set(key, fn), removeEventListener: key => keys.delete(key) }, require: id => {
+  runInNewContext(code, { module, exports: module.exports, Date: environment.Date ?? Date, fetch: fetcher, URL, AbortController, AbortSignal, crypto: globalThis.crypto, setInterval(fn, ms) { const id = ++timerId; timers.set(id, { fn, ms, at: time + ms }); return id; }, clearInterval(id) { timers.delete(id); }, document: { activeElement: null }, window: { matchMedia: () => ({ matches: reduced, addEventListener() {}, removeEventListener() {} }), addEventListener: (key, fn) => keys.set(key, fn), removeEventListener: key => keys.delete(key) }, require: id => {
     if (id === 'react') return hooks;
     if (id.endsWith('/qr-device')) return props => require('react').createElement('section', {'data-qr-auto-start': props.autoStart, 'aria-label':'Owner QR sign-in controls'}, 'Phone QR sign-in');
     if (id === '../tv/card-article.js') return cardReader;
@@ -39,5 +39,5 @@ export function tickerUi(fetcher, props = {}, reduced = false, file = 'tldr/tick
     throw new Error(`Unexpected import ${id}`);
   } });
   const flush = async () => { pending.splice(0).forEach(fn => fn()); await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); };
-  return { states, emitHistory(location){for(const listener of historyListeners)listener(location);}, render() { slot = 0; return module.exports.default(props); }, async settle() { this.render(); await flush(); const tree = this.render(); await flush(); return tree; }, async advance(ms) { const end = time + ms; while (true) { const next = [...timers.values()].filter(timer => timer.at <= end).sort((a, b) => a.at - b.at)[0]; if (!next) break; time = next.at; next.at += next.ms; await next.fn(); await this.settle(); } time = end; return this.settle(); }, async tick(ms) { for (const timer of [...timers.values()]) if (timer.ms === ms) await timer.fn(); return this.settle(); }, key(key) { keys.get('keydown')?.({ key, target: { classList: { contains: () => true } }, preventDefault() {}, stopPropagation() {} }); }, close() { effects.forEach(effect => effect?.cleanup?.()); } };
+  return { states, event(name) { keys.get(name)?.(); }, emitHistory(location){for(const listener of historyListeners)listener(location);}, render() { slot = 0; return module.exports.default(props); }, async settle() { this.render(); await flush(); const tree = this.render(); await flush(); return tree; }, async advance(ms) { const end = time + ms; while (true) { const next = [...timers.values()].filter(timer => timer.at <= end).sort((a, b) => a.at - b.at)[0]; if (!next) break; time = next.at; next.at += next.ms; await next.fn(); await this.settle(); } time = end; return this.settle(); }, async tick(ms) { for (const timer of [...timers.values()]) if (timer.ms === ms) await timer.fn(); return this.settle(); }, key(key) { keys.get('keydown')?.({ key, target: { classList: { contains: () => true } }, preventDefault() {}, stopPropagation() {} }); }, close() { effects.forEach(effect => effect?.cleanup?.()); } };
 }
