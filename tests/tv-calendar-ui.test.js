@@ -67,3 +67,21 @@ test('limited paired TV requests no calendar data and retains full owner phone-a
     assert.ok(nodes(ui.render()).some(node => node.props['data-qr-auto-start'] === true));
   } finally { ui.close(); }
 });
+
+test('owner Calendar refreshes periodically and on return, updates midnight, and cancels work when locked', async () => {
+  let instant = Date.parse('2026-11-18T23:59:50Z'), calls = 0;
+  class Clock extends Date { static now() { return instant; } }
+  const props = { locked: false };
+  const ui = tickerUi(async () => { calls++; return Response.json(snapshot([allDay('Tomorrow plan', '2026-11-19', '2026-11-20')])); }, props, false, 'tv/calendar.js', { Date: Clock });
+  try {
+    await ui.settle(); assert.equal(calls, 1); assert.doesNotMatch(markup(ui), /tv-agenda-title[^>]*>Tomorrow plan/);
+    instant += 30000; await ui.tick(30000);
+    assert.match(markup(ui), /tv-agenda-title[^>]*>Tomorrow plan/);
+    await ui.tick(300000); assert.equal(calls, 2);
+    ui.event('focus'); await ui.settle(); assert.equal(calls, 3);
+    ui.event('pageshow'); await ui.settle(); assert.equal(calls, 4);
+    props.locked = true; await ui.settle();
+    await ui.tick(300000); ui.event('focus'); await ui.settle(); assert.equal(calls, 4);
+    assert.doesNotMatch(markup(ui), /Tomorrow plan/);
+  } finally { ui.close(); }
+});

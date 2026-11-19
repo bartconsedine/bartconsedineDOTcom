@@ -123,3 +123,9 @@ Validation for this redesign uses actual component/event fixtures with synthetic
 Final local checks on Node 22.23.2: `npm run db:validate`, all **366 tests**, and `npm run build` passed. The full test command used `TEST_EXTERNAL_BACKUP_PARENT=/var/tmp npm test` because this machine’s home directory is itself a Git checkout; the existing synthetic-fixture override leaves the real backup-directory validator unchanged. No hosted database operation was run.
 
 The concurrent compact-mobile release was merged before delivery. Its non-TV layout, hidden empty summaries, custom titles and plain link labels are preserved; decorative TV link arrows were removed to follow the same presentation preference.
+
+### Calendar freshness follow-up
+
+The current redesigned owner Calendar now refreshes its existing read-only API every five minutes and on browser focus/pageshow. Its clock projection advances every 30 seconds so midnight rolls the agenda into the new local date and ended events disappear without a click. Fetches have a 15-second abort deadline; ordinary refresh failures retain the labeled prior snapshot, while authorization denial, disconnection and locking clear private events. Locking removes timers and return listeners. These changes carry forward useful freshness behavior from the older conflicting Calendar PR without restoring its superseded layout.
+
+Synthetic component regressions verify periodic/return refresh, local-date rollover, lock cleanup and the existing denial/stale states. They do not establish actual Google connectivity or physical-TV behavior.
