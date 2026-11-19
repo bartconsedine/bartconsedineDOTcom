@@ -6,6 +6,7 @@ import * as workspace from '../../src/lib/workspace-policy.js';
 import * as options from '../../src/private-apps/japan-trip/options.js';
 import * as coast from '../../src/private-apps/japan-trip/coastline.js';
 import * as partyModel from '../../src/private-apps/robot-party/model.js';
+import * as laptopModel from '../../src/private-apps/laptop-sales/model.js';
 import * as model from '../../src/private-apps/japan-trip/model.js';
 const require = createRequire(import.meta.url);
 const { transformSync } = require('next/dist/compiled/babel/core');
@@ -15,6 +16,7 @@ const { transformSync } = require('next/dist/compiled/babel/core');
 export function connectUi(fetcher, props) { return componentUi('../robot-party/connect-form.js', fetcher, [], props); }
 export function personalUi(fetcher, props = {}) { return componentUi('../robot-party/personal-chat.js', fetcher, [], props); }
 export function partyUi(fetcher, props = {}) { return componentUi('../robot-party/board.js', fetcher, [], props); }
+export function laptopUi(fetcher, props = {}) { return componentUi('../laptop-sales/screen.js', fetcher, [], props); }
 export function tripUi(fetcher, initial = [], props = {}) { return componentUi('command-center.js', fetcher, initial, props); }
 export function accessUi(fetcher) { return componentUi('../../app/admin/access/access-manager.js', fetcher, []); }
 export function explorerUi(plan) { return componentUi('option-explorer.js', null, [], { plan }); }
@@ -26,11 +28,11 @@ function componentUi(file, fetcher, initial, props = {}) {
     plugins: [require('next/dist/compiled/babel/plugin-transform-modules-commonjs')],
   });
   const module = { exports: {} };
-  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, setInterval: timers.setInterval, clearInterval: timers.clearInterval, TextEncoder, URL, Blob, crypto: globalThis.crypto, navigator: { clipboard: { writeText: async () => {} } }, window: { location: { origin: 'https://site.example', assign(url){navigations.push(url);} }, addEventListener(name, listener) { if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(listener); }, removeEventListener(name, listener) { listeners.get(name)?.delete(listener); } }, require: id => {
+  runInNewContext(code, { module, exports: module.exports, fetch: fetcher, setInterval: timers.setInterval, clearInterval: timers.clearInterval, TextEncoder, URL, Blob, AbortController, crypto: globalThis.crypto, navigator: { clipboard: { writeText: async () => {} } }, window: { confirm: () => true, location: { origin: 'https://site.example', assign(url){navigations.push(url);} }, addEventListener(name, listener) { if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(listener); }, removeEventListener(name, listener) { listeners.get(name)?.delete(listener); } }, require: id => {
     if (id === 'react') return runtime.hooks;
     if (id === '@/lib/workspace-policy') return workspace;
     if (id === './model.js') return partyModel;
-    if (id === './model') return model;
+    if (id === './model') return file.includes('laptop-sales') ? laptopModel : model;
     if (id === './options.js') return options;
     if (id === './coastline.js') return coast;
     if (id === './option-explorer.js') return { default: () => null, __esModule: true };

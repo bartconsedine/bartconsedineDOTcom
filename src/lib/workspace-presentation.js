@@ -1,5 +1,6 @@
 // Static presentation only. Availability and owner-scoped URLs come from listApps.
 const presentations = {
+  'laptop-sales': { category: 'Make progress', color: '#9ece6a', code: 'LS', summary: 'Prepare laptops and track fulfillment.', action: 'Open inventory' },
   'morning-feed': { category: 'Daily rhythm', color: '#e0af68', code: 'MS', summary: 'Briefings, news and daily rituals.', action: 'Open your morning' },
   'project-board': { category: 'Make progress', color: '#7aa2f7', code: 'PB', summary: 'Tasks, decisions and Dot jobs.', action: 'Open your board' },
   'robot-party': { category: 'Stay connected', color: '#bb9af7', code: 'RP', summary: 'Conversations and robot updates.', action: 'Join the conversation' },

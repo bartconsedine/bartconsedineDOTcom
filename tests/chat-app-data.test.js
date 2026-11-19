@@ -125,3 +125,20 @@ test('calendar preferences roundtrip uses real Postgres revision guards and owne
     assert.equal(denied.rows.length, 0);
   } finally { await db.close(); }
 });
+
+test('laptop inventory chat contract roundtrips with fresh revisions and owner isolation', async () => {
+  const db = await database();
+  const laptop = { slug: 'laptop-sales', email: 'bartconsedine@gmail.com' };
+  try {
+    const { blankListing } = await import('../src/private-apps/laptop-sales/model.js');
+    const value = [{ ...blankListing, id: bart, model: "Owner's laptop '); delete from public.app_data; --" }];
+    const query = input => db.query(appDataSql({ ...laptop, ...input }));
+    assert.equal((await query({ operation: 'write', value, expectedAt: null })).rows[0].saved, true);
+    const row = (await query({ operation: 'read' })).rows[0];
+    assert.deepEqual(row.value, value);
+    assert.equal((await query({ operation: 'write', value, expectedAt: null })).rows[0].saved, false);
+    assert.equal((await query({ operation: 'write', value, expectedAt: row.updated_at })).rows[0].saved, true);
+    assert.equal((await query({ operation: 'read', email: 'mjshah8@gmail.com' })).rows[0].value, null);
+    assert.throws(() => appDataSql({ ...laptop, operation: 'write', expectedAt: row.updated_at, value: [{ ...value[0], owner_id: wife }] }));
+  } finally { await db.close(); }
+});
