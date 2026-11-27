@@ -5,20 +5,28 @@ CREATE ROLE id NOLOGIN NOBYPASSRLS;
 GRANT authenticated TO id;
 GRANT id TO authenticator;
 CREATE SCHEMA cognito_bridge;
+CREATE TABLE cognito_bridge.pool (
+  singleton boolean PRIMARY KEY CHECK (singleton),
+  issuer text NOT NULL,
+  client_id text NOT NULL
+);
+REVOKE ALL ON cognito_bridge.pool FROM PUBLIC, anon, authenticated, id;
 CREATE FUNCTION cognito_bridge.bind_cognito_owner() RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
 DECLARE
   claims jsonb := nullif(current_setting('request.jwt.claims', true), '')::jsonb;
   identity jsonb := claims->'identities'->0;
   owner_id uuid;
+  pool cognito_bridge.pool%ROWTYPE;
 BEGIN
   IF current_setting('role') = 'anon' THEN
     IF claims ? 'sub' THEN RAISE EXCEPTION 'Unexpected anonymous identity' USING ERRCODE = '42501'; END IF;
     RETURN;
   END IF;
+  SELECT * INTO STRICT pool FROM cognito_bridge.pool WHERE singleton;
   IF current_setting('role') <> 'id'
-     OR claims->>'iss' IS DISTINCT FROM current_setting('bartsite.cognito_issuer')
-     OR claims->>'aud' IS DISTINCT FROM current_setting('bartsite.cognito_client')
+     OR claims->>'iss' IS DISTINCT FROM pool.issuer
+     OR claims->>'aud' IS DISTINCT FROM pool.client_id
      OR claims->>'token_use' IS DISTINCT FROM 'id'
      OR claims->'email_verified' IS DISTINCT FROM 'true'::jsonb
      OR jsonb_array_length(claims->'identities') IS DISTINCT FROM 1

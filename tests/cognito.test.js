@@ -42,8 +42,9 @@ test('Cognito Google subjects resolve to restored owner UUIDs, with existing RLS
       alter table public.items enable row level security;
       create policy own on public.items to authenticated using (owner_id = auth.uid());
       grant select,update on public.items to authenticated;
-      set bartsite.cognito_issuer='pool'; set bartsite.cognito_client='client';`);
+`);
     await db.exec(await readFile(new URL('../deploy/aws/cognito-owners.sql', import.meta.url), 'utf8'));
+    await db.exec("insert into cognito_bridge.pool values(true,'pool','client')");
     const bind = (payload, query) => db.transaction(async tx => {
       await tx.exec('set local role id');
       await tx.query("select set_config('request.jwt.claims',$1,true)", [JSON.stringify(payload)]);
