@@ -5,3 +5,4 @@ ALTER ROLE authenticator PASSWORD :'rest_password';
 ALTER ROLE supabase_auth_admin PASSWORD :'auth_password';
 -- This site uses only anonymous and signed-in PostgREST requests.
 REVOKE service_role, supabase_admin FROM authenticator;
+ALTER DATABASE postgres SET bartsite.restore_target = 'aws-lightsail';

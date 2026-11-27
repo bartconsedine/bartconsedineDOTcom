@@ -10,7 +10,19 @@ export SITE_HOST=site.localhost WWW_HOST=www.site.localhost
 export GOOGLE_CLIENT_ID=ci-only GOOGLE_CLIENT_SECRET=ci-only CRON_SECRET=ci-only
 export SITE_IMAGE="bart-site:ci-${GITHUB_RUN_ID}"
 compose=(docker compose --project-name "site-ci-${GITHUB_RUN_ID}" --env-file "$work/database.env" -f deploy/aws/compose.yaml)
-trap '"${compose[@]}" down -v --remove-orphans >/dev/null; rm -rf "$work"' EXIT
+replica=(docker compose --project-name "restore-ci-${GITHUB_RUN_ID}" --env-file "$work/database.env" -f deploy/aws/compose.yaml)
+cleanup() {
+  result=$?
+  if (( result != 0 )); then
+    "${compose[@]}" logs --tail 50 auth rest edge
+    rest_id=$("${compose[@]}" ps -q rest)
+    if [[ -n "$rest_id" ]]; then docker inspect --format "{{json .State.Health}}" "$rest_id"; fi
+  fi
+  "${replica[@]}" down -v --remove-orphans >/dev/null
+  "${compose[@]}" down -v --remove-orphans >/dev/null
+  rm -rf "$work"
+}
+trap cleanup EXIT
 docker build -f deploy/aws/site.Dockerfile -t "$SITE_IMAGE" .
 "${compose[@]}" up -d --wait --wait-timeout 240
 psql=("${compose[@]}" exec -T db psql -X --set ON_ERROR_STOP=1 -U postgres -d postgres)
@@ -43,3 +55,27 @@ location=$("${request[@]}" -o /dev/null -w '%{redirect_url}' "$base/auth/v1/auth
 "${compose[@]}" restart db
 "${compose[@]}" up -d --wait --wait-timeout 120
 [[ $("${psql[@]}" -Atc "select relrowsecurity from pg_class where oid='public.app_data'::regclass") == t ]]
+# Exercise the verified archive import on a second initialized Postgres/Auth stack.
+"${psql[@]}" -c "insert into auth.users (id,email) values ('00000000-0000-4000-8000-000000000001','fixture@example.com')"
+"${psql[@]}" -c "insert into public.app_data(owner_id,app_slug,key,value) values ('00000000-0000-4000-8000-000000000001','japan-trip','plan-v1','{}')"
+"${compose[@]}" stop edge site auth rest
+"${compose[@]}" exec -T db pg_dump -U supabase_admin -Fc postgres > "$work/site.dump"
+digest=$(sha256sum "$work/site.dump" | cut -d' ' -f1)
+printf '{"sourceProject":"local-test","formatVersion":1,"sha256":"%s"}\n' "$digest" > "$work/site.dump.json"
+"${replica[@]}" up -d --wait --wait-timeout 240 db auth
+"${replica[@]}" stop auth
+# Use the same pg_restore binary as the image's pg_dump, independent of runner packages.
+export ARCHIVE_WORK="$work"
+export DB_IMAGE
+DB_IMAGE=$("${compose[@]}" config --format json | jq -r '.services.db.image')
+cat > "$work/pg_restore" <<'SH'
+#!/bin/sh
+exec docker run --rm -i --user "$(id -u):$(id -g)" -v "$ARCHIVE_WORK:$ARCHIVE_WORK:ro" --entrypoint pg_restore "$DB_IMAGE" "$@"
+SH
+chmod 700 "$work/pg_restore"
+target=("${replica[@]}" exec -T db psql -XqAt -v ON_ERROR_STOP=1 -U supabase_admin -d postgres)
+TMPDIR="$work" PATH="$work:$PATH" python3 deploy/aws/restore-sql.py --fixture "$work/site.dump" | "${target[@]}" >/dev/null
+"${target[@]}" < deploy/aws/compare.sql > "$work/after"
+"${compose[@]}" exec -T db psql -XqAt -v ON_ERROR_STOP=1 -U supabase_admin -d postgres \
+  < deploy/aws/compare.sql > "$work/before"
+cmp "$work/before" "$work/after"

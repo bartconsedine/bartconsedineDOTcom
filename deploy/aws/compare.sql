@@ -23,4 +23,14 @@ FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
 WHERE n.nspname IN ('private','public') AND p.prokind IN ('f','p') ORDER BY 2,3,4;
 SELECT 'grant', table_schema, table_name, grantee, privilege_type, is_grantable
 FROM information_schema.table_privileges WHERE table_schema IN ('public','private') ORDER BY 2,3,4,5,6;
+SELECT format('SELECT %L, last_value, is_called FROM %I.%I', n.nspname || '.' || c.relname, n.nspname, c.relname)
+FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+WHERE c.relkind='S' AND n.nspname IN ('auth','public','private','supabase_migrations')
+ORDER BY n.nspname COLLATE "C", c.relname COLLATE "C"
+\gexec
+SELECT 'execute', n.nspname, p.proname, pg_get_function_identity_arguments(p.oid),
+  CASE WHEN a.grantee=0 THEN 'PUBLIC' ELSE pg_get_userbyid(a.grantee) END, a.privilege_type, a.is_grantable
+FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
+WHERE n.nspname IN ('private','public') ORDER BY 2,3,4,5,6,7;
 COMMIT;
