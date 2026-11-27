@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: HTTPS entry point for the AWS website
+Parameters:
+  PublicTrafficEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['false', 'true']
+  CertificateArn:
+    Type: String
+    Default: ''
+    Description: Issued regional ACM certificate for both apex and www
+Rules:
+  CheckProductionCertificate:
+    RuleCondition: !Equals [!Ref PublicTrafficEnabled, 'true']
+    Assertions:
+      - Assert: !Not [!Equals [!Ref CertificateArn, '']]
+        AssertDescription: Production traffic requires a verified site certificate
+Conditions:
+  HasCertificate: !Not [!Equals [!Ref CertificateArn, '']]
+  ServingProduction: !Equals [!Ref PublicTrafficEnabled, 'true']
+Resources:
+  Api:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: bart-site-web
+      ProtocolType: HTTP
+      DisableExecuteApiEndpoint: !If [ServingProduction, true, false]
+  Integration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref Api
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:bart-site-web'
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 30000
+  Route:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: '$default'
+      AuthorizationType: !If [ServingProduction, NONE, AWS_IAM]
+      Target: !Join ['/', [integrations, !Ref Integration]]
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref Api
+      StageName: '$default'
+      AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
+  InvokeWeb:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: bart-site-web
+      Principal: apigateway.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*'
+  Apex:
+    Type: AWS::ApiGatewayV2::DomainName
+    Condition: HasCertificate
+    Properties:
+      DomainName: bartconsedine.com
+      DomainNameConfigurations:
+        - CertificateArn: !Ref CertificateArn
+          EndpointType: REGIONAL
+          SecurityPolicy: TLS_1_2
+  Www:
+    Type: AWS::ApiGatewayV2::DomainName
+    Condition: HasCertificate
+    Properties:
+      DomainName: www.bartconsedine.com
+      DomainNameConfigurations:
+        - CertificateArn: !Ref CertificateArn
+          EndpointType: REGIONAL
+          SecurityPolicy: TLS_1_2
+  ApexMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Condition: HasCertificate
+    Properties: {ApiId: !Ref Api, DomainName: !Ref Apex, Stage: !Ref Stage}
+  WwwMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Condition: HasCertificate
+    Properties: {ApiId: !Ref Api, DomainName: !Ref Www, Stage: !Ref Stage}
+Outputs:
+  ApexTarget:
+    Condition: HasCertificate
+    Value: !GetAtt Apex.RegionalDomainName
+  WwwTarget:
+    Condition: HasCertificate
+    Value: !GetAtt Www.RegionalDomainName
+  Endpoint:
+    Value: !GetAtt Api.ApiEndpoint

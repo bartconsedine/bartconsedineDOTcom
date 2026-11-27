@@ -7,6 +7,7 @@ Production continues to use Vercel and hosted Supabase until the final data comp
 | Stack | Purpose |
 | --- | --- |
 | bart-site-releases | Private encrypted S3 bucket for immutable, content-addressed site builds and encrypted recovery artifacts |
+| bart-site-http | HTTP API with IAM-protected staging and regional custom domains for cutover |
 | bart-site-web | ARM64 Node 22 Lambda with seven-day logs and IAM-only invocation during rehearsal |
 | bart-site-auth | Cognito user pool, managed login domain and optional Google federation |
 | bart-site-database | Encrypted PostgreSQL, no public writer or inbound network rule, IAM-authenticated RDS Data API and seven-day backups |
@@ -15,7 +16,7 @@ Aurora is configured for 0–1 ACUs and a five-minute idle timeout. Compute char
 
 ## Release the site privately
 
-Use the verified site account and us-east-1. Build the reviewed tree with the pinned Node 22 runtime on an ARM64 Linux builder, without production secrets or local environment files. Run `SITE_STANDALONE=1 npm run build` followed by `bash deploy/aws/package-web.sh "$PWD" /absolute/path/site.zip`. Deploy `artifacts.yaml` to the releases stack. Upload the zip under `web/<sha256>.zip` in its Bucket output. Deploy `web.yaml` to the web stack with CAPABILITY_IAM, ReleaseBucket and ReleaseKey. Use a signed Lambda invocation with an HTTP API v2 event to verify the public page, assets and protected denial. Switching the release key to the previous verified object restores that site build.
+Use the verified site account and us-east-1. Build the reviewed tree with the pinned Node 22 runtime on an ARM64 Linux builder, without production secrets or local environment files. Run `SITE_STANDALONE=1 npm run build` followed by `bash deploy/aws/package-web.sh "$PWD" /absolute/path/site.zip`. Deploy `artifacts.yaml` to the releases stack. Upload the zip under `web/<sha256>.zip` in its Bucket output. Deploy `web.yaml` to the web stack with CAPABILITY_IAM, ReleaseBucket and ReleaseKey. Use a signed Lambda invocation with an HTTP API v2 event to verify the public page, assets and protected denial. Switching the release key to the previous verified object restores that site build. Deploy `http.yaml` to bart-site-http. The default staging route requires an AWS SigV4 request for execute-api. During cutover, verify DNS authority, add an ACM-compatible CAA issuer alongside the other issuers if needed, and validate an ACM certificate covering apex and www. Pass its ARN to the HTTP stack before changing website records. Verify the API mappings, then enable PublicTrafficEnabled and use Route 53 aliases to the regional endpoints. This closes the default API Gateway hostname and serves the custom domains.
 
 ## Connect Google
 
