@@ -7,7 +7,7 @@ x-service: &service
 services:
   db:
     <<: *service
-    image: supabase/postgres:17.6.1.136@sha256:f371b5f3f2ac0a05703f33d6e6134515fb2498cab708fb948a0aeb7481467c00
+    image: supabase/postgres:17.12.0.005@sha256:df59ef0172dec80053ea186542ba12c8719bb5ca38abbecffd6b7cd6b4075994
     command: [postgres, -c, config_file=/etc/postgresql/postgresql.conf]
     volumes:
       - database:/var/lib/postgresql/data

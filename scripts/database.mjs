@@ -81,7 +81,7 @@ export async function backup(c) {
     migrations[entry] = await sha256(join(root, 'prisma/migrations', entry, 'migration.sql'));
   }
   const manifest = { formatVersion: 1, createdAt: new Date().toISOString(), sha256: await sha256(archive),
-    sourceProject: c.local ? 'local-test' : project, database: c.database, ...metadata, migrations,
+    sourceProject: c.local ? (c.backupSource ?? 'local-test') : project, database: c.database, ...metadata, migrations,
     scope: 'Full logical database; excludes Storage object bytes, cluster configuration and role passwords.' };
   await writeFile(`${archive}.json`, JSON.stringify(manifest, null, 2) + '\n', { mode: 0o600, flag: 'wx' });
   console.log(`Verified logical backup: ${archive}`); return archive;

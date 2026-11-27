@@ -20,9 +20,9 @@ def archive_list(archive, *filters):
     return [line for line in result.stdout.splitlines() if re.match(r"^\d+;", line)]
 
 
-def restore(archive, fixture):
+def restore(archive, source):
     manifest = json.loads(Path(str(archive) + ".json").read_text())
-    expected = "local-test" if fixture else SOURCE_PROJECT
+    expected = {"fixture": "local-test", "aws": "aws-bart-site", "hosted": SOURCE_PROJECT}[source]
     with archive.open("rb") as stream:
         checksum = hashlib.file_digest(stream, "sha256").hexdigest()
     if (manifest.get("formatVersion") != 1 or manifest.get("sourceProject") != expected
@@ -52,6 +52,7 @@ DO $guard$
 DECLARE
   auth_table regclass;
   occupied boolean;
+  privilege record;
 BEGIN
   IF current_setting('bartsite.restore_target', true) IS DISTINCT FROM 'aws-lightsail'
      OR current_setting('bartsite.operator_active', true) = 'on'
@@ -69,6 +70,18 @@ BEGIN
     EXECUTE format('SELECT EXISTS (SELECT 1 FROM %s)', auth_table) INTO occupied;
     IF occupied THEN RAISE EXCEPTION 'Destination Auth schema already holds records'; END IF;
   END LOOP;
+  -- The image pre-grants API roles access to new public objects. pg_restore
+  -- expects stock creation privileges and replays the source ACLs afterward.
+  FOR privilege IN
+    SELECT DISTINCT pg_get_userbyid(d.defaclrole) AS owner,
+      CASE d.defaclobjtype WHEN 'r' THEN 'TABLES' WHEN 'S' THEN 'SEQUENCES' WHEN 'f' THEN 'FUNCTIONS' END AS kind,
+      CASE WHEN a.grantee=0 THEN 'PUBLIC' ELSE quote_ident(pg_get_userbyid(a.grantee)) END AS grantee
+    FROM pg_default_acl d CROSS JOIN LATERAL aclexplode(d.defaclacl) a
+    WHERE d.defaclnamespace='public'::regnamespace AND d.defaclobjtype IN ('r','S','f')
+  LOOP
+    EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON %s FROM %s',
+                   privilege.owner, privilege.kind, privilege.grantee);
+  END LOOP;
 END
 $guard$;
 SET LOCAL session_replication_role = replica;""", flush=True)
@@ -80,8 +93,8 @@ SET LOCAL session_replication_role = replica;""", flush=True)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("archive", type=Path)
-    parser.add_argument("--fixture", action="store_true", help="require a synthetic local-test manifest")
+    parser.add_argument("--source", choices=["hosted", "aws", "fixture"], default="hosted")
     args = parser.parse_args()
     if sys.stdout.isatty():
         sys.exit("Pipe the private SQL to the verified target or a protected file")
-    restore(args.archive, args.fixture)
+    restore(args.archive, args.source)

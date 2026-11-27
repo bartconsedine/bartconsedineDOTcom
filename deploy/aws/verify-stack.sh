@@ -74,7 +74,7 @@ exec docker run --rm -i --user "$(id -u):$(id -g)" -v "$ARCHIVE_WORK:$ARCHIVE_WO
 SH
 chmod 700 "$work/pg_restore"
 target=("${replica[@]}" exec -T db psql -XqAt -v ON_ERROR_STOP=1 -U supabase_admin -d postgres)
-TMPDIR="$work" PATH="$work:$PATH" python3 deploy/aws/restore-sql.py --fixture "$work/site.dump" | "${target[@]}" >/dev/null
+TMPDIR="$work" PATH="$work:$PATH" python3 deploy/aws/restore-sql.py --source fixture "$work/site.dump" | "${target[@]}" >/dev/null
 "${target[@]}" < deploy/aws/compare.sql > "$work/after"
 "${compose[@]}" exec -T db psql -XqAt -v ON_ERROR_STOP=1 -U supabase_admin -d postgres \
   < deploy/aws/compare.sql > "$work/before"

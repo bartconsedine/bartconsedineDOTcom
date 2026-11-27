@@ -33,4 +33,9 @@ SELECT 'execute', n.nspname, p.proname, pg_get_function_identity_arguments(p.oid
 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
 CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
 WHERE n.nspname IN ('private','public') ORDER BY 2,3,4,5,6,7;
+SELECT 'default-grant', n.nspname, pg_get_userbyid(d.defaclrole), d.defaclobjtype,
+  CASE WHEN a.grantee=0 THEN 'PUBLIC' ELSE pg_get_userbyid(a.grantee) END, a.privilege_type, a.is_grantable
+FROM pg_default_acl d JOIN pg_namespace n ON n.oid=d.defaclnamespace
+CROSS JOIN LATERAL aclexplode(d.defaclacl) a
+WHERE n.nspname IN ('private','public') ORDER BY 2,3,4,5,6,7;
 COMMIT;
