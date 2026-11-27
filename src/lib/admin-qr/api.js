@@ -3,7 +3,7 @@ import { randomBytes, createHash } from 'node:crypto';
 export const QR_COOKIE = 'bc-admin-qr-request';
 export const validRequest = value => typeof value === 'string' && /^[A-Za-z0-9_-]{43}$/.test(value);
 export const confirmation = value => createHash('sha256').update(value).digest('hex').slice(0, 8).toUpperCase();
-export const qrEnabled = () => process.env.ADMIN_QR_ENABLED === 'true' && process.env.AUTH_PROVIDER !== 'cognito';
+export const qrEnabled = () => process.env.ADMIN_QR_ENABLED === 'true';
 export const response = (data, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer', Pragma: 'no-cache' } });
 export const sameOrigin = (request, origin) => request.headers.get('origin') === origin && request.headers.get('sec-fetch-site') !== 'cross-site';
 export async function qrCall(rpc, action, secret, data = {}) {
@@ -21,6 +21,17 @@ export async function revokeQrSession(rpc) {
 export function providerUrl(value, config, approval) {
   try {
     const url = new URL(value), auth = new URL(config.url);
+    if (config.cognito) {
+      const exact = { client_id: config.cognito.clientId, redirect_uri: config.siteUrl + '/auth/qr/relay',
+        response_type: 'code', identity_provider: 'Google', scope: 'openid email profile', state: approval, code_challenge_method: 'S256' };
+      const allowed = [...Object.keys(exact), 'nonce', 'code_challenge'];
+      if (!validRequest(approval) || url.origin !== config.cognito.domain || url.pathname !== '/oauth2/authorize' ||
+          url.username || url.password || url.hash || [...url.searchParams.keys()].length !== allowed.length ||
+          !allowed.every(k => url.searchParams.getAll(k).length === 1) ||
+          !Object.entries(exact).every(([k,v]) => url.searchParams.get(k) === v) ||
+          !validRequest(url.searchParams.get('nonce')) || !validRequest(url.searchParams.get('code_challenge'))) return null;
+      return url.href;
+    }
     const keys = ['provider','redirect_to','code_challenge','code_challenge_method','prompt','scopes','access_type'];
     if (url.username || url.password || url.hash || [...url.searchParams.keys()].some(key => !keys.includes(key) || url.searchParams.getAll(key).length !== 1) || (url.searchParams.has('prompt') && !['select_account', 'consent select_account'].includes(url.searchParams.get('prompt')))) return null;
     if (url.searchParams.has('scopes') && url.searchParams.get('scopes') !== CALENDAR_SCOPES) return null;

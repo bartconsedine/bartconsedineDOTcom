@@ -9,8 +9,9 @@ const verifiers = new Map();
 const random = () => randomBytes(32).toString('base64url');
 const valid = value => typeof value === 'string' && /^[A-Za-z0-9_-]{43}$/.test(value);
 
-export function beginGoogle(config) {
-  const state = random(), nonce = random(), verifier = random();
+export function beginGoogle(config, state = random()) {
+  if (!valid(state)) throw Error('Invalid OAuth state');
+  const nonce = random(), verifier = random();
   const url = new URL('/oauth2/authorize', config.domain);
   url.search = new URLSearchParams({
     response_type: 'code', client_id: config.clientId, redirect_uri: config.callback,

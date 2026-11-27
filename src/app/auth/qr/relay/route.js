@@ -6,7 +6,7 @@ import { qrEnabled, validRequest, qrCall } from '@/lib/admin-qr/api';
 export async function GET(request) {
  const config=authConfig();let success=false;
  if(config&&qrEnabled())try{
-  const id=request.nextUrl.searchParams.get('request'),code=request.nextUrl.searchParams.get('code');
+  const id=request.nextUrl.searchParams.get(config.cognito ? 'state' : 'request'),code=request.nextUrl.searchParams.get('code');
   if(!validRequest(id)||!code||code.length>4095)throw Error();
   const client=await serverClient(),actor=await verifyAdmin(client);if(!actor.ok)throw Error();
   await qrCall(client.rpc.bind(client),'relay',id,{code});success=true;

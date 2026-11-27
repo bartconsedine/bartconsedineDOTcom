@@ -53,7 +53,7 @@ Resources:
       AllowedOAuthFlows: !If [HasGoogle, [code], !Ref 'AWS::NoValue']
       AllowedOAuthScopes: !If [HasGoogle, [openid, email, profile], !Ref 'AWS::NoValue']
       SupportedIdentityProviders: !If [HasGoogle, [!Ref Google], [COGNITO]]
-      CallbackURLs: [https://bartconsedine.com/auth/callback]
+      CallbackURLs: [https://bartconsedine.com/auth/callback, https://bartconsedine.com/auth/qr/relay]
       LogoutURLs: [https://bartconsedine.com/login]
       ExplicitAuthFlows: [ALLOW_REFRESH_TOKEN_AUTH]
       IdTokenValidity: 15

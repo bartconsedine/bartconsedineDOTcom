@@ -37,6 +37,9 @@ test('Cognito Google subjects resolve to restored owner UUIDs, with existing RLS
       alter table auth.identities add provider_id text;
       insert into auth.users(id,email,email_confirmed_at) values ('${owner}','member@example.org',now()), ('${other}','other@example.org',now());
       insert into auth.identities select id,'google',jsonb_build_object('sub','original-google-sub','email',email,'email_verified',true),'original-google-sub' from auth.users where id='${owner}';
+      create schema private;
+      create table private.site_admin(email text);
+      create table public.app_access_grants(invited_email text);
       create table public.items(owner_id uuid, value text);
       insert into public.items values ('${owner}','mine'), ('${other}','private');
       alter table public.items enable row level security;
@@ -45,8 +48,9 @@ test('Cognito Google subjects resolve to restored owner UUIDs, with existing RLS
 `);
     await db.exec(await readFile(new URL('../deploy/aws/cognito-owners.sql', import.meta.url), 'utf8'));
     await db.exec("insert into cognito_bridge.pool values(true,'pool','client')");
-    const bind = (payload, query) => db.transaction(async tx => {
-      await tx.exec('set local role id');
+    const bind = (payload, query, path = '/items') => db.transaction(async tx => {
+      await tx.exec("set local role id; set local request.method='POST'");
+      await tx.query("select set_config('request.path',$1,true)",[path]);
       await tx.query("select set_config('request.jwt.claims',$1,true)", [JSON.stringify(payload)]);
       await tx.exec('select cognito_bridge.bind_cognito_owner()');
       return tx.query(query);
@@ -57,5 +61,29 @@ test('Cognito Google subjects resolve to restored owner UUIDs, with existing RLS
       { identities: [{ ...google, userId: 'different-sub' }] }, { email: 'other@example.org' }]) {
       await assert.rejects(bind({ ...claims, ...change }, 'select * from items'), /Unverified identity|Workspace owner unavailable/);
     }
+    const guest = { ...claims, email: 'guest@example.org', identities: [{ ...google, userId: 'new-google-sub' }] };
+    const rpc = '/rpc/cognito_workspace_owner';
+    await assert.rejects(bind(guest, 'select auth.uid()', rpc), /Workspace owner unavailable/);
+    await db.exec("insert into public.app_access_grants values('guest@example.org'),('member@example.org')");
+    await assert.rejects(bind(guest, 'select auth.uid()'), /Workspace owner unavailable/);
+    await assert.rejects(bind({...guest,email:claims.email}, 'select auth.uid()', rpc), /Workspace owner unavailable/);
+    const created = (await bind(guest, 'select auth.uid() id', rpc)).rows[0].id;
+    assert.notEqual(created,owner);
+    assert.equal((await bind(guest,'select auth.uid() id')).rows[0].id,created);
+    assert.deepEqual((await bind(guest,'select * from items')).rows,[]);
   } finally { await db.close(); }
+});
+
+test('device consent binds Cognito redirect, project client, nonce and target approval', async () => {
+  const { providerUrl } = await import('../src/lib/admin-qr/api.js');
+  const approval = 'a'.repeat(43), siteUrl = 'https://example.org';
+  const qr = { ...config, callback: siteUrl + '/auth/qr/relay' };
+  const url = beginGoogle(qr, approval).url;
+  const cfg = { url: 'https://bart-site-data.invalid', siteUrl, cognito: qr };
+  assert.equal(providerUrl(url,cfg,approval),url);
+  assert.equal(providerUrl(url,cfg,'b'.repeat(43)),null);
+  for (const key of ['nonce', 'client_id', 'redirect_uri', 'code_challenge_method', 'scope']) {
+    const changed = new URL(url); changed.searchParams.set(key,'bad');
+    assert.equal(providerUrl(changed.href,cfg,approval),null);
+  }
 });
