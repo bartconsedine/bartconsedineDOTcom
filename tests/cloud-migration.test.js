@@ -86,3 +86,15 @@ test('scoped Robot Party dispatch passes only the fixed plan, keeps later migrat
     assert.equal((await runCloudMigration({...input,INPUT_CONFIRMATION:'DEPLOY vgsmfbupgydafvotkold'},{platform:'linux',loadDatabase:()=>assert.fail('wrong named confirmation')})).ok,false);
   }
 });
+
+test('AWS export takes a verified backup from complete history without invoking a schema operation', async () => {
+  const key = randomBytes(32).toString('base64'), calls = [];
+  const result = await runCloudMigration({ ...env, INPUT_OPERATION:'backup-for-aws', AWS_MIGRATION_BACKUP_KEY:key }, {
+    platform:'linux', loadDatabase:async()=>({prismaConnectionCheck:async()=>{}, migrationState:async()=>'complete',
+      backup:async()=>{ calls.push('backup'); return 'archive'; }}),
+    loadArtifact:async()=>({}), retain:async(archive,dir,aes)=>{assert.equal(aes.toString('base64'),key);calls.push(archive);return 42;},
+  });
+  assert.equal(result.ok,true);
+  assert.equal(result.artifactId,42);
+  assert.deepEqual(calls,['backup','archive']);
+});

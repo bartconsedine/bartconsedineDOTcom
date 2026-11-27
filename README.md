@@ -43,3 +43,5 @@ The runbooks contain dated execution evidence. Check the target environment befo
 Add focused tools inside `/admin/apps/<slug>` using the existing registry, authentication, navigation, and data helpers. Durable app records, settings, saved drafts, and progress belong in Supabase with private ownership by default. Calendar companion's documented integration exception keeps calendar events in Google Calendar and planning preferences in Supabase. See [adding apps](docs/ADDING_APPS.md) for persistence, sharing, structure, and completion requirements, and [chat data operations](docs/CHAT_APP_DATA.md) for maintaining the same reviewed records from chat. [AGENTS.md](AGENTS.md) makes these defaults part of future agent work. Public work content lives in `src/lib/content.js`.
 
 For changes, use the [documented and tested PR workflow](CONTRIBUTING.md) and the project `$pr` skill.
+
+The [AWS migration runbook](deploy/aws/README.md) covers the Lightsail stack, isolated restore rehearsal, DNS delegation and rollback.

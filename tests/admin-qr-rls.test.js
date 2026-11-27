@@ -51,3 +51,31 @@ test('full owner QR shares confirmed news progress with the phone and loses list
   await login(db, owner); assert.equal((await progress()).reads.length, 1);
  } finally { await db.close(); }
 });
+
+test('Cognito creates the target session only when its existing QR grant completes and honors remote revocation', async () => {
+  const db = await database();
+  const session = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  try {
+    await db.exec('create role id; grant authenticated to id');
+    await db.exec(await readFile('deploy/aws/cognito-qr.sql','utf8'));
+    await start(db);
+    await login(db,owner);
+    await call(db,'approve',approval);
+    await call(db,'relay',approval,{code:'single-use'});
+    await login(db);
+    await call(db,'claim');
+    const complete = () => db.query('select public.cognito_complete_qr($1) as result',[device]);
+    await login(db,other,session);
+    await db.exec('reset role; set role id');
+    await assert.rejects(complete(),/qr_denied/);
+    await db.exec('reset role');
+    assert.equal((await db.query('select id from auth.sessions where id=$1',[session])).rows.length,0);
+    await login(db,owner,session);
+    await db.exec('reset role; set role id');
+    assert.equal((await complete()).rows[0].result.connected,true);
+    await login(db,owner);
+    await call(db,'revoke',hash(device));
+    await login(db,owner,session);
+    assert.equal((await db.query('select public.is_site_admin() ok')).rows[0].ok,false);
+  } finally { await db.close(); }
+});

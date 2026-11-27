@@ -19,13 +19,16 @@
     "db:verify:local": "node scripts/verify-database.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-lambda": "3.1178.0",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.117.3",
+    "aws-jwt-verify": "5.2.1",
     "next": "16.4.6",
     "qrcode": "1.5.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "server-only": "0.0.1"
+    "server-only": "0.0.1",
+    "twilio": "6.3.1"
   },
   "devDependencies": {
     "@actions/artifact": "6.3.1",

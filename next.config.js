@@ -1,4 +1,5 @@
 const config = {
+  ...(process.env.SITE_STANDALONE === "1" ? { output: "standalone" } : {}),
   poweredByHeader: false,
   async redirects() {
     return [{ source: '/resume', destination: '/images/resume.pdf', permanent: false }];

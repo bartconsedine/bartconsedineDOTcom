@@ -18,16 +18,17 @@ async function waitForTitle(ui,expected){
 }
 async function waitForReaderSave(ui,state,article,count){
   const id=await articleId(article.url),deadline=Date.now()+5000;
-  const confirmed=()=>{
-    const tree=ui.render();
+  const confirmed=tree=>{
     return nodes(tree).find(node=>node.type==='iframe')?.props.src===article.url &&
       state.reads.size===count && state.reads.has(id) &&
       nodes(tree).some(node=>node.type==='span' && node.props.children===`${count} / 3 read · Synced`);
   };
   // Reader selection updates before the async WebCrypto/save chain. Wait for
   // both the selected frame and confirmed UI progress before the next key.
-  do{await ui.settle();if(confirmed())return;await new Promise(resolve=>setTimeout(resolve,10));}while(Date.now()<deadline);
-  assert.ok(confirmed(),`Expected ${article.title} in the reader with ${count} confirmed reads`);
+  // settle also commits the keyboard effect for this tree. An extra render
+  // here can detach the handler and leave its replacement pending at keypress.
+  do{if(confirmed(await ui.settle()))return;await new Promise(resolve=>setTimeout(resolve,10));}while(Date.now()<deadline);
+  assert.ok(confirmed(await ui.settle()),`Expected ${article.title} in the reader with ${count} confirmed reads`);
 }
 function fixture() {
   const state={articles:[one,two,three],reads:new Map(),fail:false,posts:0};

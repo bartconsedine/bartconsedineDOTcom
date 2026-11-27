@@ -1,0 +1,35 @@
+{$WWW_HOST} {
+	redir https://{$SITE_HOST}{uri} 307
+}
+
+{$SITE_HOST} {
+	header Strict-Transport-Security "max-age=31536000"
+	@oauth path /auth/v1/authorize /auth/v1/callback
+	handle @oauth {
+		uri strip_prefix /auth/v1
+		reverse_proxy auth:9999
+	}
+	@session {
+		path /auth/v1/token /auth/v1/user /auth/v1/logout
+		header apikey {$ANON_KEY}
+	}
+	handle @session {
+		uri strip_prefix /auth/v1
+		reverse_proxy auth:9999
+	}
+	@rest {
+		path /rest/v1/*
+		header apikey {$ANON_KEY}
+	}
+	handle @rest {
+		uri strip_prefix /rest/v1
+		reverse_proxy rest:3000
+	}
+	@reserved path /auth/v1 /auth/v1/* /rest/v1 /rest/v1/*
+	handle @reserved {
+		respond 403
+	}
+	handle {
+		reverse_proxy site:3000
+	}
+}

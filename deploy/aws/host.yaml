@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Single Lightsail host for bartconsedine.com with daily snapshots
+Parameters:
+  OperatorCidr:
+    Type: String
+    Description: Trusted SSH client public IPv4 address with /32 suffix
+    AllowedPattern: '([0-9]{1,3}\.){3}[0-9]{1,3}/32'
+  KeyPair:
+    Type: String
+    Description: Existing regional Lightsail SSH key pair
+    MinLength: 1
+Resources:
+  Host:
+    Type: AWS::Lightsail::Instance
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      InstanceName: bartconsedine-site
+      BlueprintId: ubuntu_24_04
+      BundleId: small_3_0
+      KeyPairName: !Ref KeyPair
+      AddOns:
+        - AddOnType: AutoSnapshot
+          Status: Enabled
+          AutoSnapshotAddOnRequest:
+            SnapshotTimeOfDay: '06:00'
+      Networking:
+        Ports:
+          - {FromPort: 22, ToPort: 22, Protocol: tcp, Cidrs: [!Ref OperatorCidr]}
+          - {FromPort: 80, ToPort: 80, Protocol: tcp, Cidrs: [0.0.0.0/0]}
+          - {FromPort: 443, ToPort: 443, Protocol: tcp, Cidrs: [0.0.0.0/0]}
+      UserData: |
+        #!/bin/bash
+        set -eu
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io docker-compose-v2
+        systemctl enable --now docker
+        install -d -m 0700 /etc/bart-site
+  Address:
+    Type: AWS::Lightsail::StaticIp
+    Properties:
+      StaticIpName: bartconsedine-site-ip
+      AttachedTo: !Ref Host
+Outputs:
+  IPv4:
+    Value: !GetAtt Address.IpAddress
