@@ -1,0 +1,20 @@
+name: Verify AWS deployment stack
+on:
+  pull_request:
+    paths:
+      - deploy/aws/**
+      - .github/workflows/aws-stack.yml
+      - next.config.js
+      - package*.json
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+      - name: Build and exercise disposable production services
+        run: bash deploy/aws/verify-stack.sh

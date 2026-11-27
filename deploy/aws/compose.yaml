@@ -1,0 +1,113 @@
+name: bart-site
+x-service: &service
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: {max-size: 8m, max-file: '3'}
+services:
+  db:
+    <<: *service
+    image: supabase/postgres:17.6.1.136@sha256:f371b5f3f2ac0a05703f33d6e6134515fb2498cab708fb948a0aeb7481467c00
+    command: [postgres, -c, config_file=/etc/postgresql/postgresql.conf]
+    volumes:
+      - database:/var/lib/postgresql/data
+      - db-config:/etc/postgresql-custom
+      - ./db-roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-site-roles.sql:ro
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: postgres
+      PGPORT: '5432'
+      POSTGRES_PORT: '5432'
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?}
+      REST_DB_PASSWORD: ${REST_DB_PASSWORD:?}
+    healthcheck:
+      test: [CMD, pg_isready, -U, postgres, -h, localhost]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+
+  auth:
+    <<: *service
+    image: supabase/gotrue:v2.199.0@sha256:85c8323c05854ba911a8b2968c513e7e1b4cf7ebf75a30124ae923e7127cf01f
+    depends_on:
+      db: {condition: service_healthy}
+    environment:
+      API_EXTERNAL_URL: https://${SITE_HOST:?}
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: '9999'
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${AUTH_DB_PASSWORD:?}@db:5432/postgres
+      GOTRUE_SITE_URL: https://${SITE_HOST}
+      GOTRUE_URI_ALLOW_LIST: https://${SITE_HOST}/auth/callback,https://${SITE_HOST}/auth/qr/relay?request=*
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:?}
+      GOTRUE_JWT_EXP: '3600'
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: 'false'
+      GOTRUE_EXTERNAL_PHONE_ENABLED: 'false'
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: 'false'
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: 'true'
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?}
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_CLIENT_SECRET:?}
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: https://${SITE_HOST}/auth/v1/callback
+    healthcheck:
+      test: [CMD, wget, -q, --spider, http://localhost:9999/health]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+
+  rest:
+    <<: *service
+    image: postgrest/postgrest:v14.18@sha256:c7cd7e265a85b05248abf53f4473fcec7e327c282d0bd0cf60f1551996d09fcf
+    depends_on:
+      db: {condition: service_healthy}
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${REST_DB_PASSWORD:?}@db:5432/postgres
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+      PGRST_DB_POOL: '10'
+      PGRST_JWT_SECRET: ${JWT_SECRET:?}
+      PGRST_ADMIN_SERVER_PORT: '3001'
+    healthcheck:
+      test: [CMD, postgrest, --ready]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+
+  site:
+    <<: *service
+    image: ${SITE_IMAGE:?}
+    environment:
+      SITE_URL: https://${SITE_HOST}
+      SUPABASE_URL: https://${SITE_HOST}
+      SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY:?}
+      CRON_SECRET: ${CRON_SECRET:?}
+      ADMIN_QR_ENABLED: ${ADMIN_QR_ENABLED:-false}
+      ROBOT_PARTY_PERSONAL_ENABLED: ${ROBOT_PARTY_PERSONAL_ENABLED:-0}
+      ROBOT_PARTY_PERSONAL_KEY: ${ROBOT_PARTY_PERSONAL_KEY:-}
+
+  edge:
+    <<: *service
+    image: caddy:2.11.9-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
+    ports: ['80:80', '443:443']
+    depends_on:
+      auth: {condition: service_healthy}
+      rest: {condition: service_healthy}
+      site: {condition: service_started}
+    environment:
+      SITE_HOST: ${SITE_HOST}
+      WWW_HOST: ${WWW_HOST:?}
+      ANON_KEY: ${ANON_KEY:?}
+    networks:
+      default:
+        aliases: ["${SITE_HOST}"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - caddy-config:/config
+volumes:
+  database:
+  db-config:
+  certificates:
+  caddy-config:
