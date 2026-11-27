@@ -1,6 +1,7 @@
 'use server';
 
 import { loginReturn, LOGIN_RETURN_COOKIE } from '@/lib/login-return';
+import { beginGoogle, flowCookie, secureCookie } from '@/lib/cognito-oauth';
 import { headers, cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { authConfig, cookieOptions } from '@/lib/auth-config';
@@ -13,6 +14,11 @@ export async function signInWithGoogle(formData) {
   const next=loginReturn(formData?.get('next'));
   const jar=await cookies();
   if(next==='/admin')jar.delete(LOGIN_RETURN_COOKIE);else jar.set(LOGIN_RETURN_COOKIE,next,{...cookieOptions,maxAge:600});
+  if (config.cognito) {
+    const attempt = beginGoogle(config.cognito);
+    jar.set(flowCookie, attempt.cookie, { ...secureCookie, maxAge: 600 });
+    redirect(attempt.url);
+  }
   let destination;
   try {
     const supabase = await serverClient();

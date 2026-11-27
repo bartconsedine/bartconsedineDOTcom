@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Website runtime for private AWS migration verification
+Parameters:
+  ReleaseBucket:
+    Type: String
+  ReleaseKey:
+    Type: String
+  PoolId: {Type: String, Default: ''}
+  ClientId: {Type: String, Default: ''}
+  GoogleSecret: {Type: String, Default: ''}
+Conditions:
+  HasGoogle: !Not [!Equals [!Ref GoogleSecret, '']]
+Resources:
+  Logs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/bart-site-web
+      RetentionInDays: 7
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeSiteData
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:bart-site-data'
+        - PolicyName: WriteFunctionLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['logs:CreateLogStream', 'logs:PutLogEvents']
+                Resource: !GetAtt Logs.Arn
+  Web:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: bart-site-web
+      Architectures: [arm64]
+      Runtime: nodejs22.x
+      Handler: run.sh
+      Role: !GetAtt ExecutionRole.Arn
+      MemorySize: 1024
+      Timeout: 65
+      Layers:
+        - !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:753240598075:layer:LambdaAdapterLayerArm64:30'
+      Environment:
+        Variables:
+          AWS_LAMBDA_EXEC_WRAPPER: /opt/bootstrap
+          PORT: '8080'
+          AWS_LWA_PORT: '8080'
+          NODE_ENV: production
+          AUTH_PROVIDER: cognito
+          SITE_URL: https://bartconsedine.com
+          COGNITO_POOL_ID: !Ref PoolId
+          COGNITO_CLIENT_ID: !Ref ClientId
+          COGNITO_DOMAIN: !Sub 'https://bart-site-${AWS::AccountId}.auth.${AWS::Region}.amazoncognito.com'
+          GOOGLE_CLIENT_ID: !If [HasGoogle, !Sub '{{resolve:secretsmanager:${GoogleSecret}:SecretString:client_id}}', !Ref 'AWS::NoValue']
+          GOOGLE_CLIENT_SECRET: !If [HasGoogle, !Sub '{{resolve:secretsmanager:${GoogleSecret}:SecretString:client_secret}}', !Ref 'AWS::NoValue']
+          NEXT_TELEMETRY_DISABLED: '1'
+      Code:
+        S3Bucket: !Ref ReleaseBucket
+        S3Key: !Ref ReleaseKey

@@ -3,7 +3,7 @@ import { randomBytes, createHash } from 'node:crypto';
 export const QR_COOKIE = 'bc-admin-qr-request';
 export const validRequest = value => typeof value === 'string' && /^[A-Za-z0-9_-]{43}$/.test(value);
 export const confirmation = value => createHash('sha256').update(value).digest('hex').slice(0, 8).toUpperCase();
-export const qrEnabled = () => process.env.ADMIN_QR_ENABLED === 'true';
+export const qrEnabled = () => process.env.ADMIN_QR_ENABLED === 'true' && process.env.AUTH_PROVIDER !== 'cognito';
 export const response = (data, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer', Pragma: 'no-cache' } });
 export const sameOrigin = (request, origin) => request.headers.get('origin') === origin && request.headers.get('sec-fetch-site') !== 'cross-site';
 export async function qrCall(rpc, action, secret, data = {}) {

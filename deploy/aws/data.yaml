@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Private RLS data API for the AWS website
+Parameters:
+  ReleaseBucket: {Type: String}
+  ReleaseKey: {Type: String}
+  Vpc: {Type: 'AWS::EC2::VPC::Id'}
+  Subnets: {Type: 'List<AWS::EC2::Subnet::Id>'}
+  DatabaseGroup: {Type: 'AWS::EC2::SecurityGroup::Id'}
+  WriterHost: {Type: String}
+  DatabaseName: {Type: String, Default: bartsite}
+  CognitoClient: {Type: String}
+  AuthenticatorSecret: {Type: String}
+Resources:
+  RuntimeGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Site data Lambda to private PostgreSQL
+      VpcId: !Ref Vpc
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          DestinationSecurityGroupId: !Ref DatabaseGroup
+  DatabaseAccess:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref DatabaseGroup
+      SourceSecurityGroupId: !Ref RuntimeGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+  Logs:
+    Type: AWS::Logs::LogGroup
+    Properties: {LogGroupName: /aws/lambda/bart-site-data, RetentionInDays: 7}
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LogsAndVpc
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['logs:CreateLogStream', 'logs:PutLogEvents']
+                Resource: !GetAtt Logs.Arn
+              - Effect: Allow
+                Action: ['ec2:CreateNetworkInterface','ec2:DescribeNetworkInterfaces','ec2:DescribeSubnets','ec2:DeleteNetworkInterface','ec2:AssignPrivateIpAddresses','ec2:UnassignPrivateIpAddresses']
+                Resource: '*'
+              - Effect: Deny
+                Action: ['ec2:*']
+                Resource: '*'
+                Condition:
+                  ArnEquals:
+                    lambda:SourceFunctionArn: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:bart-site-data'
+  Api:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: bart-site-data
+      Architectures: [arm64]
+      Runtime: nodejs22.x
+      Handler: run.sh
+      MemorySize: 512
+      Timeout: 60
+      Role: !GetAtt Role.Arn
+      Layers: [!Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:753240598075:layer:LambdaAdapterLayerArm64:30']
+      Code:
+        S3Bucket: !Ref ReleaseBucket
+        S3Key: !Ref ReleaseKey
+      VpcConfig:
+        SecurityGroupIds: [!Ref RuntimeGroup]
+        SubnetIds: !Ref Subnets
+      Environment:
+        Variables:
+          AWS_LAMBDA_EXEC_WRAPPER: /opt/bootstrap
+          AWS_LWA_PORT: '3000'
+          AWS_LWA_READINESS_CHECK_PROTOCOL: tcp
+          AWS_LWA_REMOVE_BASE_PATH: /rest/v1
+          PGHOST: !Ref WriterHost
+          PGDATABASE: !Ref DatabaseName
+          PGUSER: authenticator
+          PGPASSWORD: !Sub '{{resolve:secretsmanager:${AuthenticatorSecret}:SecretString:password}}'
+          PGRST_DB_URI: 'postgresql:///'
+          PGRST_DB_SCHEMAS: public
+          PGRST_DB_ANON_ROLE: anon
+          PGRST_DB_PRE_REQUEST: cognito_bridge.bind_cognito_owner
+          PGRST_JWT_ROLE_CLAIM_KEY: .token_use
+          PGRST_JWT_AUD: !Ref CognitoClient
+          PGRST_DB_POOL: '2'
+          PGRST_DB_POOL_MAX_IDLETIME: '10'
+          PGRST_DB_CHANNEL_ENABLED: 'false'
+          PGRST_OPENAPI_MODE: disabled
+          PGRST_LOG_LEVEL: error

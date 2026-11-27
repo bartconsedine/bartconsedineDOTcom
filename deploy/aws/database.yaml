@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Private PostgreSQL destination for the website
+Parameters:
+  Vpc:
+    Type: AWS::EC2::VPC::Id
+  Subnets:
+    Type: List<AWS::EC2::Subnet::Id>
+Resources:
+  Network:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Private website PostgreSQL database
+      VpcId: !Ref Vpc
+  SubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Website database availability zones
+      SubnetIds: !Ref Subnets
+  Cluster:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBClusterIdentifier: bart-site
+      DatabaseName: bartsite
+      Engine: aurora-postgresql
+      EngineVersion: '17.11'
+      Port: 5432
+      MasterUsername: site_operator
+      ManageMasterUserPassword: true
+      StorageEncrypted: true
+      EnableHttpEndpoint: true
+      BackupRetentionPeriod: 7
+      DeletionProtection: true
+      DBSubnetGroupName: !Ref SubnetGroup
+      VpcSecurityGroupIds: [!Ref Network]
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: 0
+        MaxCapacity: 1
+        SecondsUntilAutoPause: 300
+  Writer:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBClusterIdentifier: !Ref Cluster
+      DBInstanceClass: db.serverless
+      Engine: aurora-postgresql
+      PubliclyAccessible: false
+      AutoMinorVersionUpgrade: true
+Outputs:
+  ClusterArn:
+    Value: !GetAtt Cluster.DBClusterArn

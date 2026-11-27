@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Google federation for bartconsedine.com through Amazon Cognito
+Parameters:
+  GoogleSecret:
+    Type: String
+    Default: ''
+    Description: Optional Secrets Manager ARN containing client_id and client_secret
+Conditions:
+  HasGoogle: !Not [!Equals [!Ref GoogleSecret, '']]
+Resources:
+  Pool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      UserPoolName: bart-site
+      UserPoolTier: LITE
+      DeletionProtection: ACTIVE
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      UsernameConfiguration:
+        CaseSensitive: false
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: admin_only
+            Priority: 1
+  Domain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub 'bart-site-${AWS::AccountId}'
+      UserPoolId: !Ref Pool
+  Google:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Condition: HasGoogle
+    Properties:
+      UserPoolId: !Ref Pool
+      ProviderName: Google
+      ProviderType: Google
+      ProviderDetails:
+        client_id: !Sub '{{resolve:secretsmanager:${GoogleSecret}:SecretString:client_id}}'
+        client_secret: !Sub '{{resolve:secretsmanager:${GoogleSecret}:SecretString:client_secret}}'
+        authorize_scopes: 'openid email profile'
+      AttributeMapping:
+        email: email
+        email_verified: email_verified
+  SiteClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref Pool
+      ClientName: bart-site-web
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: !If [HasGoogle, true, false]
+      AllowedOAuthFlows: !If [HasGoogle, [code], !Ref 'AWS::NoValue']
+      AllowedOAuthScopes: !If [HasGoogle, [openid, email, profile], !Ref 'AWS::NoValue']
+      SupportedIdentityProviders: !If [HasGoogle, [!Ref Google], [COGNITO]]
+      CallbackURLs: [https://bartconsedine.com/auth/callback]
+      LogoutURLs: [https://bartconsedine.com/login]
+      ExplicitAuthFlows: [ALLOW_REFRESH_TOKEN_AUTH]
+      IdTokenValidity: 15
+      AccessTokenValidity: 15
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        IdToken: minutes
+        AccessToken: minutes
+        RefreshToken: days
+      EnableTokenRevocation: true
+      PreventUserExistenceErrors: ENABLED
+Outputs:
+  PoolId:
+    Value: !Ref Pool
+  GoogleRedirect:
+    Value: !Sub 'https://${Domain}.auth.${AWS::Region}.amazoncognito.com/oauth2/idpresponse'
+  ClientId:
+    Value: !Ref SiteClient
