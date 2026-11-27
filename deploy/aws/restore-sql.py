@@ -49,19 +49,30 @@ def restore(archive, fixture):
         toc.flush()
         print("""BEGIN;
 DO $guard$
+DECLARE
+  auth_table regclass;
+  occupied boolean;
 BEGIN
   IF current_setting('bartsite.restore_target', true) IS DISTINCT FROM 'aws-lightsail'
+     OR current_setting('bartsite.operator_active', true) = 'on'
      OR current_database() <> 'postgres'
      OR to_regnamespace('private') IS NOT NULL
      OR to_regnamespace('supabase_migrations') IS NOT NULL
-     OR EXISTS (SELECT 1 FROM pg_tables WHERE schemaname='public')
-     OR EXISTS (SELECT 1 FROM auth.users) THEN
+     OR EXISTS (SELECT 1 FROM pg_tables WHERE schemaname='public') THEN
     RAISE EXCEPTION 'Requires a fresh initialized AWS website database';
   END IF;
+  FOR auth_table IN
+    SELECT c.oid::regclass FROM pg_class c
+    WHERE c.relnamespace='auth'::regnamespace AND c.relkind IN ('r','p')
+      AND c.relname <> 'schema_migrations'
+  LOOP
+    EXECUTE format('SELECT EXISTS (SELECT 1 FROM %s)', auth_table) INTO occupied;
+    IF occupied THEN RAISE EXCEPTION 'Destination Auth schema already holds records'; END IF;
+  END LOOP;
 END
 $guard$;
 SET LOCAL session_replication_role = replica;""", flush=True)
-        subprocess.run(["pg_restore", "--use-list", toc.name, "--file=-", archive], check=True)
+        subprocess.run(["pg_restore", "--use-set-session-authorization", "--use-list", toc.name, "--file=-", archive], check=True)
         # A failed producer closes the psql input with this transaction uncommitted.
         print("COMMIT;")
 

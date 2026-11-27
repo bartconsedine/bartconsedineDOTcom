@@ -78,4 +78,4 @@ TMPDIR="$work" PATH="$work:$PATH" python3 deploy/aws/restore-sql.py --fixture "$
 "${target[@]}" < deploy/aws/compare.sql > "$work/after"
 "${compose[@]}" exec -T db psql -XqAt -v ON_ERROR_STOP=1 -U supabase_admin -d postgres \
   < deploy/aws/compare.sql > "$work/before"
-cmp "$work/before" "$work/after"
+diff -u "$work/before" "$work/after"
