@@ -4,10 +4,27 @@ import { authReturnPath } from '../src/lib/auth-return.js';
 const require=createRequire(import.meta.url),{transformSync}=require('next/dist/compiled/babel/core');
 function load(file,mocks){const{code}=transformSync(readFileSync(new URL('../src/'+file,import.meta.url),'utf8'),{babelrc:false,configFile:false,plugins:[require('next/dist/compiled/babel/plugin-transform-modules-commonjs')]});const module={exports:{}};runInNewContext(code,{module,exports:module.exports,URL,Response,require:id=>{if(id in mocks)return mocks[id];if(id==='@/lib/cognito-client')return {};if(id==='@/lib/cognito-oauth')return cognitoOAuth;throw Error('Unexpected dependency '+id);}});return module.exports;}
 const origin='https://bartconsedine.com',next='/auth/robot-party/authorize?state=opaque&client_id=https%3A%2F%2Fchatgpt.com%2Foauth%2Fclient.json';
+test('login allows a same-origin form submit while OAuth callbacks suppress referrers', async () => {
+  const { proxy } = load('proxy.js', {
+    '@supabase/ssr': {},
+    './lib/cognito-oauth': cognitoOAuth,
+    'next/server': { NextResponse: { next: () => new Response() } },
+    './lib/auth-config': { authConfig: () => ({ cognito: {} }) },
+  });
+  const cookies = { get: () => undefined };
+  const login = await proxy({ nextUrl: new URL(origin + '/login?state=unauthenticated'), cookies });
+  assert.equal(login.headers.get('referrer-policy'), 'same-origin');
+  assert.match(login.headers.get('cache-control'), /no-store/);
+  for (const path of ['/auth/callback', '/auth/qr/relay', '/api/admin/apps']) {
+    const protectedResponse = await proxy({ nextUrl: new URL(origin + path), cookies });
+    assert.equal(protectedResponse.headers.get('referrer-policy'), 'no-referrer');
+  }
+});
 test('Google sign-in retains only the allowed dot-consent continuation and still enforces exact-origin POST',async()=>{
  let source=origin,options;const saved=new Map();const jar={set:(key,value)=>saved.set(key,value),delete:key=>saved.delete(key)};const actions=load('app/login/actions.js',{'@/lib/login-return':{loginReturn,LOGIN_RETURN_COOKIE},'next/headers':{cookies:async()=>jar,headers:async()=>new Headers({origin:source})},'next/navigation':{redirect:target=>{throw Error(target);}},'@/lib/auth-config':{authConfig:()=>({siteUrl:origin}),cookieOptions:{httpOnly:true,sameSite:'lax',secure:true,path:'/'}},'@/lib/supabase':{serverClient:async()=>({auth:{signInWithOAuth:async input=>{options=input.options;return{data:{url:'https://accounts.google.com/synthetic-login'}};}}})}});
  const form=new FormData();form.set('next',next);await assert.rejects(actions.signInWithGoogle(form),/accounts.google.com/);assert.equal(options.redirectTo,origin+'/auth/callback');assert.equal(saved.get(LOGIN_RETURN_COOKIE),next);
  form.set('next','https://evil.example');await assert.rejects(actions.signInWithGoogle(form),/accounts.google.com/);assert.equal(options.redirectTo,origin+'/auth/callback');assert.equal(saved.has(LOGIN_RETURN_COOKIE),false);source='https://evil.example';await assert.rejects(actions.signInWithGoogle(form),/state=unavailable/);
+ source='null';await assert.rejects(actions.signInWithGoogle(form),/state=unavailable/);
 });
 test('verified Google callback returns to dot consent; external next and unapproved sessions cannot redirect into it',async()=>{
  let allowed=true,signedOut=0,continuation=next,calendarReturn='';const jar={get:key=>({value:key==='bc-calendar-return'?calendarReturn:continuation}),delete:()=>{},set:()=>{}};const route=load('app/auth/callback/route.js',{'@/lib/auth-return':{authReturnPath},'@/lib/login-return':{loginReturn,LOGIN_RETURN_COOKIE},'next/headers':{cookies:async()=>jar},'next/server':{NextResponse:{redirect:url=>new Response(null,{status:307,headers:{Location:url.href}})}},'@/lib/auth-config':{authConfig:()=>({siteUrl:origin}),cookieOptions:{httpOnly:true,sameSite:'lax',secure:true,path:'/'}},'@/lib/supabase':{serverClient:async()=>({auth:{exchangeCodeForSession:async()=>({}),signOut:async()=>{signedOut++;}}})},'@/lib/workspace-policy':{verifyWorkspace:async()=>allowed?{ok:true}:{ok:false,reason:'forbidden'}}});
