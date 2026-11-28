@@ -34,7 +34,8 @@ export async function proxy(request) {
   }
   response.headers.set('Cache-Control', 'private, no-store, max-age=0');
   response.headers.set('Pragma', 'no-cache');
-  response.headers.set('Referrer-Policy','no-referrer');
+  // Native login form submissions need their same-origin Origin header.
+  response.headers.set('Referrer-Policy', request.nextUrl.pathname === '/login' ? 'same-origin' : 'no-referrer');
   return response;
 }
 export const config = { matcher: ['/tv', '/admin/:path*', '/api/admin/:path*', '/login', '/auth/:path*'] };
